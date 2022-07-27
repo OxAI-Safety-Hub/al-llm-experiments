@@ -2,7 +2,7 @@
 # https://docs.python.org/3.10/library/abc.html
 from abc import ABC, abstractmethod
 
-class BaseInterface(ABC):
+class Interface(ABC):
     """Base interface class
     
     Parameters
@@ -59,7 +59,7 @@ class BaseInterface(ABC):
         pass
 
 
-class CLIInterface(BaseInterface):
+class CLIInterface(Interface):
     """A command line interface for obtaining labels
 
     Enumerates the categories, and asks the human to input the number

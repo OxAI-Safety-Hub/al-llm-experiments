@@ -2,7 +2,7 @@
 # https://docs.python.org/3.10/library/abc.html
 from abc import ABC, abstractmethod
 
-class BaseClassifier(ABC):
+class Classifier(ABC):
     """Base classifier class"""
 
 
@@ -42,7 +42,7 @@ class BaseClassifier(ABC):
         return None
 
 
-class DummyClassifier(BaseClassifier):
+class DummyClassifier(Classifier):
     """Dummy classifier, which does nothing"""
 
 

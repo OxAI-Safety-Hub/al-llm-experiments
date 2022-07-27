@@ -15,11 +15,11 @@ class Experiment:
         A dictionary of categories used by the classifier. The keys are the
         names of the categories as understood by the model, and the values
         are the human-readable names.
-    classifier : classifier.BaseClassifier
+    classifier : classifier.Classifier
         The classifier instance to use.
-    sample_generator : sample_generator.BaseSampleGenerator
+    sample_generator : sample_generator.SampleGenerator
         The generator which produces samples for labelling
-    interface : interface.BaseInterface
+    interface : interface.Interface
         The interface instance to use
     already_finetuned : bool, default=False
         Is the classifier already fine-tuned on the dataset?

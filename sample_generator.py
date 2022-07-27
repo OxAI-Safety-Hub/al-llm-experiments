@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 
 from random import randrange
 
-class BaseSampleGenerator(ABC):
+class SampleGenerator(ABC):
     """Base sample generator"""
 
 
@@ -19,7 +19,7 @@ class BaseSampleGenerator(ABC):
         """
         return []
 
-class DummySampleGenerator(BaseSampleGenerator):
+class DummySampleGenerator(SampleGenerator):
     """Dummy sample generator, which generates random stuff"""
 
 
