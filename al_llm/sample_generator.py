@@ -4,14 +4,14 @@ from abc import ABC, abstractmethod
 
 from random import randrange
 
+
 class SampleGenerator(ABC):
     """Base sample generator"""
-
 
     @abstractmethod
     def generate(self):
         """Generate new samples for querying
-        
+
         Returns
         -------
         samples : list
@@ -19,9 +19,9 @@ class SampleGenerator(ABC):
         """
         return []
 
+
 class DummySampleGenerator(SampleGenerator):
     """Dummy sample generator, which generates random stuff"""
-
 
     def generate(self):
         alphabet = "abcdefghijklmnopqrstuvwxyz         "

@@ -6,7 +6,7 @@ from al_llm.interface import CLIInterface
 
 class Experiment:
     """The experiment runner
-    
+
     Parameters
     ----------
     data_handler : dataset.Dataset
@@ -27,7 +27,6 @@ class Experiment:
         A dictionary of parameters to identify this experiment
     """
 
-
     def __init__(
         self,
         data_handler,
@@ -36,7 +35,7 @@ class Experiment:
         sample_generator,
         interface,
         already_finetuned=False,
-        parameters=None
+        parameters=None,
     ):
 
         # Set the instance attributes
@@ -48,10 +47,9 @@ class Experiment:
         self.already_finetuned = already_finetuned
         self.parameters = parameters
 
-
     def run(self, num_rounds=5, refresh_every=2):
         """Run the experiment
-        
+
         Parameters
         ----------
         num_rounds : int, default=100
@@ -74,7 +72,7 @@ class Experiment:
 
             # Get the labels from the human
             labels = self.interface.prompt(samples)
-            
+
             # Update the dataset
             samples_dataset = self.data_handler.new_labelled(samples, labels)
 
@@ -87,23 +85,20 @@ class Experiment:
         # End the interface
         self.interface.end()
 
-
     def _train_afresh(self):
         """Fine-tune the classifier from scratch"""
         self.interface.train_afresh()
         self.classifier.train_afresh(self.data_handler.tokenized_dataset)
-
 
     def _train_update(self, samples_dataset):
         """Fine-tune the classifier with new datapoints, without resetting"""
         self.interface.train_update()
         self.classifier.train_update(samples_dataset)
 
-
     @classmethod
     def make_dummy_experiment(self):
         """Get dummy instances to feed into the constructor
-        
+
         Returns
         -------
         dummy_args : dict
@@ -116,11 +111,7 @@ class Experiment:
         >>> experiment = Experiment(**dummy_args)
         """
 
-
-        categories = {
-            "valid": "Valid sentence",
-            "invalid": "Invalid sentence"
-        }
+        categories = {"valid": "Valid sentence", "invalid": "Invalid sentence"}
         classifier = DummyClassifier()
         data_handler = DummyDataHandler(classifier)
         sample_generator = DummySampleGenerator()
@@ -133,7 +124,7 @@ class Experiment:
             "classifier": classifier,
             "sample_generator": sample_generator,
             "interface": interface,
-            "parameters": parameters
+            "parameters": parameters,
         }
 
         return dummy_args

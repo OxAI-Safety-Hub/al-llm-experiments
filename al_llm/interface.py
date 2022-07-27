@@ -4,20 +4,20 @@ from abc import ABC, abstractmethod
 
 import textwrap
 
+
 class Interface(ABC):
     """Base interface class
-    
+
     Parameters
     ----------
     categories : dict
         A dictionary of categories used by the classifier. The keys are the
         names of the categories as understood by the model, and the values
-        are the human-readable names.    
+        are the human-readable names.
     """
 
     def __init__(self, categories):
         self.categories = categories
-
 
     def begin(self, parameters=None):
         """Initialise the interface
@@ -26,11 +26,10 @@ class Interface(ABC):
             The parameters used in this experiment"""
         pass
 
-
     @abstractmethod
     def prompt(self, samples):
         """Prompt the human for labels for the samples
-        
+
         Parameters
         ----------
         samples : list
@@ -50,7 +49,7 @@ class Interface(ABC):
 
     def begin(self, message=None, parameters=None):
         """Initialise the interface, displaying a welcome message
-        
+
         Parameters
         ----------
         message : str, optional
@@ -60,21 +59,19 @@ class Interface(ABC):
         """
         pass
 
-
     def train_afresh(self, message=None):
         """Tell the human that we're fine-tuning from scratch
-        
+
         Parameters
         ----------
         message : str, optional
             The message to display. Defaults to a generic message.
         """
         pass
-
 
     def train_update(self, message=None):
         """Tell the human that we're fine-tuning with new datapoints
-        
+
         Parameters
         ----------
         message : str, optional
@@ -82,10 +79,9 @@ class Interface(ABC):
         """
         pass
 
-
     def end(self, message=None, results=None):
         """Close the interface, displaying a goodbye message
-        
+
         Parameters
         ----------
         message : str, optional
@@ -101,7 +97,7 @@ class CLIInterface(Interface):
 
     Enumerates the categories, and asks the human to input the number
     corresponding to the appropriate category for each sample
-    
+
     Parameters
     ----------
     categories : dict
@@ -112,26 +108,24 @@ class CLIInterface(Interface):
         The width of the lines to wrap the output.
     """
 
-
     def __init__(self, categories, line_width=70):
 
         super().__init__(categories)
 
         self.line_width = line_width
 
-        self._categories_list = [(k, v) for k,v in self.categories.items()]
+        self._categories_list = [(k, v) for k, v in self.categories.items()]
         self._num_categories = len(self._categories_list)
-
 
     def begin(self, message=None, parameters=None):
 
         # Default message
         if message is None:
             message = (
-                "Welcome to the large language generative model active " 
+                "Welcome to the large language generative model active "
                 "learning experiment!"
             )
-        
+
         # Wrap the message
         text = self._wrap(message)
 
@@ -144,7 +138,6 @@ class CLIInterface(Interface):
         # Print the message
         text = self._head_text(text, initial_newline=False)
         self._output(text)
-
 
     def prompt(self, samples):
 
@@ -171,17 +164,16 @@ class CLIInterface(Interface):
             while not valid_label:
                 label_str = self._input(prompt)
                 try:
-                    label =  int(label_str)
+                    label = int(label_str)
                 except ValueError:
                     continue
                 if label >= 0 and label < self._num_categories:
                     valid_label = True
-            
+
             # Append this label
             labels.append(self._categories_list[label])
 
         return labels
-
 
     def train_afresh(self, message=None):
 
@@ -196,7 +188,6 @@ class CLIInterface(Interface):
         text = self._head_text(text)
         self._output(text)
 
-
     def train_update(self, message=None):
 
         # Default message
@@ -210,7 +201,6 @@ class CLIInterface(Interface):
         text = self._head_text(text)
         self._output(text)
 
-
     def end(self, message=None, results=None):
 
         # Default message
@@ -219,7 +209,7 @@ class CLIInterface(Interface):
 
         # Wrap the message
         text = self._wrap(message)
-        
+
         # Add any results
         if results is not None:
             results_string += f"Results: {results}"
@@ -229,21 +219,17 @@ class CLIInterface(Interface):
         text = self._head_text(text)
         self._output(text)
 
-
     def _output(self, text):
         """Output something to the CLI"""
         print(text)
-
 
     def _input(self, prompt):
         """Get some input from the CLI"""
         return input(prompt)
 
-
     def _wrap(self, text):
         """Wrap some text to the line width"""
         return textwrap.fill(text, width=self.line_width)
-
 
     def _head_text(self, message, initial_newline=True, trailing_newline=False):
         """Generate a message with horizontal rules above and below"""
@@ -254,7 +240,6 @@ class CLIInterface(Interface):
         text += message + "\n"
         text += self._horizontal_rule(trailing_newline)
         return text
-
 
     def _horizontal_rule(self, trailing_newline=True):
         """Generate a horizontal rule"""

@@ -5,12 +5,13 @@ from abc import ABC, abstractmethod
 import torch
 from torch.utils.data import TensorDataset
 
+
 class DataHandler(ABC):
     """Base class for loading and processing the data
 
     The data handler keeps track of both the raw dataset consisting of
     sentences and labels, and the tokenized version.
-    
+
     Parameters
     ----------
     classifier : classifier.Classifier
@@ -28,21 +29,19 @@ class DataHandler(ABC):
         The classifier instance which will be using the data.
     """
 
-
     def __init__(self, classifier):
         self.dataset = None
         self.tokenized_dataset = None
         self.classifier = classifier
 
-    
     def _tokenize(self, text):
         """Tokenize a string or batch of strings
-        
+
         Parameters
         ----------
         text : str or list
             The string or batch of strings to be tokenised
-        
+
         Returns
         -------
         tokenized : torch.Tensor
@@ -51,11 +50,10 @@ class DataHandler(ABC):
 
         return self.classifier.tokenize(text)
 
-    
     @abstractmethod
     def new_labelled(self, samples, labels):
         """Add new labelled samples, returning a PyTorch dataset for them
-        
+
         Parameters
         ----------
         samples : list
@@ -73,6 +71,5 @@ class DataHandler(ABC):
 
 
 class DummyDataHandler(DataHandler):
-    
     def new_labelled(self, samples, labels):
         return TensorDataset(torch.rand(100, 100))
