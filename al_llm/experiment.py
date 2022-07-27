@@ -79,9 +79,7 @@ class Experiment:
             samples_dataset = self.data_handler.new_labelled(samples, labels)
 
             # Fine-tune, resetting if necessary
-            if round == num_rounds - 1:
-                pass
-            elif (round + 1) % refresh_every == 0 and round != 0:
+            if (round + 1) % refresh_every == 0 and round != 0:
                 self._train_afresh()
             else:
                 self._train_update(samples_dataset)
