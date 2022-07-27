@@ -2,6 +2,8 @@
 # https://docs.python.org/3.10/library/abc.html
 from abc import ABC, abstractmethod
 
+import textwrap
+
 class Interface(ABC):
     """Base interface class
     
@@ -17,8 +19,11 @@ class Interface(ABC):
         self.categories = categories
 
 
-    def begin(self):
-        """Initialise the interface"""
+    def begin(self, parameters=None):
+        """Initialise the interface
+
+        parameters : dict, optional
+            The parameters used in this experiment"""
         pass
 
 
@@ -43,19 +48,51 @@ class Interface(ABC):
 
         return []
 
-
-    def train_afresh(self):
-        """Tell the human that we're fine-tuning from scratch"""
+    def begin(self, message=None, parameters=None):
+        """Initialise the interface, displaying a welcome message
+        
+        Parameters
+        ----------
+        message : str, optional
+            The welcome message to display. Defaults to a generic message.
+        parameters : dict, optional
+            The parameters used in this experiment
+        """
         pass
 
 
-    def train_update(self):
-        """Tell the human that we're fine-tuning with new datapoints"""
+    def train_afresh(self, message=None):
+        """Tell the human that we're fine-tuning from scratch
+        
+        Parameters
+        ----------
+        message : str, optional
+            The message to display. Defaults to a generic message.
+        """
         pass
 
 
-    def end(self):
-        """Close the interface at the end of the experiment"""
+    def train_update(self, message=None):
+        """Tell the human that we're fine-tuning with new datapoints
+        
+        Parameters
+        ----------
+        message : str, optional
+            The message to display. Defaults to a generic message.
+        """
+        pass
+
+
+    def end(self, message=None, results=None):
+        """Close the interface, displaying a goodbye message
+        
+        Parameters
+        ----------
+        message : str, optional
+            The goodbye message to display. Defaults to a generic message.
+        results : any, optional
+            Any results that should be displayed to the human.
+        """
         pass
 
 
@@ -71,25 +108,22 @@ class CLIInterface(Interface):
         A dictionary of categories used by the classifier. The keys are the
         names of the categories as understood by the model, and the values
         are the human-readable names.
+    line_width : int
+        The width of the lines to wrap the output.
     """
 
 
-    def __init__(self, categories):
+    def __init__(self, categories, line_width=70):
+
         super().__init__(categories)
+
+        self.line_width = line_width
+
         self._categories_list = [(k, v) for k,v in self.categories.items()]
         self._num_categories = len(self._categories_list)
 
 
     def begin(self, message=None, parameters=None):
-        """Initialise the interface, displaying a welcome message
-        
-        Parameters
-        ----------
-        message : str, optional
-            The welcome message to display. Defaults to a generic message.
-        parameters : dict, optional
-            The parameters used in this experiment
-        """
 
         # Default message
         if message is None:
@@ -98,11 +132,18 @@ class CLIInterface(Interface):
                 "learning experiment!"
             )
         
-        # Compose the message and display it in a box
-        text = message
+        # Wrap the message
+        text = self._wrap(message)
+
+        # Add the parameters if available
         if parameters is not None:
-            text += f"\nParameters: {parameters}"
-        self._head_text(text, initial_gap=False)
+            text += "\n" + self._horizontal_rule()
+            parameter_string = f"Parameters: {parameters}"
+            text += self._wrap(parameter_string)
+
+        # Print the message
+        text = self._head_text(text, initial_newline=False)
+        self._output(text)
 
 
     def prompt(self, samples):
@@ -114,18 +155,21 @@ class CLIInterface(Interface):
         # Loop over all the samples for which we need a label
         for sample in samples:
 
-            # Print the sample, plus the category selection
-            print()
-            print(f"{sample!r}")
-            print("How would you classify this?")
+            # Build the message with the sample plus the category selection
+            text = "\n"
+            text += self._wrap(f"{sample!r}") + "\n"
+            text += self._wrap("How would you classify this?") + "\n"
             for i, (cat_name, cat_human) in enumerate(self._categories_list):
-                print(f"[{i}] {cat_human}")
+                text += self._wrap(f"[{i}] {cat_human}") + "\n"
+
+            # Print the message
+            self._output(text)
 
             # Keep asking the user for a label until they give a valid one
-            prompt = f"Enter a number (0-{self._num_categories-1}):"
+            prompt = self._wrap(f"Enter a number (0-{self._num_categories-1}):")
             valid_label = False
             while not valid_label:
-                label_str = input(prompt)
+                label_str = self._input(prompt)
                 try:
                     label =  int(label_str)
                 except ValueError:
@@ -140,65 +184,81 @@ class CLIInterface(Interface):
 
 
     def train_afresh(self, message=None):
-        """Tell the human that we're fine-tuning from scratch
-        
-        Parameters
-        ----------
-        message : str, optional
-            The message to display. Defaults to a generic message.
-        """
 
         # Default message
         if message is None:
             message = "Fine-tuning from scratch. This may take a while..."
 
+        # Wrap the message
+        text = self._wrap(message)
+
         # Print the message
-        self._head_text(message)
+        text = self._head_text(text)
+        self._output(text)
 
 
-    def train_afresh(self, message=None):
-        """Tell the human that we're fine-tuning from scratch
-        
-        Parameters
-        ----------
-        message : str, optional
-            The message to display. Defaults to a generic message.
-        """
+    def train_update(self, message=None):
 
         # Default message
         if message is None:
             message = "Fine-tuning with new datapoints..."
 
+        # Wrap the message
+        text = self._wrap(message)
+
         # Print the message
-        self._head_text(message)
+        text = self._head_text(text)
+        self._output(text)
 
 
     def end(self, message=None, results=None):
-        """Initialise the interface, displaying a goodbye message
-        
-        Parameters
-        ----------
-        message : str, optional
-            The goodbye message to display. Defaults to a generic message.
-        results : any, optional
-            Any results that should be displayed to the human.
-        """
 
         # Default message
         if message is None:
             message = "Thank you for participating!"
+
+        # Wrap the message
+        text = self._wrap(message)
         
-        # Compose the message and display it in a box
-        text = message
+        # Add any results
         if results is not None:
-            text += f"\Results: {results}"
-        self._head_text(text)
+            results_string += f"Results: {results}"
+            text += "\n" + self._wrap(results_string)
+
+        # Print the message
+        text = self._head_text(text)
+        self._output(text)
 
 
-    def _head_text(self, text, initial_gap=True):
-        # Display a message with horizontal rules above and below
-        if initial_gap:
-            print()
-        print("------------------------------------------------------------")
+    def _output(self, text):
+        """Output something to the CLI"""
         print(text)
-        print("------------------------------------------------------------")
+
+
+    def _input(self, prompt):
+        """Get some input from the CLI"""
+        return input(prompt)
+
+
+    def _wrap(self, text):
+        """Wrap some text to the line width"""
+        return textwrap.fill(text, width=self.line_width)
+
+
+    def _head_text(self, message, initial_newline=True, trailing_newline=False):
+        """Generate a message with horizontal rules above and below"""
+        text = ""
+        if initial_newline:
+            text += "\n"
+        text += self._horizontal_rule()
+        text += message + "\n"
+        text += self._horizontal_rule(trailing_newline)
+        return text
+
+
+    def _horizontal_rule(self, trailing_newline=True):
+        """Generate a horizontal rule"""
+        text = "-" * self.line_width
+        if trailing_newline:
+            text += "\n"
+        return text

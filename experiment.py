@@ -23,6 +23,8 @@ class Experiment:
         The interface instance to use
     already_finetuned : bool, default=False
         Is the classifier already fine-tuned on the dataset?
+    parameters : dict, optional
+        A dictionary of parameters to identify this experiment
     """
 
 
@@ -33,7 +35,8 @@ class Experiment:
         classifier,
         sample_generator,
         interface,
-        already_finetuned=False
+        already_finetuned=False,
+        parameters=None
     ):
 
         # Set the instance attributes
@@ -43,6 +46,7 @@ class Experiment:
         self.sample_generator = sample_generator
         self.interface = interface
         self.already_finetuned = already_finetuned
+        self.parameters = parameters
 
 
     def run(self, num_rounds=5, refresh_every=2):
@@ -57,7 +61,7 @@ class Experiment:
         """
 
         # Start the interface
-        self.interface.begin()
+        self.interface.begin(parameters=self.parameters)
 
         # Fine-tune the classifier on the dataset, if necessary
         if not self.already_finetuned:
@@ -75,7 +79,9 @@ class Experiment:
             samples_dataset = self.data_handler.new_labelled(samples, labels)
 
             # Fine-tune, resetting if necessary
-            if (round + 1) % refresh_every == 0 and round != 0:
+            if round == num_rounds - 1:
+                pass
+            elif (round + 1) % refresh_every == 0 and round != 0:
                 self._train_afresh()
             else:
                 self._train_update(samples_dataset)
@@ -85,15 +91,13 @@ class Experiment:
 
 
     def _train_afresh(self):
-        # Fine-tune the classifier from scratch
-        self.interface.train_afresh(
-            "Training the classifier. This may take a while..."
-        )
-        self.classifier.train_afresh(self.data_handler.tokenized)
+        """Fine-tune the classifier from scratch"""
+        self.interface.train_afresh()
+        self.classifier.train_afresh(self.data_handler.tokenized_dataset)
 
 
     def _train_update(self, samples_dataset):
-        # Fine-tune the classifier with new datapoints, without resetting
+        """Fine-tune the classifier with new datapoints, without resetting"""
         self.interface.train_update()
         self.classifier.train_update(samples_dataset)
 
@@ -115,23 +119,23 @@ class Experiment:
         """
 
 
-        data_handler = DummyDataHandler()
         categories = {
             "valid": "Valid sentence",
             "invalid": "Invalid sentence"
         }
         classifier = DummyClassifier()
+        data_handler = DummyDataHandler(classifier)
         sample_generator = DummySampleGenerator()
         interface = CLIInterface(categories)
-
-        data_handler.register_tokenizer(classifier.tokenize)
+        parameters = {"is_dummy": True}
 
         dummy_args = {
             "data_handler": data_handler,
             "categories": categories,
             "classifier": classifier,
             "sample_generator": sample_generator,
-            "interface": interface
+            "interface": interface,
+            "parameters": parameters
         }
 
         return dummy_args

@@ -6,24 +6,33 @@ import torch
 from torch.utils.data import TensorDataset
 
 class DataHandler(ABC):
-    """Base class for loading and processing the data"""
+    """Base class for loading and processing the data
+
+    The data handler keeps track of both the raw dataset consisting of
+    sentences and labels, and the tokenized version.
+    
+    Parameters
+    ----------
+    classifier : classifier.Classifier
+        The classifier instance which will be using the data. We will use this
+        to know how to tokenize the data.
+
+    Attributes
+    ----------
+    dataset : dataset.Dataset
+        The raw dataset consisting of labelled sentences, as a Hugging Face
+        Dataset.
+    tokenized_dataset : torch.utils.data.Dataset
+        The tokenized dataset, as a PyTorch dataset.
+    classifier : classifier.Classifier
+        The classifier instance which will be using the data.
+    """
 
 
-    def __init__(self):
+    def __init__(self, classifier):
         self.dataset = None
-        self.tokenized = None
-        self.tokenizer = None
-
-    def register_tokenizer(self, tokenizer):
-        """Register a tokeniser for the data
-        
-        Parameters
-        ----------
-        tokenizer : function
-            A function which takes a string or a batch of strings and
-            tokenises them into PyTorch tensors
-        """
-        self.tokenizer = tokenizer
+        self.tokenized_dataset = None
+        self.classifier = classifier
 
     
     def _tokenize(self, text):
@@ -40,10 +49,7 @@ class DataHandler(ABC):
             The result of tokenizing `text`
         """
 
-        if self.tokenizer is None:
-            raise RuntimeError("Tokenizer not registered")
-
-        return self.tokenizer(text)
+        return self.classifier.tokenize(text)
 
     
     @abstractmethod
