@@ -1,7 +1,7 @@
-from data_handler import DummyDataHandler
-from classifier import DummyClassifier
-from sample_generator import DummySampleGenerator
-from interface import CLIInterface
+from al_llm.data_handler import DummyDataHandler
+from al_llm.classifier import DummyClassifier
+from al_llm.sample_generator import DummySampleGenerator
+from al_llm.interface import CLIInterface
 
 
 class Experiment:
