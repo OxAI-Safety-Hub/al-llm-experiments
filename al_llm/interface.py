@@ -19,13 +19,6 @@ class Interface(ABC):
     def __init__(self, categories):
         self.categories = categories
 
-    def begin(self, parameters=None):
-        """Initialise the interface
-
-        parameters : dict, optional
-            The parameters used in this experiment"""
-        pass
-
     @abstractmethod
     def prompt(self, samples):
         """Prompt the human for labels for the samples
@@ -212,7 +205,7 @@ class CLIInterface(Interface):
 
         # Add any results
         if results is not None:
-            results_string += f"Results: {results}"
+            results_string = f"Results: {results}"
             text += "\n" + self._wrap(results_string)
 
         # Print the message
