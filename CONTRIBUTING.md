@@ -1,8 +1,8 @@
 Guide to contributing code
 ==========================
 
-First steps
------------
+Initial setup
+-------------
 
 - Clone the repo:
 ```
