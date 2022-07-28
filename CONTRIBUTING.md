@@ -4,16 +4,9 @@ Guide to contributing code
 Initial setup
 -------------
 
-- Fork the repo.
-
-- Clone your fork:
+- Clone the repo:
 ```
-git clone git@github.com:USERNAME/al-llm-experiments.git
-```
-
-- Add the the upstream remote:
-```
-git remote add upstream git@github.com:OxAI-Safety-Hub/al-llm-experiments.git
+git clone git@github.com:OxAI-Safety-Hub/al-llm-experiments.git
 ```
 
 - Create a Python virtual environment.
@@ -27,11 +20,13 @@ pip install -r requirements.txt
 Contributing a pull request
 ---------------------------
 
-- Synchronise your `main` branch `upstream/main`:
+- IMPORTANT: Never push to `main`. Always make any changes on a separate branch.
+
+- Synchronise your `main` branch `origin/main`:
 ```
 git checkout main
-git fetch upstream
-git merge upstream/main
+git fetch origin
+git merge origin/main
 ```
 
 - Create a new branch for your feature:
@@ -57,11 +52,11 @@ git add files
 git commit -m "Commit message"
 ```
 
-- Synchronise your `main` branch `upstream/main` again:
+- Synchronise your `main` branch `origin/main` again:
 ```
 git checkout main
-git fetch upstream
-git merge upstream/main
+git fetch origin
+git merge origin/main
 ```
 
 - Go back to your feature branch:
@@ -74,7 +69,7 @@ git checkout new_feature
 git merge main
 ```
 
-- Push your branch to your fork on GitHub:
+- Push your branch to GitHub:
 ```
 git push origin new_feature
 ```
