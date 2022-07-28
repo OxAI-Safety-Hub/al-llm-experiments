@@ -5,6 +5,8 @@ from abc import ABC, abstractmethod
 import torch
 from torch.utils.data import TensorDataset
 
+import datasets
+
 
 class DataHandler(ABC):
     """Base class for loading and processing the data
@@ -71,5 +73,37 @@ class DataHandler(ABC):
 
 
 class DummyDataHandler(DataHandler):
+    def new_labelled(self, samples, labels):
+        return TensorDataset(torch.rand(100, 100))
+
+
+class HuggingFaceDataHandler(DataHandler):
+    """A data handler for Hugging Face Datasets
+
+    The data handler keeps track of both the raw dataset consisting of
+    sentences and labels, and the tokenized version.
+
+    Parameters
+    ----------
+    dataset_name : str
+        The name of the Hugging Face Dataset
+    classifier : classifier.Classifier
+        The classifier instance which will be using the data. We will use this
+        to know how to tokenize the data.
+
+    Attributes
+    ----------
+    dataset : dataset.Dataset
+        The raw dataset consisting of labelled sentences, as a Hugging Face
+        Dataset.
+    tokenized_dataset : torch.utils.data.Dataset
+        The tokenized dataset, as a PyTorch dataset.
+    classifier : classifier.Classifier
+        The classifier instance which will be using the data.
+    """
+
+    def __init__(self, dataset_name, classifier):
+        pass
+
     def new_labelled(self, samples, labels):
         return TensorDataset(torch.rand(100, 100))
