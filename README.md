@@ -6,6 +6,10 @@
 - Run [`dummy_test.py`](/dummy_test.py).
 
 
+## Using the library in Colab
+
+- To use the library in Colab, follow the [instructions in the `notebooks` folder](/notebooks/README.md).
+
 
 ## Contributing
 See the [Guide to contributing code](/CONTRIBUTING.md).
