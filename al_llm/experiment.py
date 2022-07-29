@@ -9,7 +9,7 @@ class Experiment:
 
     Parameters
     ----------
-    data_handler : dataset.Dataset
+    data_handler : DataHandler
         The starting dataset of labelled samples
     categories : dict
         A dictionary of categories used by the classifier. The keys are the
