@@ -46,6 +46,11 @@ black .
 flake8 .
 ```
 
+- Run the tests for assurance that you haven't broken anything
+```
+python -m pytest
+```
+
 - Commit your changes:
 ```
 git add files
