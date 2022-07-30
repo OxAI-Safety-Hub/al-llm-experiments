@@ -42,8 +42,10 @@ class DataHandler(ABC):
         The classifier instance which will be using the data.
     """
 
-    def __init__(self, classifier: Classifier, parameters: dict):
-        self.dataset = None
+    def __init__(self, classifier, parameters):
+        self.dataset_train = None
+        self.dataset_validation = None
+        self.dataset_test = None
         self.tokenized_dataset = None
         self.classifier = classifier
         self.parameters = parameters
