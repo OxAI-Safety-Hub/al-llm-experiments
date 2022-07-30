@@ -101,7 +101,7 @@ class CLIInterface(Interface):
         The width of the lines to wrap the output.
     """
 
-    def __init__(self, categories, line_width=70):
+    def __init__(self, categories, *, line_width=70):
 
         super().__init__(categories)
 
@@ -122,7 +122,7 @@ class CLIInterface(Interface):
         # Wrap the message
         text = self._wrap(message)
 
-        # Add the parameters if available
+        # Add the parameters
         if parameters is not None:
             text += "\n" + self._horizontal_rule()
             parameter_string = f"Parameters: {parameters}"
