@@ -19,6 +19,8 @@ class DataHandler(ABC):
     classifier : classifier.Classifier
         The classifier instance which will be using the data. We will use this
         to know how to tokenize the data.
+    parameters : dict
+        The dictionary of parameters for the present experiment
 
     Attributes
     ----------
@@ -31,10 +33,11 @@ class DataHandler(ABC):
         The classifier instance which will be using the data.
     """
 
-    def __init__(self, classifier):
+    def __init__(self, classifier, parameters):
         self.dataset = None
         self.tokenized_dataset = None
         self.classifier = classifier
+        self.parameters = parameters
 
     def _tokenize(self, text):
         """Tokenize a string or batch of strings
@@ -102,7 +105,7 @@ class HuggingFaceDataHandler(DataHandler):
         The classifier instance which will be using the data.
     """
 
-    def __init__(self, dataset_name, classifier):
+    def __init__(self, dataset_name, classifier, parameters):
         pass
 
     def new_labelled(self, samples, labels):

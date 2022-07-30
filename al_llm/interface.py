@@ -14,10 +14,13 @@ class Interface(ABC):
         A dictionary of categories used by the classifier. The keys are the
         names of the categories as understood by the model, and the values
         are the human-readable names.
+    parameters : dict
+        The dictionary of parameters for the present experiment
     """
 
-    def __init__(self, categories):
+    def __init__(self, categories, parameters):
         self.categories = categories
+        self.parameters = parameters
 
     @abstractmethod
     def prompt(self, samples):
@@ -101,16 +104,16 @@ class CLIInterface(Interface):
         The width of the lines to wrap the output.
     """
 
-    def __init__(self, categories, line_width=70):
+    def __init__(self, categories, parameters, *, line_width=70):
 
-        super().__init__(categories)
+        super().__init__(categories, parameters)
 
         self.line_width = line_width
 
         self._categories_list = [(k, v) for k, v in self.categories.items()]
         self._num_categories = len(self._categories_list)
 
-    def begin(self, message=None, parameters=None):
+    def begin(self, message=None):
 
         # Default message
         if message is None:
@@ -122,11 +125,10 @@ class CLIInterface(Interface):
         # Wrap the message
         text = self._wrap(message)
 
-        # Add the parameters if available
-        if parameters is not None:
-            text += "\n" + self._horizontal_rule()
-            parameter_string = f"Parameters: {parameters}"
-            text += self._wrap(parameter_string)
+        # Add the parameters
+        text += "\n" + self._horizontal_rule()
+        parameter_string = f"Parameters: {self.parameters}"
+        text += self._wrap(parameter_string)
 
         # Print the message
         text = self._head_text(text, initial_newline=False)

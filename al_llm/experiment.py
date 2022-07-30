@@ -111,12 +111,12 @@ class Experiment:
         >>> experiment = Experiment(**dummy_args)
         """
 
-        categories = {"valid": "Valid sentence", "invalid": "Invalid sentence"}
-        classifier = DummyClassifier()
-        data_handler = DummyDataHandler(classifier)
-        sample_generator = DummySampleGenerator()
-        interface = CLIInterface(categories)
         parameters = {"is_dummy": True}
+        categories = {"valid": "Valid sentence", "invalid": "Invalid sentence"}
+        classifier = DummyClassifier(parameters)
+        data_handler = DummyDataHandler(classifier, parameters)
+        sample_generator = DummySampleGenerator(parameters)
+        interface = CLIInterface(categories, parameters)
 
         dummy_args = {
             "data_handler": data_handler,

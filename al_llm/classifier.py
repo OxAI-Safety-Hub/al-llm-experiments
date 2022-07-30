@@ -4,7 +4,16 @@ from abc import ABC, abstractmethod
 
 
 class Classifier(ABC):
-    """Base classifier class"""
+    """Base classifier class
+
+    Parameters
+    ----------
+    parameters : dict
+        The dictionary of parameters for the present experiment
+    """
+
+    def __init__(self, parameters):
+        self.parameters = parameters
 
     @abstractmethod
     def train_afresh(self, dataset):

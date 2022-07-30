@@ -6,7 +6,16 @@ from random import randrange
 
 
 class SampleGenerator(ABC):
-    """Base sample generator"""
+    """Base sample generator
+
+    Parameters
+    ----------
+    parameters : dict
+        The dictionary of parameters for the present experiment
+    """
+
+    def __init__(self, parameters):
+        self.parameters = parameters
 
     @abstractmethod
     def generate(self):
