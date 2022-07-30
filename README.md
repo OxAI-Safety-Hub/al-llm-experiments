@@ -3,7 +3,7 @@
 ## Try it out
 
 - Follow the First steps in the [Guide to contributing code](/CONTRIBUTING.md).
-- Run [`dummy_test.py`](/dummy_test.py).
+- Run [`dummy_experiment.py`](/dummy_experiment.py).
 
 
 ## Using the library in Colab
