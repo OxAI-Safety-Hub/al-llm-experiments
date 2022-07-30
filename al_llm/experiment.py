@@ -116,7 +116,7 @@ class Experiment:
         classifier = DummyClassifier(parameters)
         data_handler = DummyDataHandler(classifier, parameters)
         sample_generator = DummySampleGenerator(parameters)
-        interface = CLIInterface(categories, parameters)
+        interface = CLIInterface(categories)
 
         dummy_args = {
             "data_handler": data_handler,
