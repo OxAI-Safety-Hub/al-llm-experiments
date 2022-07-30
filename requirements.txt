@@ -5,6 +5,7 @@ datasets
 
 # Formatting and linting
 black
+black[jupyter]
 flake8
 
 # Testing
