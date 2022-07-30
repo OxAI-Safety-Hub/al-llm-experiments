@@ -7,7 +7,7 @@ from al_llm.experiment import Experiment
 class ZeroStringIO(io.TextIOBase):
     """Simple I/O stream which returns infinite lines of '0'"""
 
-    def readline(size=-1, /):
+    def readline(size=-1):
         return "0"
 
 

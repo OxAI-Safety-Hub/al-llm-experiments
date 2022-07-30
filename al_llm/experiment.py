@@ -1,7 +1,13 @@
-from al_llm.data_handler import DummyDataHandler
-from al_llm.classifier import DummyClassifier
-from al_llm.sample_generator import DummySampleGenerator
-from al_llm.interface import CLIInterface
+from typing import Union
+
+import torch
+
+import datasets
+
+from al_llm.data_handler import DataHandler, DummyDataHandler
+from al_llm.classifier import Classifier, DummyClassifier
+from al_llm.sample_generator import SampleGenerator, DummySampleGenerator
+from al_llm.interface import Interface, CLIInterface
 
 
 class Experiment:
@@ -21,21 +27,21 @@ class Experiment:
         The generator which produces samples for labelling
     interface : Interface
         The interface instance to use
+    parameters : dict
+        A dictionary of parameters to identify this experiment
     already_finetuned : bool, default=False
         Is the classifier already fine-tuned on the dataset?
-    parameters : dict, optional
-        A dictionary of parameters to identify this experiment
     """
 
     def __init__(
         self,
-        data_handler,
-        categories,
-        classifier,
-        sample_generator,
-        interface,
-        already_finetuned=False,
-        parameters=None,
+        data_handler: DataHandler,
+        categories: dict,
+        classifier: Classifier,
+        sample_generator: SampleGenerator,
+        interface: Interface,
+        parameters: dict,
+        already_finetuned: bool = False,
     ):
 
         # Set the instance attributes
@@ -47,7 +53,7 @@ class Experiment:
         self.already_finetuned = already_finetuned
         self.parameters = parameters
 
-    def run(self, num_rounds=5, refresh_every=2):
+    def run(self, num_rounds: int = 5, refresh_every: int = 2):
         """Run the experiment
 
         Parameters
@@ -90,7 +96,9 @@ class Experiment:
         self.interface.train_afresh()
         self.classifier.train_afresh(self.data_handler.tokenized_dataset)
 
-    def _train_update(self, samples_dataset):
+    def _train_update(
+        self, samples_dataset: Union[datasets.Dataset, torch.utils.data.Dataset]
+    ):
         """Fine-tune the classifier with new datapoints, without resetting"""
         self.interface.train_update()
         self.classifier.train_update(samples_dataset)

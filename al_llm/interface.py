@@ -1,6 +1,7 @@
 # The python abc module for making abstract base classes
 # https://docs.python.org/3.10/library/abc.html
 from abc import ABC, abstractmethod
+from typing import Any
 
 import textwrap
 
@@ -16,11 +17,11 @@ class Interface(ABC):
         are the human-readable names.
     """
 
-    def __init__(self, categories):
+    def __init__(self, categories: dict):
         self.categories = categories
 
     @abstractmethod
-    def prompt(self, samples):
+    def prompt(self, samples: list) -> list:
         """Prompt the human for labels for the samples
 
         Parameters
@@ -34,13 +35,9 @@ class Interface(ABC):
             A list of labels, one for each element in `samples`
         """
 
-        # Make sure that we have a list of samples
-        if not isinstance(samples, list):
-            raise TypeError("Parameter `samples` must be a list")
-
         return []
 
-    def begin(self, message=None, parameters=None):
+    def begin(self, message: str = None, parameters: dict = None):
         """Initialise the interface, displaying a welcome message
 
         Parameters
@@ -52,7 +49,7 @@ class Interface(ABC):
         """
         pass
 
-    def train_afresh(self, message=None):
+    def train_afresh(self, message: str = None):
         """Tell the human that we're fine-tuning from scratch
 
         Parameters
@@ -62,7 +59,7 @@ class Interface(ABC):
         """
         pass
 
-    def train_update(self, message=None):
+    def train_update(self, message: str = None):
         """Tell the human that we're fine-tuning with new datapoints
 
         Parameters
@@ -72,7 +69,7 @@ class Interface(ABC):
         """
         pass
 
-    def end(self, message=None, results=None):
+    def end(self, message: str = None, results: Any = None):
         """Close the interface, displaying a goodbye message
 
         Parameters
@@ -101,7 +98,7 @@ class CLIInterface(Interface):
         The width of the lines to wrap the output.
     """
 
-    def __init__(self, categories, *, line_width=70):
+    def __init__(self, categories: dict, *, line_width: int = 70):
 
         super().__init__(categories)
 
@@ -110,7 +107,7 @@ class CLIInterface(Interface):
         self._categories_list = [(k, v) for k, v in self.categories.items()]
         self._num_categories = len(self._categories_list)
 
-    def begin(self, message=None, parameters=None):
+    def begin(self, message: str = None, parameters: dict = None):
 
         # Default message
         if message is None:
@@ -132,7 +129,7 @@ class CLIInterface(Interface):
         text = self._head_text(text, initial_newline=False)
         self._output(text)
 
-    def prompt(self, samples):
+    def prompt(self, samples: list) -> list:
 
         super().prompt(samples)
 
@@ -168,7 +165,7 @@ class CLIInterface(Interface):
 
         return labels
 
-    def train_afresh(self, message=None):
+    def train_afresh(self, message: str = None):
 
         # Default message
         if message is None:
@@ -181,7 +178,7 @@ class CLIInterface(Interface):
         text = self._head_text(text)
         self._output(text)
 
-    def train_update(self, message=None):
+    def train_update(self, message: str = None):
 
         # Default message
         if message is None:
@@ -194,7 +191,7 @@ class CLIInterface(Interface):
         text = self._head_text(text)
         self._output(text)
 
-    def end(self, message=None, results=None):
+    def end(self, message: str = None, results: Any = None):
 
         # Default message
         if message is None:
@@ -212,19 +209,21 @@ class CLIInterface(Interface):
         text = self._head_text(text)
         self._output(text)
 
-    def _output(self, text):
+    def _output(self, text: str):
         """Output something to the CLI"""
         print(text)
 
-    def _input(self, prompt):
+    def _input(self, prompt: str) -> str:
         """Get some input from the CLI"""
         return input(prompt)
 
-    def _wrap(self, text):
+    def _wrap(self, text: str) -> str:
         """Wrap some text to the line width"""
         return textwrap.fill(text, width=self.line_width)
 
-    def _head_text(self, message, initial_newline=True, trailing_newline=False):
+    def _head_text(
+        self, message: str, initial_newline: bool = True, trailing_newline: bool = False
+    ) -> str:
         """Generate a message with horizontal rules above and below"""
         text = ""
         if initial_newline:
@@ -234,7 +233,7 @@ class CLIInterface(Interface):
         text += self._horizontal_rule(trailing_newline)
         return text
 
-    def _horizontal_rule(self, trailing_newline=True):
+    def _horizontal_rule(self, trailing_newline: bool = True) -> str:
         """Generate a horizontal rule"""
         text = "-" * self.line_width
         if trailing_newline:
