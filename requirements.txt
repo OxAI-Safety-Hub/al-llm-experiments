@@ -7,3 +7,6 @@ datasets
 black
 black[jupyter]
 flake8
+
+# Testing
+pytest
