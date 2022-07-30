@@ -1,11 +1,14 @@
 # The python abc module for making abstract base classes
 # https://docs.python.org/3.10/library/abc.html
 from abc import ABC, abstractmethod
+from typing import Union
 
 import torch
 from torch.utils.data import TensorDataset
 
 import datasets
+
+from al_llm.classifier import Classifier
 
 
 class DataHandler(ABC):
@@ -39,13 +42,13 @@ class DataHandler(ABC):
         The classifier instance which will be using the data.
     """
 
-    def __init__(self, classifier, parameters):
+    def __init__(self, classifier: Classifier, parameters: dict):
         self.dataset = None
         self.tokenized_dataset = None
         self.classifier = classifier
         self.parameters = parameters
 
-    def _tokenize(self, text):
+    def _tokenize(self, text: Union[str, list]) -> torch.Tensor:
         """Tokenize a string or batch of strings
 
         Parameters
@@ -62,7 +65,9 @@ class DataHandler(ABC):
         return self.classifier.tokenize(text)
 
     @abstractmethod
-    def new_labelled(self, samples, labels):
+    def new_labelled(
+        self, samples: list, labels: list
+    ) -> Union[datasets.Dataset, torch.utils.data.Dataset]:
         """Add new labelled samples, returning a PyTorch dataset for them
 
         Parameters
@@ -74,7 +79,7 @@ class DataHandler(ABC):
 
         Returns
         -------
-        samples_dataset : torch.utils.data.Dataset
+        samples_dataset : datasets.Dataset or torch.utils.data.Dataset
             A PyTorch dataset consisting of the newly added tokenized samples
             and their labels, ready for fine-tuning
         """
@@ -82,7 +87,9 @@ class DataHandler(ABC):
 
 
 class DummyDataHandler(DataHandler):
-    def new_labelled(self, samples, labels):
+    def new_labelled(
+        self, samples: list, labels: list
+    ) -> Union[datasets.Dataset, torch.utils.data.Dataset]:
         return TensorDataset(torch.rand(100, 100))
 
 
@@ -120,7 +127,17 @@ class HuggingFaceDataHandler(DataHandler):
         The classifier instance which will be using the data.
     """
 
-    def __init__(self, dataset_name, classifier, parameters, validation_proportion=0.2):
+    def __init__(
+        self,
+        dataset_name: str,
+        classifier: Classifier,
+        parameters: dict,
+        validation_proportion: float = 0.2,
+    ):
+
+        # Make sure that `validation_proportion` is in [0,1]
+        if validation_proportion < 0 or validation_proportion > 1:
+            raise ValueError("`validation_proportion` should be in [0,1]")
 
         # get dataset split names and ensure contains only train, test, or
         # validation
@@ -160,5 +177,7 @@ class HuggingFaceDataHandler(DataHandler):
         self.classifier = classifier
         self.parameters = parameters
 
-    def new_labelled(self, samples, labels):
+    def new_labelled(
+        self, samples: list, labels: list
+    ) -> Union[datasets.Dataset, torch.utils.data.Dataset]:
         return TensorDataset(torch.rand(100, 100))

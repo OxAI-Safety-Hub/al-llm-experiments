@@ -14,11 +14,11 @@ class SampleGenerator(ABC):
         The dictionary of parameters for the present experiment
     """
 
-    def __init__(self, parameters):
+    def __init__(self, parameters: dict):
         self.parameters = parameters
 
     @abstractmethod
-    def generate(self):
+    def generate(self) -> list:
         """Generate new samples for querying
 
         Returns
@@ -32,7 +32,7 @@ class SampleGenerator(ABC):
 class DummySampleGenerator(SampleGenerator):
     """Dummy sample generator, which generates random stuff"""
 
-    def generate(self):
+    def generate(self) -> list:
         alphabet = "abcdefghijklmnopqrstuvwxyz         "
         length = randrange(5, 30)
         sample_nums = [randrange(len(alphabet)) for i in range(length)]
