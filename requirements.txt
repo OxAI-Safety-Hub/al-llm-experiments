@@ -6,3 +6,6 @@ datasets
 # Formatting and linting
 black
 flake8
+
+# Testing
+pytest
