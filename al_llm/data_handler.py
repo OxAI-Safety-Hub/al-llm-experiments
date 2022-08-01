@@ -36,8 +36,12 @@ class DataHandler(ABC):
     dataset_test : datasets.Dataset
         The raw dataset consisting of labelled sentences used for testing, as
         a Hugging Face Dataset.
-    tokenized_dataset : torch.utils.data.Dataset
-        The tokenized dataset, as a PyTorch dataset.
+    tokenized_train : torch.utils.data.Dataset
+        The tokenized dataset for training, as a PyTorch dataset.
+    tokenized_validation : torch.utils.data.Dataset
+        The tokenized dataset for validation, as a PyTorch dataset.
+    tokenized_test : torch.utils.data.Dataset
+        The tokenized dataset for testing, as a PyTorch dataset.
     classifier : classifier.Classifier
         The classifier instance which will be using the data.
     """
@@ -46,7 +50,9 @@ class DataHandler(ABC):
         self.dataset_train = None
         self.dataset_validation = None
         self.dataset_test = None
-        self.tokenized_dataset = None
+        self.tokenized_train = None
+        self.tokenized_validation = None
+        self.tokenized_test = None
         self.classifier = classifier
         self.parameters = parameters
 
@@ -123,8 +129,12 @@ class HuggingFaceDataHandler(DataHandler):
     dataset_test : datasets.Dataset
         The raw dataset consisting of labelled sentences used for testing, as
         a Hugging Face Dataset.
-    tokenized_dataset : torch.utils.data.Dataset
-        The tokenized dataset, as a PyTorch dataset.
+    tokenized_train : torch.utils.data.Dataset
+        The tokenized dataset for training, as a PyTorch dataset.
+    tokenized_validation : torch.utils.data.Dataset
+        The tokenized dataset for validation, as a PyTorch dataset.
+    tokenized_test : torch.utils.data.Dataset
+        The tokenized dataset for testing, as a PyTorch dataset.
     classifier : classifier.Classifier
         The classifier instance which will be using the data.
     """
