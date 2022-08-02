@@ -103,7 +103,7 @@ class Experiment:
     def _train_afresh(self):
         """Fine-tune the classifier from scratch"""
         self.interface.train_afresh()
-        self.classifier.train_afresh(self.data_handler.tokenized_dataset)
+        self.classifier.train_afresh(self.data_handler.tokenized_train)
 
     def _train_update(
         self, samples_dataset: Union[datasets.Dataset, torch.utils.data.Dataset]
