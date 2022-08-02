@@ -31,7 +31,19 @@ class Experiment:
         A dictionary of parameters to identify this experiment
     already_finetuned : bool, default=False
         Is the classifier already fine-tuned on the dataset?
+
+    Attributes
+    ----------
+    parameters : dict
+        A dictionary of the parameters for this experiment. It has the
+        following structure.
+        num_iterations : int, default=5
+            The number of iterations over which to run the active learning
+        refresh_every : int, default=2
+            How often to retrain the classifier from scratch
     """
+
+    default_parameters = {"num_iterations": 5, "refresh_every": 2}
 
     def __init__(
         self,
@@ -53,16 +65,13 @@ class Experiment:
         self.already_finetuned = already_finetuned
         self.parameters = parameters
 
-    def run(self, num_rounds: int = 5, refresh_every: int = 2):
-        """Run the experiment
+        # Set default values for some parameters
+        for name, value in self.default_parameters.items():
+            if name not in self.parameters:
+                self.parameters[name] = value
 
-        Parameters
-        ----------
-        num_rounds : int, default=100
-            The number of rounds to run the experiment for.
-        refresh_every : int, default=10
-            How often to retrain the classifier from scratch
-        """
+    def run(self):
+        """Run the experiment"""
 
         # Start the interface
         self.interface.begin(parameters=self.parameters)
@@ -71,7 +80,7 @@ class Experiment:
         if not self.already_finetuned:
             self._train_afresh()
 
-        for round in range(num_rounds):
+        for round in range(self.parameters["num_iterations"]):
 
             # Generate some new samples to query
             samples = self.sample_generator.generate()
@@ -83,7 +92,7 @@ class Experiment:
             samples_dataset = self.data_handler.new_labelled(samples, labels)
 
             # Fine-tune, resetting if necessary
-            if (round + 1) % refresh_every == 0 and round != 0:
+            if (round + 1) % self.parameters["refresh_every"] == 0 and round != 0:
                 self._train_afresh()
             else:
                 self._train_update(samples_dataset)
