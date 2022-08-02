@@ -62,7 +62,7 @@ class DataHandler(ABC):
         Parameters
         ----------
         text : str or list
-            The string or batch of strings to be tokenised
+            The string or batch of strings to be tokenized
 
         Returns
         -------
