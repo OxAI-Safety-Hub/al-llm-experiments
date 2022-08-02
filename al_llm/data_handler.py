@@ -147,6 +147,9 @@ class HuggingFaceDataHandler(DataHandler):
         validation_proportion: float = 0.2,
     ):
 
+        self.classifier = classifier
+        self.parameters = parameters
+
         # Make sure that `validation_proportion` is in [0,1]
         if validation_proportion < 0 or validation_proportion > 1:
             raise ValueError("`validation_proportion` should be in [0,1]")
@@ -185,9 +188,22 @@ class HuggingFaceDataHandler(DataHandler):
         # load the testing dataset from Hugging Face
         self.dataset_test = datasets.load_dataset(dataset_name, split="test")
 
-        self.tokenized_dataset = None
-        self.classifier = classifier
-        self.parameters = parameters
+        # `_tokenize` uses whatever tokenizer the classifier uses
+        def _tokenize(self, text: Union[str, list]) -> torch.Tensor:
+            return self.classifier.tokenize(text)
+
+        # slightly altered tokenizing function allows for easy use of
+        # dataset `map` method
+        def _tokenize_function(examples):
+            return _tokenize(examples["text"], padding="max_length", truncation=True)
+
+        # to get each tokenized dataset, just map `_tokenize_function` over each
+        # of the raw datasets, setting batching to True for efficiency
+        self.tokenized_train = self.dataset_train.map(_tokenize_function, batched=True)
+        self.tokenized_validation = self.dataset_validation.map(
+            _tokenize_function, batched=True
+        )
+        self.tokenized_test = self.dataset_test.map(_tokenize_function, batched=True)
 
     def new_labelled(
         self, samples: list, labels: list
