@@ -197,13 +197,32 @@ class HuggingFaceDataHandler(DataHandler):
         def _tokenize_function(examples):
             return _tokenize(examples["text"], padding="max_length", truncation=True)
 
-        # to get each tokenized dataset, just map `_tokenize_function` over each
+        # to get each tokenized dataset, first map `_tokenize_function` over each
         # of the raw datasets, setting batching to True for efficiency
         self.tokenized_train = self.dataset_train.map(_tokenize_function, batched=True)
         self.tokenized_validation = self.dataset_validation.map(
             _tokenize_function, batched=True
         )
         self.tokenized_test = self.dataset_test.map(_tokenize_function, batched=True)
+
+        # next, rename 'label' to 'labels' (expected by HuggingFace classifiers)
+        self.tokenized_train = self.tokenized_train.rename_column("label", "labels")
+        self.tokenized_validation = self.tokenized_validation.rename_column(
+            "label", "labels"
+        )
+        self.tokenized_test = self.tokenized_test.rename_column("label", "labels")
+
+        # finally, format all tokenized datasets as PyTorch datasets, keeping
+        # only the necessary columns
+        self.tokenized_train = self.tokenized_train.with_format(
+            "torch", columns=["input_ids", "attention_mask", "labels"]
+        )
+        self.tokenized_validation = self.tokenized_validation.with_format(
+            "torch", columns=["input_ids", "attention_mask", "labels"]
+        )
+        self.tokenized_test = self.tokenized_test.with_format(
+            "torch", columns=["input_ids", "attention_mask", "labels"]
+        )
 
     def new_labelled(
         self, samples: list, labels: list
