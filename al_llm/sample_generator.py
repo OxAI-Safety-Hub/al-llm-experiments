@@ -39,3 +39,15 @@ class DummySampleGenerator(SampleGenerator):
         sample_chars = map(lambda x: alphabet[x], sample_nums)
         sample = "".join(sample_chars)
         return [sample]
+
+
+class PlainBertSampleGenerator(SampleGenerator):
+    """Plain bert sample generator, which just generates real sentences"""
+
+    def generate(self) -> list:
+        alphabet = "abcdefghijklmnopqrstuvwxyz         "
+        length = randrange(5, 30)
+        sample_nums = [randrange(len(alphabet)) for i in range(length)]
+        sample_chars = map(lambda x: alphabet[x], sample_nums)
+        sample = "".join(sample_chars)
+        return [sample]
