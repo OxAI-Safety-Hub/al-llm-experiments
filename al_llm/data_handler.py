@@ -147,8 +147,7 @@ class HuggingFaceDataHandler(DataHandler):
         validation_proportion: float = 0.2,
     ):
 
-        self.classifier = classifier
-        self.parameters = parameters
+        super.__init__(classifier, parameters)
 
         # Make sure that `validation_proportion` is in [0,1]
         if validation_proportion < 0 or validation_proportion > 1:
