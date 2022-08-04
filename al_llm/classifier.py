@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from typing import Union, Any
 
 import torch
-
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import datasets
 
 
@@ -72,6 +72,14 @@ class GPT2Classifier(Classifier):
 
     def __init__(self, parameters: dict):
         super().__init__(parameters)
+        # load model and tokenizer
+        self.tokenizer = AutoTokenizer.from_pretrained("gpt2")
+        self.model = AutoModelForSequenceClassification.from_pretrained("gpt2")
+        # set device
+        device = (
+            torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+        )
+        self.model.to(device)
 
     def train_afresh(self, data: Any):
         pass
@@ -80,4 +88,4 @@ class GPT2Classifier(Classifier):
         pass
 
     def tokenize(self, string: str):
-        return [0]
+        return self.tokenizer(string, return_tensors="pt")
