@@ -202,7 +202,8 @@ class HuggingFaceDataHandler(DataHandler):
         )
         self.tokenized_test = self.dataset_test.map(tokenize_function, batched=True)
 
-        # next, rename 'label' to 'labels' (expected by HuggingFace classifiers)
+        # next, rename 'label' to 'labels' (expected by HuggingFace
+        # BertForSequenceClassification classifier, but maybe not others)
         self.tokenized_train = self.tokenized_train.rename_column("label", "labels")
         self.tokenized_validation = self.tokenized_validation.rename_column(
             "label", "labels"
