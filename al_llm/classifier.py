@@ -7,6 +7,8 @@ import torch
 
 import datasets
 
+from transformers import AutoTokenizer
+
 
 class Classifier(ABC):
     """Base classifier class
@@ -70,3 +72,18 @@ class DummyClassifier(Classifier):
 
     def tokenize(self, string: str):
         return [0]
+
+class DummyGPT2Classifier(Classifier):
+
+    def __init__(self, parameters: dict):
+        self.tokenizer = AutoTokenizer.from_pretrained("gpt2")
+        self.parameters = parameters
+    
+    def train_afresh(self, data: Any):
+        pass
+
+    def train_update(self, data: Any):
+        pass
+
+    def tokenize(self, string: str):
+        return self.tokenizer(string)
