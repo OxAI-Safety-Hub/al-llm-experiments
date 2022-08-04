@@ -190,9 +190,7 @@ class HuggingFaceDataHandler(DataHandler):
         # slightly altered tokenizing function allows for easy use of
         # dataset `map` method
         def tokenize_function(examples):
-            return self.classifier.tokenize(
-                examples["text"]
-            )
+            return self.classifier.tokenize(examples["text"])
 
         # to get each tokenized dataset, first map `_tokenize_function` over each
         # of the raw datasets, setting batching to True for efficiency
@@ -202,8 +200,8 @@ class HuggingFaceDataHandler(DataHandler):
         )
         self.tokenized_test = self.dataset_test.map(tokenize_function, batched=True)
 
-        # next, rename 'label' to 'labels' (expected by HuggingFace
-        # BertForSequenceClassification classifier, but maybe not others)
+        # next, rename 'label' to 'labels' (expected by some HuggingFace
+        # classifiers - MORE RESEARCH NEEDED)
         self.tokenized_train = self.tokenized_train.rename_column("label", "labels")
         self.tokenized_validation = self.tokenized_validation.rename_column(
             "label", "labels"
@@ -213,14 +211,18 @@ class HuggingFaceDataHandler(DataHandler):
         # finally, format all tokenized datasets as PyTorch datasets, keeping
         # only the necessary columns
         self.tokenized_train.set_format(
-            "torch", columns=["input_ids", "token_type_ids", "attention_mask", "labels"]
+            "torch", columns=["input_ids", "attention_mask", "labels"]
         )
         self.tokenized_validation.set_format(
-            "torch", columns=["input_ids", "token_type_ids", "attention_mask", "labels"]
+            "torch", columns=["input_ids", "attention_mask", "labels"]
         )
         self.tokenized_test.set_format(
-            "torch", columns=["input_ids", "token_type_ids", "attention_mask", "labels"]
+            "torch", columns=["input_ids", "attention_mask", "labels"]
         )
+
+        self.tokenized_train.remove_columns(["text"])
+        self.tokenized_validation.remove_columns(["text"])
+        self.tokenized_test.remove_columns(["text"])
 
     def new_labelled(
         self, samples: list, labels: list
