@@ -5,6 +5,7 @@ from typing import Union, Any
 
 import torch
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
+from torch.utils.data import DataLoader
 import datasets
 
 
@@ -76,12 +77,24 @@ class GPT2Classifier(Classifier):
         self.tokenizer = AutoTokenizer.from_pretrained("gpt2")
         self.model = AutoModelForSequenceClassification.from_pretrained("gpt2")
         # set device
-        device = (
+        self.device = (
             torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
         )
-        self.model.to(device)
+        self.model.to(self.device)
 
     def train_afresh(self, data: Any):
+        self.model = AutoModelForSequenceClassification.from_pretrained("gpt2")
+        self.model.to(self.device)
+
+        for epoch in range(self.parameters["num_epochs"]):
+            print("running epoch " + str(epoch + 1))
+            self.__train_loop()
+            self.__eval_loop()
+
+    def __train_loop(self):
+        pass
+
+    def __eval_loop(self):
         pass
 
     def train_update(self, data: Any):

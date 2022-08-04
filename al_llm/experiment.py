@@ -41,9 +41,18 @@ class Experiment:
             The number of iterations over which to run the active learning
         refresh_every : int, default=2
             How often to retrain the classifier from scratch
+        batch_size : int, default=8
+            Batch size of the dataloaders which the classifier trains from
+        num_epochs : int, default=3
+            The number of epochs that are run between each active learning loop
     """
 
-    default_parameters = {"num_iterations": 5, "refresh_every": 2}
+    default_parameters = {
+        "num_iterations": 5,
+        "refresh_every": 2,
+        "batch_size": 8,
+        "num_epochs": 3,
+    }
 
     def __init__(
         self,
