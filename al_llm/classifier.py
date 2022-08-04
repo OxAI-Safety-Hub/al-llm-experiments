@@ -65,3 +65,19 @@ class DummyClassifier(Classifier):
 
     def tokenize(self, string: str):
         return [0]
+
+
+class GPT2Classifier(Classifier):
+    """GPT-2 classifier"""
+
+    def __init__(self, parameters: dict):
+        super().__init__(parameters)
+
+    def train_afresh(self, data: Any):
+        pass
+
+    def train_update(self, data: Any):
+        pass
+
+    def tokenize(self, string: str):
+        return [0]
