@@ -214,13 +214,13 @@ class HuggingFaceDataHandler(DataHandler):
 
         # finally, format all tokenized datasets as PyTorch datasets, keeping
         # only the necessary columns
-        self.tokenized_train = self.tokenized_train.with_format(
+        self.tokenized_train.set_format(
             "torch", columns=["input_ids", "token_type_ids", "attention_mask", "labels"]
         )
-        self.tokenized_validation = self.tokenized_validation.with_format(
+        self.tokenized_validation.set_format(
             "torch", columns=["input_ids", "token_type_ids", "attention_mask", "labels"]
         )
-        self.tokenized_test = self.tokenized_test.with_format(
+        self.tokenized_test.set_format(
             "torch", columns=["input_ids", "token_type_ids", "attention_mask", "labels"]
         )
 
