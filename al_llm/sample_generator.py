@@ -26,7 +26,8 @@ class SampleGenerator(ABC):
         Returns
         -------
         samples : list
-            A list of samples which are to be labelled
+            A list of samples which are to be labelled of length `num_samples`
+            as defined in the experiment parameters
         """
         return []
 
@@ -36,11 +37,14 @@ class DummySampleGenerator(SampleGenerator):
 
     def generate(self) -> list:
         alphabet = "abcdefghijklmnopqrstuvwxyz         "
-        length = randrange(5, 30)
-        sample_nums = [randrange(len(alphabet)) for i in range(length)]
-        sample_chars = map(lambda x: alphabet[x], sample_nums)
-        sample = "".join(sample_chars)
-        return [sample]
+        samples = []
+        for sampleIndex in range(self.parameters["num_samples"]):
+            length = randrange(5, 30)
+            sample_nums = [randrange(len(alphabet)) for i in range(length)]
+            sample_chars = map(lambda x: alphabet[x], sample_nums)
+            sample = "".join(sample_chars)
+            samples.append(sample)
+        return samples
 
 
 class PlainGPT2SampleGenerator(SampleGenerator):
@@ -51,8 +55,10 @@ class PlainGPT2SampleGenerator(SampleGenerator):
         tokenizer = AutoTokenizer.from_pretrained("gpt2")
         model = AutoModelForCausalLM.from_pretrained("gpt2")
 
-        # Uses `pipeline` to generate 5 real sentences up to 30 tokens long
+        # Uses `pipeline` to generate real sentences up to 30 tokens long
         generator = pipeline(task="text-generation", model=model, tokenizer=tokenizer)
-        sentence_dicts = generator("", max_length=30, num_return_sequences=5)
+        sentence_dicts = generator(
+            "", max_length=30, num_return_sequences=self.parameters["num_samples"]
+        )
         sentences = [d["generated_text"] for d in sentence_dicts]
         return sentences
