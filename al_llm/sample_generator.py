@@ -50,15 +50,22 @@ class DummySampleGenerator(SampleGenerator):
 class PlainGPT2SampleGenerator(SampleGenerator):
     """Plain GPT-2 sample generator, which just generates real sentences"""
 
-    def generate(self) -> list:
+    def __init__(self, parameters: dict, max_length: int = 30):
+        super().__init__(parameters)
+        self.max_length = max_length
         # Loads the GPT-2 model
-        tokenizer = AutoTokenizer.from_pretrained("gpt2")
-        model = AutoModelForCausalLM.from_pretrained("gpt2")
+        self.tokenizer = AutoTokenizer.from_pretrained("gpt2")
+        self.model = AutoModelForCausalLM.from_pretrained("gpt2")
 
-        # Uses `pipeline` to generate real sentences up to 30 tokens long
-        generator = pipeline(task="text-generation", model=model, tokenizer=tokenizer)
+    def generate(self) -> list:
+        # Uses `pipeline` to generate real sentences
+        generator = pipeline(
+            task="text-generation", model=self.model, tokenizer=self.tokenizer
+        )
         sentence_dicts = generator(
-            "", max_length=30, num_return_sequences=self.parameters["num_samples"]
+            "",
+            max_length=self.max_length,
+            num_return_sequences=self.parameters["num_samples"],
         )
         sentences = [d["generated_text"] for d in sentence_dicts]
         return sentences
