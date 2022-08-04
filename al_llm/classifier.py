@@ -7,6 +7,8 @@ import torch
 
 import datasets
 
+from transformers import AutoTokenizer
+
 
 class Classifier(ABC):
     """Base classifier class
@@ -33,23 +35,28 @@ class Classifier(ABC):
 
     @abstractmethod
     def train_update(self, dataset: Union[datasets.Dataset, torch.utils.data.Dataset]):
-        """Fine-tune the classifier on more data tokenised, without resetting
+        """Fine-tune the classifier on more data tokenized, without resetting
 
         Parameters
         ----------
         dataset : dataset.Dataset or torch.utils.data.Dataset
-            The extra tokenised datapoints with which to fine-tune
+            The extra tokenized datapoints with which to fine-tune
         """
         pass
 
     @abstractmethod
-    def tokenize(self, text: str):
-        """Tokenise a string for this classifier
+    def tokenize(self, text: Union[str, list]) -> torch.Tensor:
+        """Tokenize a string or batch of strings for this classifier
 
         Parameters
         ----------
-        text : str
-            The string to tokenize
+        text : str or list
+            The string or batch of strings to be tokenized
+
+        Returns
+        -------
+        tokenized : torch.Tensor
+            The result of tokenizing `text`
         """
         return None
 
@@ -65,3 +72,18 @@ class DummyClassifier(Classifier):
 
     def tokenize(self, string: str):
         return [0]
+
+
+class DummyGPT2Classifier(Classifier):
+    def __init__(self, parameters: dict):
+        self.tokenizer = AutoTokenizer.from_pretrained("gpt2")
+        self.parameters = parameters
+
+    def train_afresh(self, data: Any):
+        pass
+
+    def train_update(self, data: Any):
+        pass
+
+    def tokenize(self, string: str):
+        return self.tokenizer(string)
