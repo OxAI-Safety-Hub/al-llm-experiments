@@ -76,7 +76,6 @@ class DummyClassifier(Classifier):
         return [0]
 
 
-<<<<<<< HEAD
 class GPT2Classifier(Classifier):
     """GPT-2 classifier"""
 
@@ -128,22 +127,12 @@ class GPT2Classifier(Classifier):
             self.optimizer.zero_grad()
 
     def __eval_loop(self):
-=======
-class DummyGPT2Classifier(Classifier):
-    def __init__(self, parameters: dict):
-        self.tokenizer = AutoTokenizer.from_pretrained("gpt2")
-        self.parameters = parameters
 
-    def train_afresh(self, data: Any):
->>>>>>> main
         pass
 
     def train_update(self, data: Any):
         pass
 
     def tokenize(self, string: str):
-<<<<<<< HEAD
+
         return self.tokenizer(string, return_tensors="pt")
-=======
-        return self.tokenizer(string)
->>>>>>> main
