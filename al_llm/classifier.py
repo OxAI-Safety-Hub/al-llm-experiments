@@ -6,6 +6,7 @@ from typing import Union, Any
 import torch
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from torch.utils.data import DataLoader
+from torch.optim import AdamW
 import datasets
 
 
@@ -73,9 +74,14 @@ class GPT2Classifier(Classifier):
 
     def __init__(self, parameters: dict):
         super().__init__(parameters)
-        # load model and tokenizer
+        # load model and tokenizer and create an optimizer
         self.tokenizer = AutoTokenizer.from_pretrained("gpt2")
-        self.model = AutoModelForSequenceClassification.from_pretrained("gpt2")
+        self.tokenizer.pad_token = self.tokenizer.eos_token
+        self.model = AutoModelForSequenceClassification.from_pretrained(
+            "gpt2", num_labels=2
+        )
+        self.model.config.pad_token_id = self.model.config.eos_token_id
+        self.optimizer = AdamW(self.model.parameters(), lr=5e-5)
         # set device
         self.device = (
             torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
@@ -83,16 +89,35 @@ class GPT2Classifier(Classifier):
         self.model.to(self.device)
 
     def train_afresh(self, data: Any):
-        self.model = AutoModelForSequenceClassification.from_pretrained("gpt2")
+        # reload fresh model
+        self.model = AutoModelForSequenceClassification.from_pretrained(
+            "gpt2", num_labels=2
+        )
+        self.model.config.pad_token_id = self.model.config.eos_token_id
         self.model.to(self.device)
+        self.optimizer = AdamW(self.model.parameters(), lr=5e-5)
+
+        # create a dataloader for the train dataset
+        train_dataloader = DataLoader(
+            data, shuffle=True, batch_size=self.parameters["batch_size"]
+        )
 
         for epoch in range(self.parameters["num_epochs"]):
             print("running epoch " + str(epoch + 1))
-            self.__train_loop()
+            self.__train_loop(train_dataloader)
             self.__eval_loop()
 
-    def __train_loop(self):
-        pass
+    def __train_loop(self, train_dataloader):
+        self.model.train()
+        for batch in train_dataloader:
+            # move batch data to same device as the model
+            batch = {k: v.to(self.device) for k, v in batch.items()}
+            outputs = self.model(**batch)
+            loss = outputs.loss
+            loss.backward()
+
+            self.optimizer.step()
+            self.optimizer.zero_grad()
 
     def __eval_loop(self):
         pass
