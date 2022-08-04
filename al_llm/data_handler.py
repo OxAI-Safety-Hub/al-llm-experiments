@@ -191,7 +191,7 @@ class HuggingFaceDataHandler(DataHandler):
         # dataset `map` method
         def tokenize_function(examples):
             return self.classifier.tokenize(
-                examples["text"], padding="max_length", truncation=True
+                examples["text"]
             )
 
         # to get each tokenized dataset, first map `_tokenize_function` over each
