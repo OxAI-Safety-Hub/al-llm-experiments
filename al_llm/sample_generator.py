@@ -4,6 +4,8 @@ from abc import ABC, abstractmethod
 
 from random import randrange
 
+from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
+
 
 class SampleGenerator(ABC):
     """Base sample generator
@@ -41,13 +43,16 @@ class DummySampleGenerator(SampleGenerator):
         return [sample]
 
 
-class PlainBertSampleGenerator(SampleGenerator):
-    """Plain bert sample generator, which just generates real sentences"""
+class PlainGPT2SampleGenerator(SampleGenerator):
+    """Plain GPT-2 sample generator, which just generates real sentences"""
 
     def generate(self) -> list:
-        alphabet = "abcdefghijklmnopqrstuvwxyz         "
-        length = randrange(5, 30)
-        sample_nums = [randrange(len(alphabet)) for i in range(length)]
-        sample_chars = map(lambda x: alphabet[x], sample_nums)
-        sample = "".join(sample_chars)
-        return [sample]
+        # Loads the GPT-2 model
+        tokenizer = AutoTokenizer.from_pretrained("gpt2")
+        model = AutoModelForCausalLM.from_pretrained("gpt2")
+
+        # Uses `pipeline` to generate 5 real sentences up to 30 tokens long
+        generator = pipeline(task="text-generation", model=model, tokenizer=tokenizer)
+        sentence_dicts = generator("", max_length=30, num_return_sequences=5)
+        sentences = [d["generated_text"] for d in sentence_dicts]
+        return sentences
