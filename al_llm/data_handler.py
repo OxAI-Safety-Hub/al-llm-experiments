@@ -180,9 +180,15 @@ class HuggingFaceDataHandler(DataHandler):
             dataset_train_split = dataset_train_split.shuffle()
 
             # take the last `validation_proportion` elements for validation,
-            # and use the remaining elements for training
+            # and use the remaining elements for training, making sure to
+            # format as HuggingFace datasets (split returns dict)
             self.dataset_validation = dataset_train_split[-validation_length:]
             self.dataset_train = dataset_train_split[:-validation_length]
+
+            self.dataset_validation = datasets.Dataset.from_dict(
+                self.dataset_validation
+            )
+            self.dataset_train = datasets.Dataset.from_dict(self.dataset_train)
 
         # load the testing dataset from Hugging Face
         self.dataset_test = datasets.load_dataset(dataset_name, split="test")
@@ -258,4 +264,4 @@ class HuggingFaceDataHandler(DataHandler):
         # having added all the new samples, return the last `num_samples`
         # entries from `tokenized_train` (because adding items puts them at
         # the end of the dataset)
-        return self.tokenized_train[-num_samples:]
+        return datasets.Dataset.from_dict(self.tokenized_train[-num_samples:])
