@@ -59,6 +59,7 @@ class Experiment:
         "num_epochs": 3,
         "num_samples": 5,
         "learning_rate": 5e-5,
+        "is_dummy": False,
     }
 
     def __init__(
