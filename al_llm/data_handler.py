@@ -230,6 +230,13 @@ class HuggingFaceDataHandler(DataHandler):
         self.tokenized_validation.remove_columns(["text"])
         self.tokenized_test.remove_columns(["text"])
 
+        # if within a dummy experiment (checked by self.parameters["is_dummy"]),
+        # limit the size of the datasets significantly
+        if self.parameters["is_dummy"]:
+            self.tokenized_train.shuffle(seed=1091).select(range(5))
+            self.tokenized_validation.shuffle(seed=1091).select(range(5))
+            self.tokenized_test.shuffle(seed=1091).select(range(5))
+
     def new_labelled(
         self, samples: list, labels: list
     ) -> Union[datasets.Dataset, torch.utils.data.Dataset]:
