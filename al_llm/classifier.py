@@ -145,4 +145,4 @@ class GPT2Classifier(Classifier):
 
     def tokenize(self, string: str):
 
-        return self.tokenizer(string, return_tensors="pt")
+        return self.tokenizer(string, padding="max_length", truncation=True)

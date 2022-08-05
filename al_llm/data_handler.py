@@ -261,7 +261,17 @@ class HuggingFaceDataHandler(DataHandler):
                 }
             )
 
-        # having added all the new samples, return the last `num_samples`
+        # having added all the new samples, get the last `num_samples`
         # entries from `tokenized_train` (because adding items puts them at
-        # the end of the dataset)
-        return datasets.Dataset.from_dict(self.tokenized_train[-num_samples:])
+        # the end of the dataset) and convert to HuggingFace dataset
+        samples_dataset = datasets.Dataset.from_dict(
+            self.tokenized_train[-num_samples:]
+        )
+
+        # then convert the dataset's format to torch tensors
+        samples_dataset.set_format(
+            "torch", columns=["input_ids", "attention_mask", "labels"]
+        )
+
+        # and return the samples_dataset
+        return samples_dataset
