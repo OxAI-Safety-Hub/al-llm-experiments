@@ -161,7 +161,7 @@ class CLIInterface(Interface):
                     valid_label = True
 
             # Append this label
-            labels.append(self._categories_list[label])
+            labels.append(label)
 
         return labels
 
