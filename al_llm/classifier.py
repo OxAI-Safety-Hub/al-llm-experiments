@@ -4,12 +4,14 @@ from abc import ABC, abstractmethod
 from typing import Union, Any
 
 import torch
-from transformers import AutoTokenizer, AutoModelForSequenceClassification
+from transformers import (
+    AutoTokenizer,
+    AutoModelForSequenceClassification,
+    get_scheduler,
+)
 from torch.utils.data import DataLoader
 from torch.optim import AdamW
 import datasets
-
-from transformers import AutoTokenizer
 
 
 class Classifier(ABC):
@@ -81,40 +83,47 @@ class GPT2Classifier(Classifier):
 
     def __init__(self, parameters: dict):
         super().__init__(parameters)
-        # load model and tokenizer and create an optimizer
+        # loads the tokenizer that the model will use
         self.tokenizer = AutoTokenizer.from_pretrained("gpt2")
         self.tokenizer.pad_token = self.tokenizer.eos_token
-        self.model = AutoModelForSequenceClassification.from_pretrained(
-            "gpt2", num_labels=2
-        )
-        self.model.config.pad_token_id = self.model.config.eos_token_id
-        self.optimizer = AdamW(self.model.parameters(), lr=5e-5)
+        self.model = None  # model is not required until a call to `train_afresh``
         # set device
         self.device = (
             torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
         )
-        self.model.to(self.device)
 
     def train_afresh(self, data: Any):
-        # reload fresh model
+        # load a fresh version of the model
         self.model = AutoModelForSequenceClassification.from_pretrained(
             "gpt2", num_labels=2
         )
         self.model.config.pad_token_id = self.model.config.eos_token_id
         self.model.to(self.device)
-        self.optimizer = AdamW(self.model.parameters(), lr=5e-5)
+        # create an optimizer for the model
+        self.optimizer = AdamW(
+            self.model.parameters(), lr=self.parameters["learning_rate"]
+        )
 
         # create a dataloader for the train dataset
         train_dataloader = DataLoader(
             data, shuffle=True, batch_size=self.parameters["batch_size"]
         )
 
+        # create a learning rate scheduler
+        num_training_steps = self.parameters["num_epochs"] * len(train_dataloader)
+        lr_scheduler = get_scheduler(
+            name="linear",
+            optimizer=self.optimizer,
+            num_warmup_steps=0,
+            num_training_steps=num_training_steps,
+        )
+
         for epoch in range(self.parameters["num_epochs"]):
             print("running epoch " + str(epoch + 1))
-            self.__train_loop(train_dataloader)
+            self.__train_loop(train_dataloader, lr_scheduler)
             self.__eval_loop()
 
-    def __train_loop(self, train_dataloader):
+    def __train_loop(self, train_dataloader, lr_scheduler):
         self.model.train()
         for batch in train_dataloader:
             # move batch data to same device as the model
@@ -124,6 +133,7 @@ class GPT2Classifier(Classifier):
             loss.backward()
 
             self.optimizer.step()
+            lr_scheduler.step()
             self.optimizer.zero_grad()
 
     def __eval_loop(self):
