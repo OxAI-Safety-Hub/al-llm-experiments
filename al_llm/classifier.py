@@ -141,7 +141,24 @@ class GPT2Classifier(Classifier):
         pass
 
     def train_update(self, data: Any):
-        pass
+
+        # create a dataloader for the small samples dataset
+        small_samples_dataloader = DataLoader(
+            data, shuffle=True, batch_size=self.parameters["batch_size"]
+        )
+
+        # create a learning rate scheduler, but for one epoch only
+        num_training_steps = len(small_samples_dataloader)
+        lr_scheduler = get_scheduler(
+            name="linear",
+            optimizer=self.optimizer,
+            num_warmup_steps=0,
+            num_training_steps=num_training_steps,
+        )
+
+        # only run one epoch of the train and eval loops
+        self.__train_loop(small_samples_dataloader, lr_scheduler)
+        self.__eval_loop()
 
     def tokenize(self, string: str):
 
