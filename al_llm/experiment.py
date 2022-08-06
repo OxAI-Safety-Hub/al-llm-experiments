@@ -4,9 +4,9 @@ import torch
 
 import datasets
 
-from al_llm.data_handler import DataHandler, DummyDataHandler
-from al_llm.classifier import Classifier, DummyClassifier
-from al_llm.sample_generator import SampleGenerator, DummySampleGenerator
+from al_llm.data_handler import DataHandler, DummyDataHandler, HuggingFaceDataHandler
+from al_llm.classifier import Classifier, DummyClassifier, GPT2Classifier
+from al_llm.sample_generator import PlainGPT2SampleGenerator, SampleGenerator, DummySampleGenerator
 from al_llm.interface import Interface, CLIInterface
 
 
@@ -170,3 +170,41 @@ class Experiment:
         }
 
         return dummy_args
+    
+    @classmethod
+    def make_experiment(self, dataset_name: str):
+        """Get experiment instances to feed into the constructor
+
+        Parameters
+        ----------
+        dataset_name : str
+            The name of the dataset this experiment should use
+
+        Returns
+        -------
+        experiment_args : dict
+            A dictionary of the non-optional arguments for `Experiment`
+
+        Example
+        -------
+        >>> experiment_args = Experiment.make_experiment("rotten_tomatoes")
+        >>> experiment = Experiment(**experiment_args)
+        """
+
+        parameters = {"is_dummy": True}
+        categories = {"neg": "Negative sentence", "pos": "Positive sentence"}
+        classifier = GPT2Classifier(parameters)
+        data_handler = HuggingFaceDataHandler(dataset_name, classifier, parameters)
+        sample_generator = PlainGPT2SampleGenerator(parameters)
+        interface = CLIInterface(categories)
+
+        experiment_args = {
+            "data_handler": data_handler,
+            "categories": categories,
+            "classifier": classifier,
+            "sample_generator": sample_generator,
+            "interface": interface,
+            "parameters": parameters,
+        }
+
+        return experiment_args
