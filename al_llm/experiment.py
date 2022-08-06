@@ -106,7 +106,7 @@ class Experiment:
             labels = self.interface.prompt(samples)
 
             # Update the dataset
-            samples_dataset = self.data_handler.new_labelled(samples, labels)
+            dataset_samples = self.data_handler.new_labelled(samples, labels)
 
             # Fine-tune, resetting if necessary
             if self.parameters["refresh_every"] == 1 or (
@@ -114,7 +114,7 @@ class Experiment:
             ):
                 self._train_afresh()
             else:
-                self._train_update(samples_dataset)
+                self._train_update(dataset_samples)
 
         # End the interface
         self.interface.end()
@@ -122,14 +122,20 @@ class Experiment:
     def _train_afresh(self):
         """Fine-tune the classifier from scratch"""
         self.interface.train_afresh()
-        self.classifier.train_afresh(self.data_handler.tokenized_train)
+        self.classifier.train_afresh(
+            self.data_handler.tokenized_train,
+            self.data_handler.tokenized_validation,
+        )
 
     def _train_update(
-        self, samples_dataset: Union[datasets.Dataset, torch.utils.data.Dataset]
+        self, dataset_samples: Union[datasets.Dataset, torch.utils.data.Dataset]
     ):
         """Fine-tune the classifier with new datapoints, without resetting"""
         self.interface.train_update()
-        self.classifier.train_update(samples_dataset)
+        self.classifier.train_update(
+            dataset_samples,
+            self.data_handler.tokenized_validation,
+        )
 
     @classmethod
     def make_dummy_experiment(self):

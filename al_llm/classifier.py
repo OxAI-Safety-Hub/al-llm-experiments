@@ -27,24 +27,36 @@ class Classifier(ABC):
         self.parameters = parameters
 
     @abstractmethod
-    def train_afresh(self, dataset: Union[datasets.Dataset, torch.utils.data.Dataset]):
+    def train_afresh(
+        self,
+        dataset_train: Union[datasets.Dataset, torch.utils.data.Dataset],
+        dataset_validation: Union[datasets.Dataset, torch.utils.data.Dataset],
+    ):
         """Reset the classifier and fine-tune it anew on tokenised data
 
         Parameters
         ----------
-        dataset : dataset.Dataset or torch.utils.data.Dataset
+        dataset_train : dataset.Dataset or torch.utils.data.Dataset
             The dataset with which to fine-tune
+        dataset_validation : dataset.Dataset or torch.utils.data.Dataset
+            The dataset with which to check performance
         """
         pass
 
     @abstractmethod
-    def train_update(self, dataset: Union[datasets.Dataset, torch.utils.data.Dataset]):
+    def train_update(
+        self,
+        dataset_train: Union[datasets.Dataset, torch.utils.data.Dataset],
+        dataset_validation: Union[datasets.Dataset, torch.utils.data.Dataset],
+    ):
         """Fine-tune the classifier on more data tokenized, without resetting
 
         Parameters
         ----------
-        dataset : dataset.Dataset or torch.utils.data.Dataset
+        dataset_train : dataset.Dataset or torch.utils.data.Dataset
             The extra tokenized datapoints with which to fine-tune
+        dataset_validation : dataset.Dataset or torch.utils.data.Dataset
+            The dataset with which to check performance
         """
         pass
 
@@ -68,10 +80,10 @@ class Classifier(ABC):
 class DummyClassifier(Classifier):
     """Dummy classifier, which does nothing"""
 
-    def train_afresh(self, data: Any):
+    def train_afresh(self, dataset_train: Any, dataset_validation: Any):
         pass
 
-    def train_update(self, data: Any):
+    def train_update(self, dataset_train: Any, dataset_validation: Any):
         pass
 
     def tokenize(self, string: str):
@@ -92,7 +104,11 @@ class GPT2Classifier(Classifier):
             torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
         )
 
-    def train_afresh(self, data: Any):
+    def train_afresh(
+        self,
+        dataset_train: Union[datasets.Dataset, torch.utils.data.Dataset],
+        dataset_validation: Union[datasets.Dataset, torch.utils.data.Dataset],
+    ):
         # load a fresh version of the model
         self.model = AutoModelForSequenceClassification.from_pretrained(
             "distilgpt2", num_labels=2
@@ -106,7 +122,7 @@ class GPT2Classifier(Classifier):
 
         # create a dataloader for the train dataset
         train_dataloader = DataLoader(
-            data, shuffle=True, batch_size=self.parameters["batch_size"]
+            dataset_train, shuffle=True, batch_size=self.parameters["batch_size"]
         )
 
         # create a learning rate scheduler
@@ -140,11 +156,15 @@ class GPT2Classifier(Classifier):
 
         pass
 
-    def train_update(self, data: Any):
+    def train_update(
+        self,
+        dataset_samples: Union[datasets.Dataset, torch.utils.data.Dataset],
+        dataset_validation: Union[datasets.Dataset, torch.utils.data.Dataset],
+    ):
 
         # create a dataloader for the small samples dataset
         small_samples_dataloader = DataLoader(
-            data, shuffle=True, batch_size=self.parameters["batch_size"]
+            dataset_samples, shuffle=True, batch_size=self.parameters["batch_size"]
         )
 
         # create a learning rate scheduler, but for one epoch only
