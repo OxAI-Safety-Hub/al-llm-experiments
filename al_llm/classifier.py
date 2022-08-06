@@ -84,7 +84,7 @@ class GPT2Classifier(Classifier):
     def __init__(self, parameters: dict):
         super().__init__(parameters)
         # loads the tokenizer that the model will use
-        self.tokenizer = AutoTokenizer.from_pretrained("gpt2")
+        self.tokenizer = AutoTokenizer.from_pretrained("distilgpt2")
         self.tokenizer.pad_token = self.tokenizer.eos_token
         self.model = None  # model is not required until a call to `train_afresh``
         # set device
@@ -95,7 +95,7 @@ class GPT2Classifier(Classifier):
     def train_afresh(self, data: Any):
         # load a fresh version of the model
         self.model = AutoModelForSequenceClassification.from_pretrained(
-            "gpt2", num_labels=2
+            "distilgpt2", num_labels=2
         )
         self.model.config.pad_token_id = self.model.config.eos_token_id
         self.model.to(self.device)
