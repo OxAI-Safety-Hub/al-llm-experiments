@@ -120,9 +120,12 @@ class GPT2Classifier(Classifier):
             self.model.parameters(), lr=self.parameters["learning_rate"]
         )
 
-        # create a dataloader for the train dataset
+        # create a dataloader for the train and validation datasets
         train_dataloader = DataLoader(
             dataset_train, shuffle=True, batch_size=self.parameters["batch_size"]
+        )
+        eval_dataloader = DataLoader(
+            dataset_validation, batch_size=self.parameters["batch_size"]
         )
 
         # create a learning rate scheduler
@@ -137,7 +140,7 @@ class GPT2Classifier(Classifier):
         for epoch in range(self.parameters["num_epochs"]):
             print("running epoch " + str(epoch + 1))
             self.__train_loop(train_dataloader, lr_scheduler)
-            self.__eval_loop()
+            self.__eval_loop(eval_dataloader)
 
     def __train_loop(self, train_dataloader, lr_scheduler):
         self.model.train()
@@ -152,9 +155,17 @@ class GPT2Classifier(Classifier):
             lr_scheduler.step()
             self.optimizer.zero_grad()
 
-    def __eval_loop(self):
-
-        pass
+    def __eval_loop(self, eval_dataloader):
+        metric = datasets.load_metric("accuracy")
+        self.model.eval()
+        for batch in eval_dataloader:
+            batch = {k: v.to(self.device) for k, v in batch.items()}
+            with torch.no_grad():
+                outputs = self.model(**batch)
+            logits = outputs.logits
+            predictions = torch.argmax(logits, dim=-1)
+            metric.add_batch(predictions=predictions, references=batch["labels"])
+        print(metric.compute())
 
     def train_update(
         self,
@@ -165,6 +176,9 @@ class GPT2Classifier(Classifier):
         # create a dataloader for the small samples dataset
         small_samples_dataloader = DataLoader(
             dataset_samples, shuffle=True, batch_size=self.parameters["batch_size"]
+        )
+        eval_dataloader = DataLoader(
+            dataset_validation, batch_size=self.parameters["batch_size"]
         )
 
         # create a learning rate scheduler, but for one epoch only
@@ -178,7 +192,7 @@ class GPT2Classifier(Classifier):
 
         # only run one epoch of the train and eval loops
         self.__train_loop(small_samples_dataloader, lr_scheduler)
-        self.__eval_loop()
+        self.__eval_loop(eval_dataloader)
 
     def tokenize(self, string: str):
 
