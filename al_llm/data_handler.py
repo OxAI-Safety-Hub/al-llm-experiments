@@ -230,9 +230,9 @@ class HuggingFaceDataHandler(DataHandler):
         self.tokenized_validation.remove_columns(["text"])
         self.tokenized_test.remove_columns(["text"])
 
-        # if within a dummy experiment (checked by self.parameters["is_dummy"]),
+        # if within a dummy experiment (checked by self.parameters["dev_mode"]),
         # limit the size of the datasets significantly
-        if self.parameters["is_dummy"]:
+        if self.parameters["dev_mode"]:
             self.tokenized_train = self.tokenized_train.shuffle(seed=1091).select(
                 range(5)
             )

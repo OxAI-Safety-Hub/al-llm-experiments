@@ -59,7 +59,7 @@ class Experiment:
         "num_epochs": 3,
         "num_samples": 5,
         "learning_rate": 5e-5,
-        "is_dummy": False,
+        "dev_mode": False,
     }
 
     def __init__(
@@ -153,7 +153,7 @@ class Experiment:
         >>> experiment = Experiment(**dummy_args)
         """
 
-        parameters = {"is_dummy": True}
+        parameters = {"dev_mode": True}
         categories = {"valid": "Valid sentence", "invalid": "Invalid sentence"}
         classifier = DummyClassifier(parameters)
         data_handler = DummyDataHandler(classifier, parameters)
@@ -191,7 +191,7 @@ class Experiment:
         >>> experiment = Experiment(**experiment_args)
         """
 
-        parameters = {"is_dummy": True}
+        parameters = {"dev_mode": True}
         categories = {"neg": "Negative sentence", "pos": "Positive sentence"}
         classifier = GPT2Classifier(parameters)
         data_handler = HuggingFaceDataHandler(dataset_name, classifier, parameters)
