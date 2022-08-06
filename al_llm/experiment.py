@@ -6,7 +6,11 @@ import datasets
 
 from al_llm.data_handler import DataHandler, DummyDataHandler, HuggingFaceDataHandler
 from al_llm.classifier import Classifier, DummyClassifier, GPT2Classifier
-from al_llm.sample_generator import PlainGPT2SampleGenerator, SampleGenerator, DummySampleGenerator
+from al_llm.sample_generator import (
+    PlainGPT2SampleGenerator,
+    SampleGenerator,
+    DummySampleGenerator,
+)
 from al_llm.interface import Interface, CLIInterface
 
 
@@ -170,7 +174,7 @@ class Experiment:
         }
 
         return dummy_args
-    
+
     @classmethod
     def make_experiment(self, dataset_name: str):
         """Get experiment instances to feed into the constructor
