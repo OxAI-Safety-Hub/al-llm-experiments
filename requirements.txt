@@ -2,6 +2,7 @@
 torch
 transformers
 datasets
+sklearn
 
 # Formatting and linting
 black
