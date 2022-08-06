@@ -238,9 +238,9 @@ class HuggingFaceDataHandler(DataHandler):
             )
             self.tokenized_validation = self.tokenized_validation.shuffle(
                 seed=1091
-            ).select(range(5))
+            ).select(range(100))
             self.tokenized_test = self.tokenized_test.shuffle(seed=1091).select(
-                range(5)
+                range(100)
             )
 
     def new_labelled(
