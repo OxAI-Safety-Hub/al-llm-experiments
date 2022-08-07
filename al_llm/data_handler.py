@@ -394,4 +394,34 @@ class LocalDataHandler(DataHandler):
         self, samples: list, labels: list
     ) -> Union[datasets.Dataset, torch.utils.data.Dataset]:
 
-        pass
+        # store the number of new samples being processed
+        num_samples = len(samples)
+
+        # iterate over each sample-label pair
+        for i in range(num_samples):
+
+            # store the original sample text and label
+            sample_text = samples[i]
+            label = labels[i]
+
+            # add this sample-label pair to the raw `dataset_train`
+            self.dataset_train = self.dataset_train.add_item(
+                {"text": sample_text, "label": label}
+            )
+
+            # tokenize the `sample_text` using the classifier's tokenizer
+            sample_tokenized = self.classifier.tokenize(sample_text)
+
+            # add this tokenized sample-label triple to `tokenized_train`
+            self.tokenized_train = self.tokenized_train.add_item(
+                {
+                    "input_ids": sample_tokenized["input_ids"],
+                    "attention_mask": sample_tokenized["attention_mask"],
+                    "labels": label,
+                }
+            )
+
+        # having added all the new samples, return the last `num_samples`
+        # entries from `tokenized_train` (because adding items puts them at
+        # the end of the dataset)
+        return self.tokenized_train[-num_samples:]
