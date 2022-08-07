@@ -314,14 +314,18 @@ class LocalDataHandler(DataHandler):
         # Make sure that `validation_proportion` is in [0,1]
         if validation_proportion < 0 or validation_proportion > 1:
             raise ValueError("`validation_proportion` should be in [0,1]")
-        
+
         # check whether the dataset folder already has a validation set
         validation_exists = os.path.exists(dataset_path + "/evaluation.csv")
 
         # load the local dataset, splitting by the data file names that exist
         data_files = {}
         if validation_exists:
-            data_files = {"train": "train.csv", "validation": "evaluation.csv", "test": "test.csv"}
+            data_files = {
+                "train": "train.csv",
+                "validation": "evaluation.csv",
+                "test": "test.csv",
+            }
         else:
             data_files = {"train": "train.csv", "test": "test.csv"}
         dataset_dictionary = datasets.load_dataset(dataset_path, data_files=data_files)
@@ -330,7 +334,7 @@ class LocalDataHandler(DataHandler):
         if validation_exists:
             self.dataset_train = dataset_dictionary["train"]
             self.dataset_validation = dataset_dictionary["validation"]
-            
+
         # if one is not, use `validation_proportion` to take some of the
         # training set for validation
         else:
@@ -345,9 +349,46 @@ class LocalDataHandler(DataHandler):
             # and use the remaining elements for training
             self.dataset_validation = train_dataset_to_split[-validation_length:]
             self.dataset_train = train_dataset_to_split[:-validation_length]
-        
+
         # test set will always be provided, so use that
         self.dataset_test = dataset_dictionary["test"]
+
+        # slightly altered tokenizing function allows for easy use of
+        # dataset `map` method
+        def tokenize_function(examples):
+            return self.classifier.tokenize(examples["text"])
+
+        # to get each tokenized dataset, first map `_tokenize_function` over each
+        # of the raw datasets, setting batching to True for efficiency
+        self.tokenized_train = self.dataset_train.map(tokenize_function, batched=True)
+        self.tokenized_validation = self.dataset_validation.map(
+            tokenize_function, batched=True
+        )
+        self.tokenized_test = self.dataset_test.map(tokenize_function, batched=True)
+
+        # next, rename 'label' to 'labels' (expected by some HuggingFace
+        # classifiers - MORE RESEARCH NEEDED)
+        self.tokenized_train = self.tokenized_train.rename_column("label", "labels")
+        self.tokenized_validation = self.tokenized_validation.rename_column(
+            "label", "labels"
+        )
+        self.tokenized_test = self.tokenized_test.rename_column("label", "labels")
+
+        # finally, format all tokenized datasets as PyTorch datasets, keeping
+        # only the necessary columns
+        self.tokenized_train.set_format(
+            "torch", columns=["input_ids", "attention_mask", "labels"]
+        )
+        self.tokenized_validation.set_format(
+            "torch", columns=["input_ids", "attention_mask", "labels"]
+        )
+        self.tokenized_test.set_format(
+            "torch", columns=["input_ids", "attention_mask", "labels"]
+        )
+
+        self.tokenized_train.remove_columns(["text"])
+        self.tokenized_validation.remove_columns(["text"])
+        self.tokenized_test.remove_columns(["text"])
 
     def new_labelled(
         self, samples: list, labels: list
