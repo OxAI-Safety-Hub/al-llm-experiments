@@ -2,6 +2,7 @@
 # https://docs.python.org/3.10/library/abc.html
 from abc import ABC, abstractmethod
 from typing import Union
+import os.path
 
 import torch
 from torch.utils.data import TensorDataset
@@ -314,13 +315,38 @@ class LocalDataHandler(DataHandler):
         if validation_proportion < 0 or validation_proportion > 1:
             raise ValueError("`validation_proportion` should be in [0,1]")
         
-        # load the local dataset, splitting by the data file names
-        data_files = {"train": "train.csv", "validation": "evaluation.csv", "test": "test.csv"}
+        # check whether the dataset folder already has a validation set
+        validation_exists = os.path.exists(dataset_path + "/evaluation.csv")
+
+        # load the local dataset, splitting by the data file names that exist
+        data_files = {}
+        if validation_exists:
+            data_files = {"train": "train.csv", "validation": "evaluation.csv", "test": "test.csv"}
+        else:
+            data_files = {"train": "train.csv", "test": "test.csv"}
         dataset_dictionary = datasets.load_dataset(dataset_path, data_files=data_files)
 
-        # set raw dataset files of type HuggingFace datasets
-        self.dataset_train = dataset_dictionary["train"]
-        self.dataset_validation = dataset_dictionary["validation"]
+        # if a validation set is provided, simply use that
+        if validation_exists:
+            self.dataset_train = dataset_dictionary["train"]
+            self.dataset_validation = dataset_dictionary["validation"]
+            
+        # if one is not, use `validation_proportion` to take some of the
+        # training set for validation
+        else:
+            train_dataset_to_split = dataset_dictionary["train"]
+            train_length = len(train_dataset_to_split)
+            validation_length = round(train_length * validation_proportion)
+
+            # shuffle the training set before splitting it
+            train_dataset_to_split = train_dataset_to_split.shuffle()
+
+            # take the last `validation_proportion` elements for validation,
+            # and use the remaining elements for training
+            self.dataset_validation = train_dataset_to_split[-validation_length:]
+            self.dataset_train = train_dataset_to_split[:-validation_length]
+        
+        # test set will always be provided, so use that
         self.dataset_test = dataset_dictionary["test"]
 
     def new_labelled(
