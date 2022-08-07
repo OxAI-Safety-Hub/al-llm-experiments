@@ -259,3 +259,63 @@ class HuggingFaceDataHandler(DataHandler):
         # entries from `tokenized_train` (because adding items puts them at
         # the end of the dataset)
         return self.tokenized_train[-num_samples:]
+
+
+class LocalDataHandler(DataHandler):
+    """A data handler for datasets that are stored locally in csv files.
+
+    The data handler keeps track of both the raw dataset consisting of
+    sentences and labels, and the tokenized version.
+
+    Parameters
+    ----------
+    dataset_path : str
+        The path of the file containing "train.csv" and "test.cs" and also
+        "evaluation.csv" if the dataset has a validation set.
+    classifier : classifier.Classifier
+        The classifier instance which will be using the data. We will use this
+        to know how to tokenize the data.
+    validation_proportion : float, default=0.2
+        Proportion of the training data to be used for validation, if it's not
+        provided by the local dataset.
+
+    Attributes
+    ----------
+    dataset_train : datasets.Dataset
+        The raw dataset consisting of labelled sentences used for training, as
+        a PyTorch Dataset.
+    dataset_validation : datasets.Dataset
+        The raw dataset consisting of labelled sentences used for validation, as
+        a PyTorch Dataset.
+    dataset_test : datasets.Dataset
+        The raw dataset consisting of labelled sentences used for testing, as
+        a PyTorch dataset.
+    tokenized_train : torch.utils.data.Dataset
+        The tokenized dataset for training, as a PyTorch dataset.
+    tokenized_validation : torch.utils.data.Dataset
+        The tokenized dataset for validation, as a PyTorch dataset.
+    tokenized_test : torch.utils.data.Dataset
+        The tokenized dataset for testing, as a PyTorch dataset.
+    classifier : classifier.Classifier
+        The classifier instance which will be using the data.
+    """
+
+    def __init__(
+        self,
+        dataset_path: str,
+        classifier: Classifier,
+        parameters: dict,
+        validation_proportion: float = 0.2,
+    ):
+
+        super().__init__(classifier, parameters)
+
+        # Make sure that `validation_proportion` is in [0,1]
+        if validation_proportion < 0 or validation_proportion > 1:
+            raise ValueError("`validation_proportion` should be in [0,1]")
+
+    def new_labelled(
+        self, samples: list, labels: list
+    ) -> Union[datasets.Dataset, torch.utils.data.Dataset]:
+
+        pass
