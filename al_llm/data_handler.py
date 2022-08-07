@@ -283,13 +283,13 @@ class LocalDataHandler(DataHandler):
     ----------
     dataset_train : datasets.Dataset
         The raw dataset consisting of labelled sentences used for training, as
-        a PyTorch Dataset.
+        a Hugging Face Dataset.
     dataset_validation : datasets.Dataset
         The raw dataset consisting of labelled sentences used for validation, as
-        a PyTorch Dataset.
+        a Hugging Face Dataset.
     dataset_test : datasets.Dataset
         The raw dataset consisting of labelled sentences used for testing, as
-        a PyTorch dataset.
+        a Hugging Face dataset.
     tokenized_train : torch.utils.data.Dataset
         The tokenized dataset for training, as a PyTorch dataset.
     tokenized_validation : torch.utils.data.Dataset

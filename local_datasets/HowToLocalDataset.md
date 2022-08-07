@@ -3,7 +3,7 @@ Guide to formatting a local dataset
 
 Since the datasets we download will not be standardised, we need to do the formatting ourselves for any datasets we want to store locally. This guide will explain how to do so.
 
-I have created the folder `dummy_local_dataset/` to serve as an example in which I have copied the first 5 entries of the 'rotten_tomatoes' dataset
+I have created the folder `dummy_local_dataset/` to serve as an example template.
 
 File structure
 -------------
