@@ -313,6 +313,15 @@ class LocalDataHandler(DataHandler):
         # Make sure that `validation_proportion` is in [0,1]
         if validation_proportion < 0 or validation_proportion > 1:
             raise ValueError("`validation_proportion` should be in [0,1]")
+        
+        # load the local dataset, splitting by the data file names
+        data_files = {"train": "train.csv", "validation": "evaluation.csv", "test": "test.csv"}
+        dataset_dictionary = datasets.load_dataset(dataset_path, data_files=data_files)
+
+        # set raw dataset files of type HuggingFace datasets
+        self.dataset_train = dataset_dictionary["train"]
+        self.dataset_validation = dataset_dictionary["validation"]
+        self.dataset_test = dataset_dictionary["test"]
 
     def new_labelled(
         self, samples: list, labels: list
