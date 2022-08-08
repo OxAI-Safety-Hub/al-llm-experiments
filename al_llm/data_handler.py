@@ -1,6 +1,6 @@
 # The python abc module for making abstract base classes
 # https://docs.python.org/3.10/library/abc.html
-from abc import ABC, abstractmethod
+from abc import ABC
 from typing import Union
 
 import torch
@@ -72,7 +72,6 @@ class DataHandler(ABC):
 
         return self.classifier.tokenize(text)
 
-    @abstractmethod
     def new_labelled(
         self, samples: list, labels: list
     ) -> Union[datasets.Dataset, torch.utils.data.Dataset]:
@@ -91,7 +90,38 @@ class DataHandler(ABC):
             A PyTorch dataset consisting of the newly added tokenized samples
             and their labels, ready for fine-tuning
         """
-        return None
+
+        # store the number of new samples being processed
+        num_samples = len(samples)
+
+        # iterate over each sample-label pair
+        for i in range(num_samples):
+
+            # store the original sample text and label
+            sample_text = samples[i]
+            label = labels[i]
+
+            # add this sample-label pair to the raw `dataset_train`
+            self.dataset_train = self.dataset_train.add_item(
+                {"text": sample_text, "label": label}
+            )
+
+            # tokenize the `sample_text` using the classifier's tokenizer
+            sample_tokenized = self.classifier.tokenize(sample_text)
+
+            # add this tokenized sample-label triple to `tokenized_train`
+            self.tokenized_train = self.tokenized_train.add_item(
+                {
+                    "input_ids": sample_tokenized["input_ids"],
+                    "attention_mask": sample_tokenized["attention_mask"],
+                    "labels": label,
+                }
+            )
+
+        # having added all the new samples, return the last `num_samples`
+        # entries from `tokenized_train` (because adding items puts them at
+        # the end of the dataset)
+        return self.tokenized_train[-num_samples:]
 
 
 class DummyDataHandler(DataHandler):
@@ -226,42 +256,6 @@ class HuggingFaceDataHandler(DataHandler):
         self.tokenized_validation.remove_columns(["text"])
         self.tokenized_test.remove_columns(["text"])
 
-    def new_labelled(
-        self, samples: list, labels: list
-    ) -> Union[datasets.Dataset, torch.utils.data.Dataset]:
-
-        # store the number of new samples being processed
-        num_samples = len(samples)
-
-        # iterate over each sample-label pair
-        for i in range(num_samples):
-
-            # store the original sample text and label
-            sample_text = samples[i]
-            label = labels[i]
-
-            # add this sample-label pair to the raw `dataset_train`
-            self.dataset_train = self.dataset_train.add_item(
-                {"text": sample_text, "label": label}
-            )
-
-            # tokenize the `sample_text` using the classifier's tokenizer
-            sample_tokenized = self.classifier.tokenize(sample_text)
-
-            # add this tokenized sample-label triple to `tokenized_train`
-            self.tokenized_train = self.tokenized_train.add_item(
-                {
-                    "input_ids": sample_tokenized["input_ids"],
-                    "attention_mask": sample_tokenized["attention_mask"],
-                    "labels": label,
-                }
-            )
-
-        # having added all the new samples, return the last `num_samples`
-        # entries from `tokenized_train` (because adding items puts them at
-        # the end of the dataset)
-        return self.tokenized_train[-num_samples:]
-
 
 class LocalDataHandler(DataHandler):
     """A data handler for datasets that are stored locally.
@@ -353,39 +347,3 @@ class LocalDataHandler(DataHandler):
         self.tokenized_train.remove_columns(["text"])
         self.tokenized_validation.remove_columns(["text"])
         self.tokenized_test.remove_columns(["text"])
-
-    def new_labelled(
-        self, samples: list, labels: list
-    ) -> Union[datasets.Dataset, torch.utils.data.Dataset]:
-
-        # store the number of new samples being processed
-        num_samples = len(samples)
-
-        # iterate over each sample-label pair
-        for i in range(num_samples):
-
-            # store the original sample text and label
-            sample_text = samples[i]
-            label = labels[i]
-
-            # add this sample-label pair to the raw `dataset_train`
-            self.dataset_train = self.dataset_train.add_item(
-                {"text": sample_text, "label": label}
-            )
-
-            # tokenize the `sample_text` using the classifier's tokenizer
-            sample_tokenized = self.classifier.tokenize(sample_text)
-
-            # add this tokenized sample-label triple to `tokenized_train`
-            self.tokenized_train = self.tokenized_train.add_item(
-                {
-                    "input_ids": sample_tokenized["input_ids"],
-                    "attention_mask": sample_tokenized["attention_mask"],
-                    "labels": label,
-                }
-            )
-
-        # having added all the new samples, return the last `num_samples`
-        # entries from `tokenized_train` (because adding items puts them at
-        # the end of the dataset)
-        return self.tokenized_train[-num_samples:]
