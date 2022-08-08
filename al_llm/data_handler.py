@@ -189,6 +189,14 @@ class HuggingFaceDataHandler(DataHandler):
         # load the testing dataset from Hugging Face
         self.dataset_test = datasets.load_dataset(dataset_name, split="test")
 
+        # next, rename 'label' to 'labels' (expected by some HuggingFace
+        # classifiers - MORE RESEARCH NEEDED)
+        self.dataset_train = self.dataset_train.rename_column("label", "labels")
+        self.dataset_validation = self.dataset_validation.rename_column(
+            "label", "labels"
+        )
+        self.dataset_test = self.dataset_test.rename_column("label", "labels")
+
         # slightly altered tokenizing function allows for easy use of
         # dataset `map` method
         def tokenize_function(examples):
@@ -201,14 +209,6 @@ class HuggingFaceDataHandler(DataHandler):
             tokenize_function, batched=True
         )
         self.tokenized_test = self.dataset_test.map(tokenize_function, batched=True)
-
-        # next, rename 'label' to 'labels' (expected by some HuggingFace
-        # classifiers - MORE RESEARCH NEEDED)
-        self.tokenized_train = self.tokenized_train.rename_column("label", "labels")
-        self.tokenized_validation = self.tokenized_validation.rename_column(
-            "label", "labels"
-        )
-        self.tokenized_test = self.tokenized_test.rename_column("label", "labels")
 
         # finally, format all tokenized datasets as PyTorch datasets, keeping
         # only the necessary columns
@@ -325,6 +325,14 @@ class LocalDataHandler(DataHandler):
         self.dataset_validation = dataset_dictionary["validation"]
         self.dataset_test = dataset_dictionary["test"]
 
+        # next, rename 'label' to 'labels' (expected by some HuggingFace
+        # classifiers - MORE RESEARCH NEEDED)
+        self.dataset_train = self.dataset_train.rename_column("label", "labels")
+        self.dataset_validation = self.dataset_validation.rename_column(
+            "label", "labels"
+        )
+        self.dataset_test = self.dataset_test.rename_column("label", "labels")
+
         # slightly altered tokenizing function allows for easy use of
         # dataset `map` method
         def tokenize_function(examples):
@@ -337,14 +345,6 @@ class LocalDataHandler(DataHandler):
             tokenize_function, batched=True
         )
         self.tokenized_test = self.dataset_test.map(tokenize_function, batched=True)
-
-        # next, rename 'label' to 'labels' (expected by some HuggingFace
-        # classifiers - MORE RESEARCH NEEDED)
-        self.tokenized_train = self.tokenized_train.rename_column("label", "labels")
-        self.tokenized_validation = self.tokenized_validation.rename_column(
-            "label", "labels"
-        )
-        self.tokenized_test = self.tokenized_test.rename_column("label", "labels")
 
         # finally, format all tokenized datasets as PyTorch datasets, keeping
         # only the necessary columns
