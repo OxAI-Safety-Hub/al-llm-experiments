@@ -25,5 +25,5 @@ Each csv file must contain exactly ***two*** columns.
 The first line in each file must be hold the names of the columns which must be named:
 
 - `text` for the column containing the sentences.
-- `label` for the column containing the integers representing the label given.
+- `labels` for the column containing the integers representing the label given.
 

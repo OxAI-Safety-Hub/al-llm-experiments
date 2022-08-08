@@ -325,14 +325,6 @@ class LocalDataHandler(DataHandler):
         self.dataset_validation = dataset_dictionary["validation"]
         self.dataset_test = dataset_dictionary["test"]
 
-        # next, rename 'label' to 'labels' (expected by some HuggingFace
-        # classifiers - MORE RESEARCH NEEDED)
-        self.dataset_train = self.dataset_train.rename_column("label", "labels")
-        self.dataset_validation = self.dataset_validation.rename_column(
-            "label", "labels"
-        )
-        self.dataset_test = self.dataset_test.rename_column("label", "labels")
-
         # slightly altered tokenizing function allows for easy use of
         # dataset `map` method
         def tokenize_function(examples):
