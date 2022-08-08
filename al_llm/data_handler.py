@@ -2,7 +2,6 @@
 # https://docs.python.org/3.10/library/abc.html
 from abc import ABC, abstractmethod
 from typing import Union
-import os.path
 
 import torch
 from torch.utils.data import TensorDataset
@@ -195,7 +194,7 @@ class HuggingFaceDataHandler(DataHandler):
         def tokenize_function(examples):
             return self.classifier.tokenize(examples["text"])
 
-        # to get each tokenized dataset, first map `_tokenize_function` over each
+        # to get each tokenized dataset, first map `tokenize_function` over each
         # of the raw datasets, setting batching to True for efficiency
         self.tokenized_train = self.dataset_train.map(tokenize_function, batched=True)
         self.tokenized_validation = self.dataset_validation.map(
@@ -265,7 +264,10 @@ class HuggingFaceDataHandler(DataHandler):
 
 
 class LocalDataHandler(DataHandler):
-    """A data handler for datasets that are stored locally in csv files.
+    """A data handler for datasets that are stored locally.
+
+    In the dataset_path folder, three files must exist which hold the data:
+        {"train.csv", "evaluation.csv", "test.cs"} (see README.csv for more info)
 
     The data handler keeps track of both the raw dataset consisting of
     sentences and labels, and the tokenized version.
@@ -328,7 +330,7 @@ class LocalDataHandler(DataHandler):
         def tokenize_function(examples):
             return self.classifier.tokenize(examples["text"])
 
-        # to get each tokenized dataset, first map `_tokenize_function` over each
+        # to get each tokenized dataset, first map `tokenize_function` over each
         # of the raw datasets, setting batching to True for efficiency
         self.tokenized_train = self.dataset_train.map(tokenize_function, batched=True)
         self.tokenized_validation = self.dataset_validation.map(
