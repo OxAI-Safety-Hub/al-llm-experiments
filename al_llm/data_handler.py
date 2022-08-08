@@ -115,6 +115,8 @@ class HuggingFaceDataHandler(DataHandler):
     classifier : classifier.Classifier
         The classifier instance which will be using the data. We will use this
         to know how to tokenize the data.
+    parameters : dict
+        The dictionary of parameters for the present experiment
     validation_proportion : float, default=0.2
         Proportion of the training data to be used for validation, if it's not
         provided by the Hugging Face dataset.
@@ -276,6 +278,8 @@ class LocalDataHandler(DataHandler):
     classifier : classifier.Classifier
         The classifier instance which will be using the data. We will use this
         to know how to tokenize the data.
+    parameters : dict
+        The dictionary of parameters for the present experiment
     validation_proportion : float, default=0.2
         Proportion of the training data to be used for validation, if it's not
         provided by the local dataset.
