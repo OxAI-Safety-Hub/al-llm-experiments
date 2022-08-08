@@ -273,16 +273,12 @@ class LocalDataHandler(DataHandler):
     Parameters
     ----------
     dataset_path : str
-        The path of the file containing "train.csv" and "test.cs" and also
-        "evaluation.csv" if the dataset has a validation set.
+        The path of the file containing {"train.csv", "evaluation.csv", "test.cs"}
     classifier : classifier.Classifier
         The classifier instance which will be using the data. We will use this
         to know how to tokenize the data.
     parameters : dict
         The dictionary of parameters for the present experiment
-    validation_proportion : float, default=0.2
-        Proportion of the training data to be used for validation, if it's not
-        provided by the local dataset.
 
     Attributes
     ----------
@@ -310,51 +306,21 @@ class LocalDataHandler(DataHandler):
         dataset_path: str,
         classifier: Classifier,
         parameters: dict,
-        validation_proportion: float = 0.2,
     ):
 
         super().__init__(classifier, parameters)
 
-        # Make sure that `validation_proportion` is in [0,1]
-        if validation_proportion < 0 or validation_proportion > 1:
-            raise ValueError("`validation_proportion` should be in [0,1]")
-
-        # check whether the dataset folder already has a validation set
-        validation_exists = os.path.exists(dataset_path + "/evaluation.csv")
-
-        # load the local dataset, splitting by the data file names that exist
-        data_files = {}
-        if validation_exists:
-            data_files = {
-                "train": "train.csv",
-                "validation": "evaluation.csv",
-                "test": "test.csv",
-            }
-        else:
-            data_files = {"train": "train.csv", "test": "test.csv"}
+        # load the local dataset, splitting by the data file names
+        data_files = {
+            "train": "train.csv",
+            "validation": "evaluation.csv",
+            "test": "test.csv",
+        }
         dataset_dictionary = datasets.load_dataset(dataset_path, data_files=data_files)
 
-        # if a validation set is provided, simply use that
-        if validation_exists:
-            self.dataset_train = dataset_dictionary["train"]
-            self.dataset_validation = dataset_dictionary["validation"]
-
-        # if one is not, use `validation_proportion` to take some of the
-        # training set for validation
-        else:
-            train_dataset_to_split = dataset_dictionary["train"]
-            train_length = len(train_dataset_to_split)
-            validation_length = round(train_length * validation_proportion)
-
-            # shuffle the training set before splitting it
-            train_dataset_to_split = train_dataset_to_split.shuffle()
-
-            # take the last `validation_proportion` elements for validation,
-            # and use the remaining elements for training
-            self.dataset_validation = train_dataset_to_split[-validation_length:]
-            self.dataset_train = train_dataset_to_split[:-validation_length]
-
-        # test set will always be provided, so use that
+        # use this split to store the raw datasets
+        self.dataset_train = dataset_dictionary["train"]
+        self.dataset_validation = dataset_dictionary["validation"]
         self.dataset_test = dataset_dictionary["test"]
 
         # slightly altered tokenizing function allows for easy use of

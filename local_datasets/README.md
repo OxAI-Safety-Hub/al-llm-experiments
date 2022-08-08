@@ -12,9 +12,9 @@ Each dataset will be stored in it's own folder using a descriptive name (e.g. `d
 
 - A csv file named `train.csv`. This will store the data for training.
 
-- A csv file named `test.csv`. This will store the data for testing.
+- A csv file named `evaluation.csv`. This will store the data for validation. 
 
-- **[Optional]** A csv file named `evaluation.csv`. This will store the data for validation. If no file is provided, the local datahandler uses some of the training data instead for this purpose.
+- A csv file named `test.csv`. This will store the data for testing.
 
 
 Dataset labels
