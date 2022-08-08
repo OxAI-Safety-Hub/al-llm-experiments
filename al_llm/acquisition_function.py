@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 
 import random
 
+
 class AcquisitionFunction(ABC):
     """Base acquisition function
 
@@ -36,6 +37,20 @@ class AcquisitionFunction(ABC):
         """
         pass
 
+    def _process_num_samples(self, samples: list, num_samples: int = -1) -> list:
+        """Determine and validate the number of samples to take
+
+        The value of -1 means that `parameters["num_samples"]` is used.
+        """
+
+        if num_samples == -1:
+            num_samples = self.parameters["num_samples"]
+
+        if num_samples > len(samples):
+            raise ValueError("Size of `samples` is smaller than `num_samples`")
+
+        return samples
+
 
 class DummyAcquisitionFunction(AcquisitionFunction):
     """A dummy acquisition function, which selects the first slice of samples
@@ -63,11 +78,8 @@ class DummyAcquisitionFunction(AcquisitionFunction):
             A sublist of `samples` of size `num_samples` selected according
             the to acquisition function.
         """
-        if num_samples == -1:
-            num_samples = self.parameters["num_samples"]
 
-        if num_samples > len(samples):
-            raise ValueError("Size of `samples` is smaller than `num_samples`")
+        num_samples = self._process_num_samples(num_samples)
 
         return samples[:num_samples]
 
@@ -98,10 +110,7 @@ class RandomAcquisitionFunction(AcquisitionFunction):
             A sublist of `samples` of size `num_samples` selected according
             the to acquisition function.
         """
-        if num_samples == -1:
-            num_samples = self.parameters["num_samples"]
 
-        if num_samples > len(samples):
-            raise ValueError("Size of `samples` is smaller than `num_samples`")
+        num_samples = self._process_num_samples(num_samples)
 
         return random.sample(samples, num_samples)
