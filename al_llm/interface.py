@@ -1,9 +1,12 @@
 # The python abc module for making abstract base classes
 # https://docs.python.org/3.10/library/abc.html
 from abc import ABC, abstractmethod
+from nis import cat
 from typing import Any
 
 import textwrap
+
+from al_llm.data_handler import DataHandler
 
 
 class Interface(ABC):
@@ -239,3 +242,71 @@ class CLIInterface(Interface):
         if trailing_newline:
             text += "\n"
         return text
+
+
+class PoolSimulatorInterface(Interface):
+    """Interface for simulating pool-based active learning
+
+    This interface uses a fully labelled dataset to obtain labels for the
+    sample sentences. It assumes that each sample comes from the dataset and
+    yields the associated label.
+
+    Parameters
+    ----------
+    categories : dict
+        A dictionary of categories used by the classifier. The keys are the
+        names of the categories as understood by the model, and the values
+        are the human-readable names.
+    data_handler : DataHandler
+        The data hander to use when obtaining the labels. Only the train split
+        is used.
+    """
+
+    def __init__(self, categories: dict, data_handler: DataHandler):
+
+        super().__init__(categories)
+
+        self.data_handler = data_handler
+
+        # The original training dataset, which won't get modified during
+        # active learning
+        self._dataset_train_orig = data_handler.dataset_train[
+            : data_handler.orig_train_size
+        ]
+
+    def prompt(self, samples: list) -> list:
+        """Obtain a label for the samples from the dataset
+
+
+        Parameters
+        ----------
+        samples : list
+            A list of samples to query the human
+
+        Returns
+        -------
+        labels : list
+            A list of labels, one for each element in `samples`
+        """
+
+        # The datapoints corresponding to the samples
+        filter_function = lambda x: x["text"] in samples
+        matching_rows_dataset = self._dataset_train_orig.filter(filter_function)
+
+        # Get the matching rows as a Pandas dataframe
+        matching_rows = matching_rows_dataset.with_format("pandas")[:]
+
+        labels = []
+        for sample in samples:
+
+            # Get the row containing `sample`
+            matching_row = matching_rows.loc[matching_rows["text"] == sample]
+
+            # If there is no such thing, something's gone wrong!
+            if len(matching_row) == 0:
+                raise ValueError(f"Sample {sample!r} not found in dataset")
+
+            # Append this the label to `labels`
+            labels.append(matching_row["labels"])
+
+        return labels

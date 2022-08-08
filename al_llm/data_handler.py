@@ -17,6 +17,8 @@ class DataHandler(ABC):
     The data handler keeps track of both the raw dataset consisting of
     sentences and labels, and the tokenized version.
 
+    The training set is added to as the active learning experiment progresses.
+
     Parameters
     ----------
     classifier : classifier.Classifier
@@ -44,6 +46,9 @@ class DataHandler(ABC):
         The tokenized dataset for testing, as a PyTorch dataset.
     classifier : classifier.Classifier
         The classifier instance which will be using the data.
+    orig_train_size : int
+        The original size of the train dataset, before new datapoints are
+        added during active learning.
     """
 
     def __init__(self, classifier, parameters):
@@ -54,6 +59,7 @@ class DataHandler(ABC):
         self.tokenized_validation = None
         self.tokenized_test = None
         self.classifier = classifier
+        self.orig_train_size = 0
         self.parameters = parameters
 
     def _tokenize(self, text: Union[str, list]) -> torch.Tensor:
@@ -183,6 +189,9 @@ class HuggingFaceDataHandler(DataHandler):
             # and use the remaining elements for training
             self.dataset_validation = dataset_train_split[-validation_length:]
             self.dataset_train = dataset_train_split[:-validation_length]
+
+        # Record the original training set size
+        self.orig_train_size = len(self.dataset_train)
 
         # load the testing dataset from Hugging Face
         self.dataset_test = datasets.load_dataset(dataset_name, split="test")
