@@ -61,6 +61,31 @@ class Classifier(ABC):
         return None
 
 
+class UncertaintyMixin(ABC):
+    """A mixin for classifiers which provide a measure of uncertainty"""
+
+    @abstractmethod
+    def calculate_uncertainty(self, samples: Union[str, list], batched: bool = True) -> Union[float, list]:
+        """Compute the uncertainty of a sample or batch of samples
+
+        Uncertainties are floats, whose interpretations depend on the 
+        classifier
+        
+        Parameters
+        ----------
+        samples : str or list
+            The sample or samples for which to calculate the uncertainty
+        batched : bool, default=True
+            Whether `samples` is a batch of samples or a single one
+
+        Returns
+        -------
+        uncertainties : float or list
+            The uncertainties of the samples. When `batched` is True, this is
+            a list of floats, one for each sample.
+        """
+        pass
+
 class DummyClassifier(Classifier):
     """Dummy classifier, which does nothing"""
 
