@@ -4,6 +4,8 @@ from abc import ABC, abstractmethod
 
 import random
 
+from al_llm.classifier import Classifier, UncertaintyMixin
+
 
 class AcquisitionFunction(ABC):
     """Base acquisition function
@@ -62,30 +64,12 @@ class DummyAcquisitionFunction(AcquisitionFunction):
     """
 
     def select(self, samples: list, num_samples: int = -1) -> list:
-        """Apply the acquisition function
-
-        Parameters
-        ----------
-        samples : list
-            The list of sentences from which to sample
-        num_samples : int, default=-1
-            The number of samples to select. The default value of -1 means
-            that `parameters["num_samples"]` is used.
-
-        Returns
-        -------
-        selected_samples : list
-            A sublist of `samples` of size `num_samples` selected according
-            the to acquisition function.
-        """
-
         num_samples = self._process_num_samples(samples, num_samples)
-
         return samples[:num_samples]
 
 
 class RandomAcquisitionFunction(AcquisitionFunction):
-    """An acquisition function which select randomly
+    """An acquisition function which selects randomly
 
     Parameters
     ----------
@@ -94,23 +78,37 @@ class RandomAcquisitionFunction(AcquisitionFunction):
     """
 
     def select(self, samples: list, num_samples: int = -1) -> list:
-        """Apply the acquisition function
+        num_samples = self._process_num_samples(samples, num_samples)
+        return random.sample(samples, num_samples)
 
-        Parameters
-        ----------
-        samples : list
-            The list of sentences from which to sample
-        num_samples : int, default=-1
-            The number of samples to select. The default value of -1 means
-            that `parameters["num_samples"]` is used.
 
-        Returns
-        -------
-        selected_samples : list
-            A sublist of `samples` of size `num_samples` selected according
-            the to acquisition function.
-        """
+class MaxUncertaintyAcquisitionFunction(AcquisitionFunction):
+    """An acquisition function which selects for the highest uncertainty
 
+    Parameters
+    ----------
+    parameters : dict
+        The dictionary of parameters for the present experiment
+    """
+
+    def __init__(self, parameters: dict, classifier: Classifier):
+        super().__init__(parameters)
+        if not isinstance(classifier, UncertaintyMixin):
+            raise TypeError("`classifier` must implement uncertainty measuring")
+        self.classifier = classifier
+
+    def select(self, samples: list, num_samples: int = -1) -> list:
+
+        # Process and validate `num_samples`
         num_samples = self._process_num_samples(samples, num_samples)
 
-        return random.sample(samples, num_samples)
+        # Compute the uncertainty values of each of the samples
+        uncertainties = self.classifier.calculate_uncertainties(samples)
+
+        # Compute the index array which would sort these in ascending order
+        argsorted = sorted(range(len(samples)), key=lambda i: uncertainties[i])
+
+        # Take the values of `samples` at the last `num_samples` indices
+        uncertain_samples = [samples[i] for i in argsorted[-num_samples:]]
+
+        return uncertain_samples
