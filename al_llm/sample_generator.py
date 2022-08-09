@@ -38,7 +38,7 @@ class DummySampleGenerator(SampleGenerator):
     def generate(self) -> list:
         alphabet = "abcdefghijklmnopqrstuvwxyz         "
         samples = []
-        for sampleIndex in range(self.parameters["num_samples"]):
+        for sample_index in range(self.parameters["num_samples"]):
             length = randrange(5, 30)
             sample_nums = [randrange(len(alphabet)) for i in range(length)]
             sample_chars = map(lambda x: alphabet[x], sample_nums)
