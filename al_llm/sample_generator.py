@@ -69,3 +69,9 @@ class PlainGPT2SampleGenerator(SampleGenerator):
         )
         sentences = [d["generated_text"] for d in sentence_dicts]
         return sentences
+
+
+class PoolSampleGenerator(SampleGenerator):
+    """Generate samples by sampling from the unlabelled data"""
+
+    pass
