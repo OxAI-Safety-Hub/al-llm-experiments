@@ -267,12 +267,6 @@ class PoolSimulatorInterface(Interface):
 
         self.data_handler = data_handler
 
-        # The original training dataset, which won't get modified during
-        # active learning
-        self._dataset_train_orig = data_handler.dataset_train[
-            : data_handler.orig_train_size
-        ]
-
     def prompt(self, samples: list) -> list:
         """Obtain a label for the samples from the dataset
 
