@@ -1,7 +1,6 @@
 # The python abc module for making abstract base classes
 # https://docs.python.org/3.10/library/abc.html
 from abc import ABC, abstractmethod
-from nis import cat
 from typing import Any
 
 import textwrap
@@ -289,8 +288,11 @@ class PoolSimulatorInterface(Interface):
             A list of labels, one for each element in `samples`
         """
 
-        # The datapoints corresponding to the samples
-        filter_function = lambda x: x["text"] in samples
+        # Filter for those datapoints corresponding to the samples
+        def filter_function(x):
+            return x["text"] in samples
+
+        # Select these datapoints
         matching_rows_dataset = self._dataset_train_orig.filter(filter_function)
 
         # Get the matching rows as a Pandas dataframe
