@@ -8,7 +8,7 @@ from typing import Optional
 
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 
-from acquisition_function import AcquisitionFunction
+from al_llm.acquisition_function import AcquisitionFunction
 
 
 class SampleGenerator(ABC):
@@ -55,7 +55,7 @@ class DummySampleGenerator(SampleGenerator):
     def __init__(
         self,
         parameters: dict,
-        acquisition_function: Optional[AcquisitionFunction],
+        acquisition_function: Optional[AcquisitionFunction] = None,
     ):
         super().__init__(parameters)
         self.acquisition_function = acquisition_function
@@ -107,7 +107,7 @@ class PlainGPT2SampleGenerator(SampleGenerator):
     def __init__(
         self,
         parameters: dict,
-        acquisition_function: Optional[AcquisitionFunction],
+        acquisition_function: Optional[AcquisitionFunction] = None,
         max_length: int = 30,
     ):
 

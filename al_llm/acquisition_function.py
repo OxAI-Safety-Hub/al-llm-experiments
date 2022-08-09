@@ -37,7 +37,7 @@ class AcquisitionFunction(ABC):
         """
         pass
 
-    def _process_num_samples(self, samples: list, num_samples: int = -1) -> list:
+    def _process_num_samples(self, samples: list, num_samples: int = -1) -> int:
         """Determine and validate the number of samples to take
 
         The value of -1 means that `parameters["num_samples"]` is used.
@@ -49,7 +49,7 @@ class AcquisitionFunction(ABC):
         if num_samples > len(samples):
             raise ValueError("Size of `samples` is smaller than `num_samples`")
 
-        return samples
+        return num_samples
 
 
 class DummyAcquisitionFunction(AcquisitionFunction):
@@ -79,7 +79,7 @@ class DummyAcquisitionFunction(AcquisitionFunction):
             the to acquisition function.
         """
 
-        num_samples = self._process_num_samples(num_samples)
+        num_samples = self._process_num_samples(samples, num_samples)
 
         return samples[:num_samples]
 
@@ -111,6 +111,6 @@ class RandomAcquisitionFunction(AcquisitionFunction):
             the to acquisition function.
         """
 
-        num_samples = self._process_num_samples(num_samples)
+        num_samples = self._process_num_samples(samples, num_samples)
 
         return random.sample(samples, num_samples)
