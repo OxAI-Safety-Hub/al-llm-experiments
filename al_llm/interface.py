@@ -289,11 +289,16 @@ class PoolSimulatorInterface(Interface):
         """
 
         # Filter for those datapoints corresponding to the samples
-        def filter_function(x):
-            return x["text"] in samples
+        def filter_function(x, idx):
+            if idx >= self.data_handler.orig_train_size:
+                return False
+            else:
+                return x["text"] in samples
 
         # Select these datapoints
-        matching_rows_dataset = self._dataset_train_orig.filter(filter_function)
+        matching_rows_dataset = self.data_handler.dataset_train.filter(
+            filter_function, with_indices=True
+        )
 
         # Get the matching rows as a Pandas dataframe
         matching_rows = matching_rows_dataset.with_format("pandas")[:]
