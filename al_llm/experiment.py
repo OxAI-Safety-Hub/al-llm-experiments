@@ -134,7 +134,7 @@ class Experiment:
         parameters = {"is_dummy": True}
         categories = {"valid": "Valid sentence", "invalid": "Invalid sentence"}
         classifier = DummyClassifier(parameters)
-        data_handler = DummyDataHandler(classifier, parameters)
+        data_handler = DummyDataHandler(classifier, categories, parameters)
         sample_generator = DummySampleGenerator(parameters)
         interface = CLIInterface(categories)
 

@@ -1,7 +1,7 @@
 # The python abc module for making abstract base classes
 # https://docs.python.org/3.10/library/abc.html
 from abc import ABC, abstractmethod
-from typing import Union
+from typing import Union, Optional
 
 import torch
 from torch.utils.data import TensorDataset
@@ -9,6 +9,7 @@ from torch.utils.data import TensorDataset
 import datasets
 
 from al_llm.classifier import Classifier
+from al_llm.utils.fake_data import FakeSentenceGenerator, FakeLabelGenerator
 
 
 class DataHandler(ABC):
@@ -101,6 +102,65 @@ class DataHandler(ABC):
 
 
 class DummyDataHandler(DataHandler):
+    """A dummy data handler, which uses some fake data
+
+    Parameters
+    ----------
+    classifier : classifier.Classifier
+        The classifier instance which will be using the data. We will use this
+        to know how to tokenize the data.
+    categories : dict
+        A dictionary of categories for the data. The keys are the names of the
+        categories as understood by the model, and the values are the human-
+        readable names.
+    parameters : dict
+        The dictionary of parameters for the present experiment
+    seed : int, optional
+        The random seed with which to generate the fake data
+    """
+
+    TRAIN_SIZE = 100
+    VALIDATION_SIZE = 20
+    TEST_SIZE = 50
+
+    def __init__(
+        self,
+        classifier: Classifier,
+        categories: dict,
+        parameters: dict,
+        seed: Optional[int] = None,
+    ):
+
+        super().__init__(classifier, parameters)
+
+        # Generate some training sentences
+        sentence_generator = FakeSentenceGenerator(seed)
+        train_sentences = sentence_generator.generate(self.TRAIN_SIZE)
+        validation_sentences = sentence_generator.generate(self.VALIDATION_SIZE)
+        test_sentences = sentence_generator.generate(self.TEST_SIZE)
+
+        # Generate the class labels
+        label_generator = FakeLabelGenerator(list(categories.keys()), seed)
+        train_labels = label_generator.generate(self.TRAIN_SIZE)
+        validation_labels = label_generator.generate(self.VALIDATION_SIZE)
+        test_labels = label_generator.generate(self.TEST_SIZE)
+
+        # Compose everything to make the datasets
+        self.dataset_train = datasets.Dataset.from_dict(
+            {"text": train_sentences, "labels": train_labels}
+        )
+        self.dataset_validation = datasets.Dataset.from_dict(
+            {"text": validation_sentences, "labels": validation_labels}
+        )
+        self.dataset_test = datasets.Dataset.from_dict(
+            {"text": test_sentences, "labels": test_labels}
+        )
+
+        # Finally, tokenize these
+        self.tokenized_train = self._tokenize(self.dataset_train)
+        self.tokenized_validation = self._tokenize(self.dataset_validation)
+        self.tokenized_test = self._tokenize(self.dataset_test)
+
     def new_labelled(
         self, samples: list, labels: list
     ) -> Union[datasets.Dataset, torch.utils.data.Dataset]:
