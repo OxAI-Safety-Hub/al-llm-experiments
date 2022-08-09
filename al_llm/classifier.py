@@ -76,7 +76,9 @@ class DummyClassifier(Classifier):
         elif isinstance(text, list):
             return torch.zeros((1, len(text)))
         else:
-            raise TypeError(f"{text!r} is not a string or a list")
+            raise TypeError(
+                f"Parameter `text` should be string or list, got {type(text)}"
+            )
 
 
 class DummyGPT2Classifier(Classifier):
