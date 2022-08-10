@@ -1,5 +1,3 @@
-from ast import Assert
-
 from al_llm.experiment import Experiment
 from al_llm.classifier import DummyGPT2Classifier
 from al_llm.data_handler import HuggingFaceDataHandler, LocalDataHandler
@@ -25,10 +23,10 @@ loc = LocalDataHandler(
 
 def tests():
     # check both datahandlers store data of the same type
-    Assert(isinstance(hug.dataset_test, datasets.arrow_dataset.Dataset))
-    Assert(isinstance(loc.dataset_test, datasets.arrow_dataset.Dataset))
-    Assert(isinstance(hug.tokenized_validation, datasets.arrow_dataset.Dataset))
-    Assert(isinstance(loc.tokenized_validation, datasets.arrow_dataset.Dataset))
+    assert(isinstance(hug.dataset_test, datasets.arrow_dataset.Dataset))
+    assert(isinstance(loc.dataset_test, datasets.arrow_dataset.Dataset))
+    assert(isinstance(hug.tokenized_validation, datasets.arrow_dataset.Dataset))
+    assert(isinstance(loc.tokenized_validation, datasets.arrow_dataset.Dataset))
 
     # dummy samples and labels to test with
     samples = ["one", "two", "three"]
@@ -43,12 +41,12 @@ def tests():
     loc_new_data = loc.new_labelled(samples, labels)
 
     # check that `new_labelled()` function returns a dataset of the right size
-    Assert(len(hug_new_data) == 3 and len(loc_new_data) == 3)
+    assert(len(hug_new_data) == 3 and len(loc_new_data) == 3)
 
     # check that the returned type is consistent
-    Assert(isinstance(hug_new_data, datasets.arrow_dataset.Dataset))
-    Assert(isinstance(loc_new_data, datasets.arrow_dataset.Dataset))
+    assert(isinstance(hug_new_data, datasets.arrow_dataset.Dataset))
+    assert(isinstance(loc_new_data, datasets.arrow_dataset.Dataset))
 
     # check that new_labelled correctly updates stored train data
-    Assert(hug_train_size + 3 == len(hug.tokenized_train))
-    Assert(loc_train_size + 3 == len(loc.tokenized_train))
+    assert(hug_train_size + 3 == len(hug.tokenized_train))
+    assert(loc_train_size + 3 == len(loc.tokenized_train))
