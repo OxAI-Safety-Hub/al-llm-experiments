@@ -39,7 +39,9 @@ class AcquisitionFunction(ABC):
         """
         pass
 
-    def _process_num_samples(self, sample_pool: list, num_samples: int = -1) -> int:
+    def _get_validated_num_samples(
+        self, sample_pool: list, num_samples: int = -1
+    ) -> int:
         """Determine and validate the number of samples to take
 
         The value of -1 means that `parameters["num_samples"]` is used.
@@ -64,7 +66,7 @@ class DummyAcquisitionFunction(AcquisitionFunction):
     """
 
     def select(self, sample_pool: list, num_samples: int = -1) -> list:
-        num_samples = self._process_num_samples(sample_pool, num_samples)
+        num_samples = self._get_validated_num_samples(sample_pool, num_samples)
         return sample_pool[:num_samples]
 
 
@@ -78,7 +80,7 @@ class RandomAcquisitionFunction(AcquisitionFunction):
     """
 
     def select(self, sample_pool: list, num_samples: int = -1) -> list:
-        num_samples = self._process_num_samples(sample_pool, num_samples)
+        num_samples = self._get_validated_num_samples(sample_pool, num_samples)
         return random.sample(sample_pool, num_samples)
 
 
@@ -100,7 +102,7 @@ class MaxUncertaintyAcquisitionFunction(AcquisitionFunction):
     def select(self, sample_pool: list, num_samples: int = -1) -> list:
 
         # Process and validate `num_samples`
-        num_samples = self._process_num_samples(sample_pool, num_samples)
+        num_samples = self._get_validated_num_samples(sample_pool, num_samples)
 
         # Compute the uncertainty values of each of the samples
         uncertainties = self.classifier.calculate_uncertainties(sample_pool)
