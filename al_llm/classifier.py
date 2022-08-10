@@ -70,8 +70,15 @@ class DummyClassifier(Classifier):
     def train_update(self, data: Any):
         pass
 
-    def tokenize(self, string: str):
-        return [0]
+    def tokenize(self, text: Union[str, list]) -> torch.Tensor:
+        if isinstance(text, str):
+            return torch.zeros(1)
+        elif isinstance(text, list):
+            return torch.zeros((1, len(text)))
+        else:
+            raise TypeError(
+                f"Parameter `text` should be string or list, got {type(text)}"
+            )
 
 
 class DummyGPT2Classifier(Classifier):
@@ -85,5 +92,5 @@ class DummyGPT2Classifier(Classifier):
     def train_update(self, data: Any):
         pass
 
-    def tokenize(self, string: str):
-        return self.tokenizer(string)
+    def tokenize(self, text: Union[str, list]) -> torch.Tensor:
+        return self.tokenizer(text)
