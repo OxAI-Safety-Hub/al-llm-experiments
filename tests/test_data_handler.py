@@ -6,6 +6,7 @@ from typing import Union, Any
 
 import datasets
 
+
 # define a dummy classifer that only loads the tokenizer for gpt2
 # without loading the rest of the model to save time for each test
 class DummyClassifierForTests(Classifier):
@@ -29,39 +30,43 @@ dummy_args["parameters"]["num_epochs"] = 1
 dummy_args["classifier"] = DummyClassifierForTests(dummy_args["parameters"])
 
 # create a HuggingFaceDataHandler to compare output types of each data handler
-hug = HuggingFaceDataHandler(
+hugging_data_handler = HuggingFaceDataHandler(
     "rotten_tomatoes", dummy_args["classifier"], dummy_args["parameters"]
 )
 # create LocalDataHandler using dummy_local_dataset
-loc = LocalDataHandler(
+local_data_handler = LocalDataHandler(
     "local_datasets/dummy_local_dataset",
     dummy_args["classifier"],
     dummy_args["parameters"],
 )
 
 
-def tests():
+def test_data_handler_consistency():
     # check both datahandlers store data of the same type
-    assert(isinstance(hug.dataset_test, datasets.arrow_dataset.Dataset))
-    assert(isinstance(loc.dataset_test, datasets.arrow_dataset.Dataset))
-    assert(isinstance(hug.tokenized_validation, datasets.arrow_dataset.Dataset))
-    assert(isinstance(loc.tokenized_validation, datasets.arrow_dataset.Dataset))
+    assert isinstance(hugging_data_handler.dataset_test, datasets.arrow_dataset.Dataset)
+    assert isinstance(local_data_handler.dataset_test, datasets.arrow_dataset.Dataset)
+    assert isinstance(
+        hugging_data_handler.tokenized_validation, datasets.arrow_dataset.Dataset
+    )
+    assert isinstance(
+        local_data_handler.tokenized_validation, datasets.arrow_dataset.Dataset
+    )
 
     # dummy samples and labels to test with
     samples = ["one", "two", "three"]
     labels = [0, 1, 1]
 
     # store size of train sets before `new_labelled()` calls
-    hug_train_size = len(hug.tokenized_train)
-    loc_train_size = len(loc.tokenized_train)
+    hug_train_size = len(hugging_data_handler.tokenized_train)
+    loc_train_size = len(local_data_handler.tokenized_train)
 
     # add samples to each data handler
-    hug_new_data = hug.new_labelled(samples, labels)
-    loc_new_data = loc.new_labelled(samples, labels)
+    hug_new_data = hugging_data_handler.new_labelled(samples, labels)
+    loc_new_data = local_data_handler.new_labelled(samples, labels)
 
     # check that `new_labelled()` function returns a dataset of the right size
-    assert(len(hug_new_data) == 3 and len(loc_new_data) == 3)
+    assert len(hug_new_data) == 3 and len(loc_new_data) == 3
 
     # check that new_labelled correctly updates stored train data
-    assert(hug_train_size + 3 == len(hug.tokenized_train))
-    assert(loc_train_size + 3 == len(loc.tokenized_train))
+    assert hug_train_size + 3 == len(hugging_data_handler.tokenized_train)
+    assert loc_train_size + 3 == len(local_data_handler.tokenized_train)

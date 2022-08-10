@@ -1,7 +1,7 @@
 from .classifier import Classifier, DummyClassifier, DummyGPT2Classifier
 from .data_handler import (
-    DataHandler, 
-    DummyDataHandler, 
+    DataHandler,
+    DummyDataHandler,
     HuggingFaceDataHandler,
     LocalDataHandler,
 )
