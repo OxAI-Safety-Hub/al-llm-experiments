@@ -61,7 +61,31 @@ class Classifier(ABC):
         return None
 
 
-class DummyClassifier(Classifier):
+class UncertaintyMixin(ABC):
+    """A mixin for classifiers which provide a measure of uncertainty"""
+
+    @abstractmethod
+    def calculate_uncertainties(self, samples: Union[str, list]) -> Union[float, list]:
+        """Compute the uncertainty of a sample or batch of samples
+
+        Uncertainties are floats, whose interpretations depend on the
+        classifier
+
+        Parameters
+        ----------
+        samples : str or list
+            The sample or samples for which to calculate the uncertainty
+
+        Returns
+        -------
+        uncertainties : float or list
+            The uncertainties of the samples. Either a float or a list of
+            floats, depending on the type of `samples`.
+        """
+        pass
+
+
+class DummyClassifier(UncertaintyMixin, Classifier):
     """Dummy classifier, which does nothing"""
 
     def train_afresh(self, data: Any):
@@ -70,8 +94,25 @@ class DummyClassifier(Classifier):
     def train_update(self, data: Any):
         pass
 
-    def tokenize(self, string: str):
-        return [0]
+    def tokenize(self, text: Union[str, list]) -> torch.Tensor:
+        if isinstance(text, str):
+            return torch.zeros(1)
+        elif isinstance(text, list):
+            return torch.zeros((1, len(text)))
+        else:
+            raise TypeError(
+                f"Parameter `text` should be string or list, got {type(text)}"
+            )
+
+    def calculate_uncertainties(self, samples: Union[str, list]) -> Union[float, list]:
+        if isinstance(samples, str):
+            return 0
+        elif isinstance(samples, list):
+            return [0] * len(samples)
+        else:
+            raise TypeError(
+                f"Parameter `samples` must be a string or list, got {type(samples)}"
+            )
 
 
 class DummyGPT2Classifier(Classifier):
@@ -85,5 +126,5 @@ class DummyGPT2Classifier(Classifier):
     def train_update(self, data: Any):
         pass
 
-    def tokenize(self, string: str):
-        return self.tokenizer(string)
+    def tokenize(self, text: Union[str, list]) -> torch.Tensor:
+        return self.tokenizer(text)
