@@ -36,6 +36,8 @@ git checkout -b new_feature
 
 - Make some modifications, following the [Coding Guidelines](#coding-guidelines) below.
 
+- If you make any new objects which should be in the top-level namespaces, add them to [the `__init__.py`](/al_llm/__init__.py).
+
 - Run `black` to format the code nicely:
 ```
 black .

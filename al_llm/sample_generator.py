@@ -72,7 +72,7 @@ class DummySampleGenerator(SampleGenerator):
 
         # Generate the samples by sampling from the alphabet
         samples = []
-        for sampleIndex in range(num_sentences_first):
+        for sample_index in range(num_sentences_first):
             length = randrange(5, 30)
             sample_nums = [randrange(len(alphabet)) for i in range(length)]
             sample_chars = map(lambda x: alphabet[x], sample_nums)
