@@ -18,7 +18,7 @@ class LengthUncertaintyClassifier(DummyClassifier):
 def _basic_acquisition_function_test(acquisition_function_cls):
 
     # The parameters to use for this test
-    parameters = {"num_samples": 5, "num_oversamples": 20}
+    parameters = {"num_samples": 5, "sample_pool_size": 20}
 
     # Make the instances
     if acquisition_function_cls == MaxUncertaintyAcquisitionFunction:
@@ -28,12 +28,12 @@ def _basic_acquisition_function_test(acquisition_function_cls):
         acquisition_function = acquisition_function_cls(parameters)
 
     # Generate some sentences then select them using the acquisition function
-    oversamples = [str(i) for i in range(parameters["num_oversamples"])]
-    samples = acquisition_function.select(oversamples)
+    sample_pool = [str(i) for i in range(parameters["sample_pool_size"])]
+    samples = acquisition_function.select(sample_pool)
 
     # Make sure the selection is a sublist
     for sample in samples:
-        assert sample in oversamples
+        assert sample in sample_pool
 
     # Make sure the selection has the correct size
     assert len(samples) == parameters["num_samples"]
@@ -54,22 +54,22 @@ def test_max_uncertainty_function():
 
     # Some basic parameters
     num_samples = 5
-    num_oversamples = 20
-    parameters = {"num_samples": num_samples, "num_oversamples": num_oversamples}
+    sample_pool_size = 20
+    parameters = {"num_samples": num_samples, "sample_pool_size": sample_pool_size}
 
     # Set up the acquisition function
     classifier = LengthUncertaintyClassifier(parameters)
     acquisition_function = MaxUncertaintyAcquisitionFunction(parameters, classifier)
 
     # Generate some samples with increasing length
-    samples = ["a" * i for i in range(num_oversamples)]
+    sample_pool = ["a" * i for i in range(sample_pool_size)]
 
     # Shuffle these to make it harder
     random.seed(3535)
-    random.shuffle(samples)
+    random.shuffle(sample_pool)
 
     # The selected samples should be the longest ones
     target_samples = [
-        "a" * i for i in range(num_oversamples - num_samples, num_oversamples)
+        "a" * i for i in range(sample_pool_size - num_samples, sample_pool_size)
     ]
-    assert acquisition_function.select(samples) == target_samples
+    assert acquisition_function.select(sample_pool) == target_samples

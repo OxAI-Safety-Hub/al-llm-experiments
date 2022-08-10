@@ -40,7 +40,7 @@ class DummySampleGenerator(SampleGenerator):
     """Dummy sample generator, which generates random stuff
 
     It generates `parameters["num_samples"]` samples. If an acquisition
-    function is supplied, it first generates `parameters["num_oversamples"]`
+    function is supplied, it first generates `parameters["sample_pool_size"]`
     then uses the function to select from these.
 
     Parameters
@@ -68,20 +68,22 @@ class DummySampleGenerator(SampleGenerator):
         if self.acquisition_function is None:
             num_sentences_first = self.parameters["num_samples"]
         else:
-            num_sentences_first = self.parameters["num_oversamples"]
+            num_sentences_first = self.parameters["sample_pool_size"]
 
         # Generate the samples by sampling from the alphabet
-        samples = []
+        sample_pool = []
         for sample_index in range(num_sentences_first):
             length = randrange(5, 30)
             sample_nums = [randrange(len(alphabet)) for i in range(length)]
             sample_chars = map(lambda x: alphabet[x], sample_nums)
             sample = "".join(sample_chars)
-            samples.append(sample)
+            sample_pool.append(sample)
 
         # Select from these, if using an acquisition function
         if self.acquisition_function is not None:
-            samples = self.acquisition_function.select(samples)
+            samples = self.acquisition_function.select(sample_pool)
+        else:
+            samples = sample_pool
 
         return samples
 
@@ -90,7 +92,7 @@ class PlainGPT2SampleGenerator(SampleGenerator):
     """Plain GPT-2 sample generator, which just generates real sentences
 
     It generates `parameters["num_samples"]` samples. If an acquisition
-    function is supplied, it first generates `parameters["num_oversamples"]`
+    function is supplied, it first generates `parameters["sample_pool_size"]`
     then uses the function to select from these.
 
     Parameters
@@ -134,7 +136,7 @@ class PlainGPT2SampleGenerator(SampleGenerator):
         if self.acquisition_function is None:
             num_sentences_first = self.parameters["num_samples"]
         else:
-            num_sentences_first = self.parameters["num_oversamples"]
+            num_sentences_first = self.parameters["sample_pool_size"]
 
         # Uses `pipeline` to generate real sentences
         generator = pipeline(
@@ -145,10 +147,12 @@ class PlainGPT2SampleGenerator(SampleGenerator):
             max_length=self.max_length,
             num_return_sequences=num_sentences_first,
         )
-        samples = [d["generated_text"] for d in sentence_dicts]
+        sample_pool = [d["generated_text"] for d in sentence_dicts]
 
         # Select from these, if using an acquisition function
         if self.acquisition_function is not None:
-            samples = self.acquisition_function.select(samples)
+            samples = self.acquisition_function.select(sample_pool)
+        else:
+            samples = sample_pool
 
         return samples

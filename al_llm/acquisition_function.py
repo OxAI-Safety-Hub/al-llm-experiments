@@ -20,12 +20,12 @@ class AcquisitionFunction(ABC):
         self.parameters = parameters
 
     @abstractmethod
-    def select(self, samples: list, num_samples: int = -1) -> list:
+    def select(self, sample_pool: list, num_samples: int = -1) -> list:
         """Apply the acquisition function
 
         Parameters
         ----------
-        samples : list
+        sample_pool : list
             The list of sentences from which to sample
         num_samples : int, default=-1
             The number of samples to select. The default value of -1 means
@@ -39,7 +39,7 @@ class AcquisitionFunction(ABC):
         """
         pass
 
-    def _process_num_samples(self, samples: list, num_samples: int = -1) -> int:
+    def _process_num_samples(self, sample_pool: list, num_samples: int = -1) -> int:
         """Determine and validate the number of samples to take
 
         The value of -1 means that `parameters["num_samples"]` is used.
@@ -48,7 +48,7 @@ class AcquisitionFunction(ABC):
         if num_samples == -1:
             num_samples = self.parameters["num_samples"]
 
-        if num_samples > len(samples):
+        if num_samples > len(sample_pool):
             raise ValueError("Size of `samples` is smaller than `num_samples`")
 
         return num_samples
@@ -63,9 +63,9 @@ class DummyAcquisitionFunction(AcquisitionFunction):
         The dictionary of parameters for the present experiment
     """
 
-    def select(self, samples: list, num_samples: int = -1) -> list:
-        num_samples = self._process_num_samples(samples, num_samples)
-        return samples[:num_samples]
+    def select(self, sample_pool: list, num_samples: int = -1) -> list:
+        num_samples = self._process_num_samples(sample_pool, num_samples)
+        return sample_pool[:num_samples]
 
 
 class RandomAcquisitionFunction(AcquisitionFunction):
@@ -77,9 +77,9 @@ class RandomAcquisitionFunction(AcquisitionFunction):
         The dictionary of parameters for the present experiment
     """
 
-    def select(self, samples: list, num_samples: int = -1) -> list:
-        num_samples = self._process_num_samples(samples, num_samples)
-        return random.sample(samples, num_samples)
+    def select(self, sample_pool: list, num_samples: int = -1) -> list:
+        num_samples = self._process_num_samples(sample_pool, num_samples)
+        return random.sample(sample_pool, num_samples)
 
 
 class MaxUncertaintyAcquisitionFunction(AcquisitionFunction):
@@ -97,18 +97,18 @@ class MaxUncertaintyAcquisitionFunction(AcquisitionFunction):
             raise TypeError("`classifier` must implement uncertainty measuring")
         self.classifier = classifier
 
-    def select(self, samples: list, num_samples: int = -1) -> list:
+    def select(self, sample_pool: list, num_samples: int = -1) -> list:
 
         # Process and validate `num_samples`
-        num_samples = self._process_num_samples(samples, num_samples)
+        num_samples = self._process_num_samples(sample_pool, num_samples)
 
         # Compute the uncertainty values of each of the samples
-        uncertainties = self.classifier.calculate_uncertainties(samples)
+        uncertainties = self.classifier.calculate_uncertainties(sample_pool)
 
         # Compute the index array which would sort these in ascending order
-        argsorted = sorted(range(len(samples)), key=lambda i: uncertainties[i])
+        argsorted = sorted(range(len(sample_pool)), key=lambda i: uncertainties[i])
 
         # Take the values of `samples` at the last `num_samples` indices
-        uncertain_samples = [samples[i] for i in argsorted[-num_samples:]]
+        uncertain_samples = [sample_pool[i] for i in argsorted[-num_samples:]]
 
         return uncertain_samples
