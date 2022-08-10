@@ -61,7 +61,31 @@ class Classifier(ABC):
         return None
 
 
-class DummyClassifier(Classifier):
+class UncertaintyMixin(ABC):
+    """A mixin for classifiers which provide a measure of uncertainty"""
+
+    @abstractmethod
+    def calculate_uncertainties(self, samples: Union[str, list]) -> Union[float, list]:
+        """Compute the uncertainty of a sample or batch of samples
+
+        Uncertainties are floats, whose interpretations depend on the
+        classifier
+
+        Parameters
+        ----------
+        samples : str or list
+            The sample or samples for which to calculate the uncertainty
+
+        Returns
+        -------
+        uncertainties : float or list
+            The uncertainties of the samples. Either a float or a list of
+            floats, depending on the type of `samples`.
+        """
+        pass
+
+
+class DummyClassifier(UncertaintyMixin, Classifier):
     """Dummy classifier, which does nothing"""
 
     def train_afresh(self, data: Any):
@@ -78,6 +102,16 @@ class DummyClassifier(Classifier):
         else:
             raise TypeError(
                 f"Parameter `text` should be string or list, got {type(text)}"
+            )
+
+    def calculate_uncertainties(self, samples: Union[str, list]) -> Union[float, list]:
+        if isinstance(samples, str):
+            return 0
+        elif isinstance(samples, list):
+            return [0] * len(samples)
+        else:
+            raise TypeError(
+                f"Parameter `samples` must be a string or list, got {type(samples)}"
             )
 
 
