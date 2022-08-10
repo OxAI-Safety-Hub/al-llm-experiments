@@ -52,7 +52,7 @@ class DataHandler(ABC):
         added during active learning.
     """
 
-    def __init__(self, classifier, parameters):
+    def __init__(self, classifier: Classifier, parameters: dict):
         self.dataset_train = None
         self.dataset_validation = None
         self.dataset_test = None
