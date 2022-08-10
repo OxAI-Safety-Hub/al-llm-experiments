@@ -1,13 +1,32 @@
 from al_llm.experiment import Experiment
-from al_llm.classifier import DummyGPT2Classifier
+from al_llm.classifier import Classifier
 from al_llm.data_handler import HuggingFaceDataHandler, LocalDataHandler
+from transformers import AutoTokenizer
+from typing import Union, Any
 
 import datasets
+
+# define a dummy classifer that only loads the tokenizer for gpt2
+# without loading the rest of the model to save time for each test
+class DummyClassifierForTests(Classifier):
+    def __init__(self, parameters: dict):
+        self.tokenizer = AutoTokenizer.from_pretrained("gpt2")
+        self.parameters = parameters
+
+    def train_afresh(self, data: Any):
+        pass
+
+    def train_update(self, data: Any):
+        pass
+
+    def tokenize(self, text: Union[str, list]):
+        return self.tokenizer(text)
+
 
 # create parameters and classifier to pass to data handlers
 dummy_args = Experiment.make_dummy_experiment()
 dummy_args["parameters"]["num_epochs"] = 1
-dummy_args["classifier"] = DummyGPT2Classifier(dummy_args["parameters"])
+dummy_args["classifier"] = DummyClassifierForTests(dummy_args["parameters"])
 
 # create a HuggingFaceDataHandler to compare output types of each data handler
 hug = HuggingFaceDataHandler(
@@ -42,10 +61,6 @@ def tests():
 
     # check that `new_labelled()` function returns a dataset of the right size
     assert(len(hug_new_data) == 3 and len(loc_new_data) == 3)
-
-    # check that the returned type is consistent
-    assert(isinstance(hug_new_data, datasets.arrow_dataset.Dataset))
-    assert(isinstance(loc_new_data, datasets.arrow_dataset.Dataset))
 
     # check that new_labelled correctly updates stored train data
     assert(hug_train_size + 3 == len(hug.tokenized_train))
