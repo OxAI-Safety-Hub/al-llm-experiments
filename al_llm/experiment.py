@@ -182,4 +182,18 @@ class Parameters(dict):
             number."""
 
     def __init__(self, *args, **kw):
+        # sets the parameters provided
         super().__init__(*args, **kw)
+
+        # defined default paramets
+        default_parameters = {
+            "num_iterations": 5,
+            "refresh_every": 2,
+            "num_samples": 5,
+            "sample_pool_size": 20,
+        }
+
+        # if any of these are not provided, use the default value
+        for key, value in default_parameters.items():
+            if not super().__contains__(key):
+                super().__setitem__(key, value)
