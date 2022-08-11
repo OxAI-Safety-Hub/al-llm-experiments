@@ -31,5 +31,5 @@ class Parameters(dict):
 
         # if any of these are not provided, use the default value
         for key, value in self.default_parameters.items():
-            if not super().__contains__(key):
-                super().__setitem__(key, value)
+            if not self.__contains__(key):
+                self[key] = value
