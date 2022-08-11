@@ -134,7 +134,6 @@ class Experiment:
         self.interface.train_afresh()
         self.classifier.train_afresh(
             self.data_handler.tokenized_train,
-            self.data_handler.tokenized_validation,
         )
 
     def _train_update(
@@ -144,7 +143,6 @@ class Experiment:
         self.interface.train_update()
         self.classifier.train_update(
             dataset_samples,
-            self.data_handler.tokenized_validation,
         )
 
     @classmethod
@@ -167,6 +165,7 @@ class Experiment:
         categories = {0: "Valid sentence", 1: "Invalid sentence"}
         classifier = DummyClassifier(parameters)
         data_handler = DummyDataHandler(classifier, parameters)
+        classifier.attach_data_handler(data_handler)
         acquisition_function = DummyAcquisitionFunction(parameters)
         sample_generator = DummySampleGenerator(
             parameters, acquisition_function=acquisition_function
@@ -208,6 +207,7 @@ class Experiment:
         categories = {0: "Negative sentence", 1: "Positive sentence"}
         classifier = GPT2Classifier(parameters)
         data_handler = HuggingFaceDataHandler(dataset_name, classifier, parameters)
+        classifier.attach_data_handler(data_handler)
         sample_generator = PlainGPT2SampleGenerator(parameters)
         interface = CLIInterface(categories)
 

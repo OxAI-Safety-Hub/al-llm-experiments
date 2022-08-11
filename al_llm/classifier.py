@@ -21,16 +21,21 @@ class Classifier(ABC):
     ----------
     parameters : dict
         The dictionary of parameters for the present experiment
+
+    Attributes
+    ----------
+    data_handler : DataHandler
+        The DataHandler instance attached to this classifier
     """
 
     def __init__(self, parameters: dict):
         self.parameters = parameters
+        self.data_handler = None
 
     @abstractmethod
     def train_afresh(
         self,
         dataset_train: Union[datasets.Dataset, torch.utils.data.Dataset],
-        dataset_validation: Union[datasets.Dataset, torch.utils.data.Dataset],
     ):
         """Reset the classifier and fine-tune it anew on tokenised data
 
@@ -38,8 +43,6 @@ class Classifier(ABC):
         ----------
         dataset_train : dataset.Dataset or torch.utils.data.Dataset
             The dataset with which to fine-tune
-        dataset_validation : dataset.Dataset or torch.utils.data.Dataset
-            The dataset with which to check performance
         """
         pass
 
@@ -47,7 +50,6 @@ class Classifier(ABC):
     def train_update(
         self,
         dataset_train: Union[datasets.Dataset, torch.utils.data.Dataset],
-        dataset_validation: Union[datasets.Dataset, torch.utils.data.Dataset],
     ):
         """Fine-tune the classifier on more data tokenized, without resetting
 
@@ -55,8 +57,6 @@ class Classifier(ABC):
         ----------
         dataset_train : dataset.Dataset or torch.utils.data.Dataset
             The extra tokenized datapoints with which to fine-tune
-        dataset_validation : dataset.Dataset or torch.utils.data.Dataset
-            The dataset with which to check performance
         """
         pass
 
@@ -75,6 +75,17 @@ class Classifier(ABC):
             The result of tokenizing `text`
         """
         return None
+
+    def attach_data_handler(self, data_handler):
+        """Attach an instance of a DataHandler to this classifier, so
+        validation and test datasets are easily accessible
+
+        Parameters
+        ----------
+        data_handler : DataHandler
+            The instance to be attached to this classifier
+        """
+        self.data_handler = data_handler
 
 
 class UncertaintyMixin(ABC):
@@ -104,10 +115,10 @@ class UncertaintyMixin(ABC):
 class DummyClassifier(UncertaintyMixin, Classifier):
     """Dummy classifier, which does nothing"""
 
-    def train_afresh(self, dataset_train: Any, dataset_validation: Any):
+    def train_afresh(self, dataset_train: Any):
         pass
 
-    def train_update(self, dataset_train: Any, dataset_validation: Any):
+    def train_update(self, dataset_train: Any):
         pass
 
     def tokenize(self, text: Union[str, list]) -> torch.Tensor:
@@ -143,6 +154,20 @@ class GPT2Classifier(Classifier):
     parameters : dict
         The dictionary of parameters for the present experiment
 
+    Attributes
+    ----------
+    data_handler : DataHandler
+        The DataHandler instance attached to this classifier
+    tokenizer : transformers.AutoTokenizer
+        The HuggingFace tokenizer associated with this classifier
+    model : transformers.AutoModelForSequenceClassification
+        The HuggingFace model for this classifier; reset to a new model every
+        call of `train_afresh`
+    optimizer : torch.optim.AdamW
+        The torch optimizer used to update the model's parameters when training
+    device : torch.device
+        Set to either cuda (if GPU available) or CPU
+
     Notes
     ----------
     Temporarily using distilled version of GPT-2 (distilgpt2 on HuggingFace) due
@@ -162,7 +187,10 @@ class GPT2Classifier(Classifier):
         # loads the tokenizer that the model will use
         self.tokenizer = AutoTokenizer.from_pretrained("distilgpt2")
         self.tokenizer.pad_token = self.tokenizer.eos_token
-        self.model = None  # model is not required until a call to `train_afresh`
+
+        # model and optimizer not required until a call to `train_afresh`
+        self.model = None
+        self.optimizer = None
 
         # set device
         self.device = (
@@ -172,7 +200,6 @@ class GPT2Classifier(Classifier):
     def train_afresh(
         self,
         dataset_train: Union[datasets.Dataset, torch.utils.data.Dataset],
-        dataset_validation: Union[datasets.Dataset, torch.utils.data.Dataset],
     ):
         # load a fresh version of the model
         self.model = AutoModelForSequenceClassification.from_pretrained(
@@ -190,7 +217,8 @@ class GPT2Classifier(Classifier):
             dataset_train, shuffle=True, batch_size=self.parameters["batch_size"]
         )
         eval_dataloader = DataLoader(
-            dataset_validation, batch_size=self.parameters["batch_size"]
+            self.data_handler.dataset_validation,
+            batch_size=self.parameters["batch_size"],
         )
 
         # create a learning rate scheduler
@@ -235,7 +263,6 @@ class GPT2Classifier(Classifier):
     def train_update(
         self,
         dataset_samples: Union[datasets.Dataset, torch.utils.data.Dataset],
-        dataset_validation: Union[datasets.Dataset, torch.utils.data.Dataset],
     ):
 
         # create a dataloader for the small samples dataset
@@ -243,7 +270,8 @@ class GPT2Classifier(Classifier):
             dataset_samples, shuffle=True, batch_size=self.parameters["batch_size"]
         )
         eval_dataloader = DataLoader(
-            dataset_validation, batch_size=self.parameters["batch_size"]
+            self.data_handler.dataset_validation,
+            batch_size=self.parameters["batch_size"],
         )
 
         # create a learning rate scheduler, but for one epoch only
