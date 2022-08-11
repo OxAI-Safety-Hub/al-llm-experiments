@@ -2,6 +2,7 @@
 torch
 transformers
 datasets
+wheel
 sklearn
 
 # Formatting and linting
