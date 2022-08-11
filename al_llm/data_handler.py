@@ -9,6 +9,7 @@ from torch.utils.data import TensorDataset
 import datasets
 
 from al_llm.classifier import Classifier
+from al_llm.parameters import Parameters
 
 
 class DataHandler(ABC):
@@ -22,7 +23,7 @@ class DataHandler(ABC):
     classifier : classifier.Classifier
         The classifier instance which will be using the data. We will use this
         to know how to tokenize the data.
-    parameters : dict
+    parameters : Parameters
         The dictionary of parameters for the present experiment
 
     Attributes
@@ -46,7 +47,7 @@ class DataHandler(ABC):
         The classifier instance which will be using the data.
     """
 
-    def __init__(self, classifier: Classifier, parameters: dict):
+    def __init__(self, classifier: Classifier, parameters: Parameters):
         self.dataset_train = None
         self.dataset_validation = None
         self.dataset_test = None
@@ -144,7 +145,7 @@ class HuggingFaceDataHandler(DataHandler):
     classifier : classifier.Classifier
         The classifier instance which will be using the data. We will use this
         to know how to tokenize the data.
-    parameters : dict
+    parameters : Parameters
         The dictionary of parameters for the present experiment
     validation_proportion : float, default=0.2
         Proportion of the training data to be used for validation, if it's not
@@ -175,7 +176,7 @@ class HuggingFaceDataHandler(DataHandler):
         self,
         dataset_name: str,
         classifier: Classifier,
-        parameters: dict,
+        parameters: Parameters,
         validation_proportion: float = 0.2,
     ):
 
@@ -302,7 +303,7 @@ class LocalDataHandler(DataHandler):
     classifier : classifier.Classifier
         The classifier instance which will be using the data. We will use this
         to know how to tokenize the data.
-    parameters : dict
+    parameters : Parameters
         The dictionary of parameters for the present experiment
 
     Attributes
@@ -330,7 +331,7 @@ class LocalDataHandler(DataHandler):
         self,
         dataset_path: str,
         classifier: Classifier,
-        parameters: dict,
+        parameters: Parameters,
     ):
 
         super().__init__(classifier, parameters)

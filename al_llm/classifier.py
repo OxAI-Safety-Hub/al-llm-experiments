@@ -12,6 +12,7 @@ from transformers import (
 from torch.utils.data import DataLoader
 from torch.optim import AdamW
 import datasets
+from al_llm.parameters import Parameters
 
 
 class Classifier(ABC):
@@ -19,7 +20,7 @@ class Classifier(ABC):
 
     Parameters
     ----------
-    parameters : dict
+    parameters : Parameters
         The dictionary of parameters for the present experiment
 
     Attributes
@@ -28,7 +29,7 @@ class Classifier(ABC):
         The DataHandler instance attached to this classifier
     """
 
-    def __init__(self, parameters: dict):
+    def __init__(self, parameters: Parameters):
         self.parameters = parameters
         self.data_handler = None
 
@@ -151,7 +152,7 @@ class GPT2Classifier(Classifier):
 
     Parameters
     ----------
-    parameters : dict
+    parameters : Parameters
         The dictionary of parameters for the present experiment
 
     Attributes
@@ -179,7 +180,7 @@ class GPT2Classifier(Classifier):
     [1] Radford et al., "Language Models are Unsupervised Multitask Learners", 2019
     """
 
-    def __init__(self, parameters: dict):
+    def __init__(self, parameters: Parameters):
 
         # initialises the parameters in the same way as the base class
         super().__init__(parameters)

@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 import textwrap
+from al_llm.parameters import Parameters
 
 
 class Interface(ABC):
@@ -37,14 +38,14 @@ class Interface(ABC):
 
         return []
 
-    def begin(self, message: str = None, parameters: dict = None):
+    def begin(self, message: str = None, parameters: Parameters = None):
         """Initialise the interface, displaying a welcome message
 
         Parameters
         ----------
         message : str, optional
             The welcome message to display. Defaults to a generic message.
-        parameters : dict, optional
+        parameters : Parameters, optional
             The parameters used in this experiment
         """
         pass
@@ -107,7 +108,7 @@ class CLIInterface(Interface):
         self._categories_list = [(k, v) for k, v in self.categories.items()]
         self._num_categories = len(self._categories_list)
 
-    def begin(self, message: str = None, parameters: dict = None):
+    def begin(self, message: str = None, parameters: Parameters = None):
 
         # Default message
         if message is None:
