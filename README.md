@@ -13,3 +13,7 @@
 
 ## Contributing
 See the [Guide to contributing code](/CONTRIBUTING.md).
+
+
+## Locally stored datasets
+See the [Guide to using local datasets](local_datasets/README.md).
