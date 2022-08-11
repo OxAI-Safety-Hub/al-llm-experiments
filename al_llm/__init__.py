@@ -5,7 +5,7 @@ from .data_handler import (
     HuggingFaceDataHandler,
     LocalDataHandler,
 )
-from .experiment import Experiment
+from .experiment import Experiment, Parameters
 from .interface import Interface, CLIInterface
 from .acquisition_function import (
     AcquisitionFunction,
