@@ -140,6 +140,7 @@ class DummyClassifier(UncertaintyMixin, Classifier):
                 f"Parameter `samples` must be a string or list, got {type(samples)}"
             )
 
+
 class GPT2Classifier(Classifier):
     """GPT-2 classifier"""
 
