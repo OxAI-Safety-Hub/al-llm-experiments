@@ -17,3 +17,4 @@ from .sample_generator import (
     DummySampleGenerator,
     PlainGPT2SampleGenerator,
 )
+from .parameters import Parameters

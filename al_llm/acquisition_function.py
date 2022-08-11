@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 import random
 
 from al_llm.classifier import Classifier, UncertaintyMixin
+from al_llm.parameters import Parameters
 
 
 class AcquisitionFunction(ABC):
@@ -12,11 +13,11 @@ class AcquisitionFunction(ABC):
 
     Parameters
     ----------
-    parameters : dict
+    parameters : Parameters
         The dictionary of parameters for the present experiment
     """
 
-    def __init__(self, parameters: dict):
+    def __init__(self, parameters: Parameters):
         self.parameters = parameters
 
     @abstractmethod
@@ -61,7 +62,7 @@ class DummyAcquisitionFunction(AcquisitionFunction):
 
     Parameters
     ----------
-    parameters : dict
+    parameters : Parameters
         The dictionary of parameters for the present experiment
     """
 
@@ -75,7 +76,7 @@ class RandomAcquisitionFunction(AcquisitionFunction):
 
     Parameters
     ----------
-    parameters : dict
+    parameters : Parameters
         The dictionary of parameters for the present experiment
     """
 
@@ -89,11 +90,11 @@ class MaxUncertaintyAcquisitionFunction(AcquisitionFunction):
 
     Parameters
     ----------
-    parameters : dict
+    parameters : Parameters
         The dictionary of parameters for the present experiment
     """
 
-    def __init__(self, parameters: dict, classifier: Classifier):
+    def __init__(self, parameters: Parameters, classifier: Classifier):
         super().__init__(parameters)
         if not isinstance(classifier, UncertaintyMixin):
             raise TypeError("`classifier` must implement uncertainty measuring")

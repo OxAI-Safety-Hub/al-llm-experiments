@@ -9,6 +9,7 @@ from typing import Optional
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 
 from al_llm.acquisition_function import AcquisitionFunction
+from al_llm.parameters import Parameters
 
 
 class SampleGenerator(ABC):
@@ -16,11 +17,11 @@ class SampleGenerator(ABC):
 
     Parameters
     ----------
-    parameters : dict
+    parameters : Parameters
         The dictionary of parameters for the present experiment
     """
 
-    def __init__(self, parameters: dict):
+    def __init__(self, parameters: Parameters):
         self.parameters = parameters
 
     @abstractmethod
@@ -45,7 +46,7 @@ class DummySampleGenerator(SampleGenerator):
 
     Parameters
     ----------
-    parameters : dict
+    parameters : Parameters
         The dictionary of parameters for the present experiment
     acquisition_function : acquisition_function.AcquisitionFunction, optional
         The acquisition function to use, if any. By default we simply generate
@@ -54,7 +55,7 @@ class DummySampleGenerator(SampleGenerator):
 
     def __init__(
         self,
-        parameters: dict,
+        parameters: Parameters,
         acquisition_function: Optional[AcquisitionFunction] = None,
     ):
         super().__init__(parameters)
@@ -97,7 +98,7 @@ class PlainGPT2SampleGenerator(SampleGenerator):
 
     Parameters
     ----------
-    parameters : dict
+    parameters : Parameters
         The dictionary of parameters for the present experiment
     acquisition_function : acquisition_function.AcquisitionFunction, optional
         The acquisition function to use, if any. By default we simply generate
@@ -108,7 +109,7 @@ class PlainGPT2SampleGenerator(SampleGenerator):
 
     def __init__(
         self,
-        parameters: dict,
+        parameters: Parameters,
         acquisition_function: Optional[AcquisitionFunction] = None,
         max_length: int = 30,
     ):
