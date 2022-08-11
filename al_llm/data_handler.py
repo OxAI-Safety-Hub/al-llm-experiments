@@ -246,14 +246,6 @@ class HuggingFaceDataHandler(DataHandler):
         )
         self.tokenized_test = self.dataset_test.map(tokenize_function, batched=True)
 
-        # next, rename 'label' to 'labels' (expected by some HuggingFace
-        # classifiers - MORE RESEARCH NEEDED)
-        self.tokenized_train = self.tokenized_train.rename_column("label", "labels")
-        self.tokenized_validation = self.tokenized_validation.rename_column(
-            "label", "labels"
-        )
-        self.tokenized_test = self.tokenized_test.rename_column("label", "labels")
-
         # finally, format all tokenized datasets as PyTorch datasets, keeping
         # only the necessary columns
         self.tokenized_train.set_format(
