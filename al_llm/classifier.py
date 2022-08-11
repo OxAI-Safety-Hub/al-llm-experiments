@@ -139,10 +139,10 @@ class GPT2Classifier(Classifier):
 
         for epoch in range(self.parameters["num_epochs"]):
             print("running epoch " + str(epoch + 1))
-            self.__train_loop(train_dataloader, lr_scheduler)
-            self.__eval_loop(eval_dataloader)
+            self._train_loop(train_dataloader, lr_scheduler)
+            self._eval_loop(eval_dataloader)
 
-    def __train_loop(self, train_dataloader, lr_scheduler):
+    def _train_loop(self, train_dataloader, lr_scheduler):
         self.model.train()
         for batch in train_dataloader:
             # move batch data to same device as the model
@@ -155,7 +155,7 @@ class GPT2Classifier(Classifier):
             lr_scheduler.step()
             self.optimizer.zero_grad()
 
-    def __eval_loop(self, eval_dataloader):
+    def _eval_loop(self, eval_dataloader):
         metric = datasets.load_metric("accuracy")
         self.model.eval()
         for batch in eval_dataloader:
@@ -191,8 +191,8 @@ class GPT2Classifier(Classifier):
         )
 
         # only run one epoch of the train and eval loops
-        self.__train_loop(small_samples_dataloader, lr_scheduler)
-        self.__eval_loop(eval_dataloader)
+        self._train_loop(small_samples_dataloader, lr_scheduler)
+        self._eval_loop(eval_dataloader)
 
     def tokenize(self, string: str):
 
