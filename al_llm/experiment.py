@@ -192,6 +192,12 @@ class Experiment:
     def make_experiment(cls, dataset_name: str):
         """Get experiment instances to feed into the constructor
 
+        Default setup expects Rotten Tomatoes dataset, and uses a classifier built
+        on GPT-2, the HuggingFaceDataHandler, a GPT-2-based sentence generator that
+        just produces real sentences, and the Command Line Interface. Also sets
+        `dev_mode` parameter to `True`, which reduces size of datasets provided to
+        the classifier.
+
         Parameters
         ----------
         dataset_name : str
