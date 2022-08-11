@@ -158,7 +158,7 @@ class Experiment:
         """
 
         parameters = {"dev_mode": True}
-        categories = {"valid": "Valid sentence", "invalid": "Invalid sentence"}
+        categories = {0: "Valid sentence", 1: "Invalid sentence"}
         classifier = DummyClassifier(parameters)
         data_handler = DummyDataHandler(classifier, parameters)
         sample_generator = DummySampleGenerator(parameters)
@@ -196,7 +196,7 @@ class Experiment:
         """
 
         parameters = {"dev_mode": True}
-        categories = {"neg": "Negative sentence", "pos": "Positive sentence"}
+        categories = {0: "Negative sentence", 1: "Positive sentence"}
         classifier = GPT2Classifier(parameters)
         data_handler = HuggingFaceDataHandler(dataset_name, classifier, parameters)
         sample_generator = PlainGPT2SampleGenerator(parameters)
