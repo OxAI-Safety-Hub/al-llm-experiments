@@ -132,14 +132,38 @@ class DummyClassifier(UncertaintyMixin, Classifier):
 
 
 class GPT2Classifier(Classifier):
-    """GPT-2 classifier"""
+    """Classifier class based on GPT-2
+
+    A classifier class that uses the GPT-2[1]_ model available on HuggingFace
+    as a foundation for training a classifier; implemented by replacing
+    the head of pretrained GPT-2 with a classifier.
+
+    Parameters
+    ----------
+    parameters : dict
+        The dictionary of parameters for the present experiment
+
+    Notes
+    ----------
+    Temporarily using distilled version of GPT-2 (distilgpt2 on HuggingFace) due
+    to excessive use of GPU RAM during testing; planning on returning to the
+    larger version later.
+
+    References
+    ----------
+    [1] Radford et al., "Language Models are Unsupervised Multitask Learners", 2019
+    """
 
     def __init__(self, parameters: dict):
+
+        # initialises the parameters in the same way as the base class
         super().__init__(parameters)
+
         # loads the tokenizer that the model will use
         self.tokenizer = AutoTokenizer.from_pretrained("distilgpt2")
         self.tokenizer.pad_token = self.tokenizer.eos_token
-        self.model = None  # model is not required until a call to `train_afresh``
+        self.model = None  # model is not required until a call to `train_afresh`
+
         # set device
         self.device = (
             torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
