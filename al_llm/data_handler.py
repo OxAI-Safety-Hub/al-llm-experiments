@@ -212,11 +212,12 @@ class HuggingFaceDataHandler(DataHandler):
             dataset_train_split = dataset_train_split.shuffle()
 
             # take the last `validation_proportion` elements for validation,
-            # and use the remaining elements for training, making sure to
-            # format as HuggingFace datasets (split returns dict)
+            # and use the remaining elements for training
             self.dataset_validation = dataset_train_split[-validation_length:]
             self.dataset_train = dataset_train_split[:-validation_length]
 
+            # make sure to convert to HuggingFace datasets, since splicing
+            # operation above returns Python dicts
             self.dataset_validation = datasets.Dataset.from_dict(
                 self.dataset_validation
             )
