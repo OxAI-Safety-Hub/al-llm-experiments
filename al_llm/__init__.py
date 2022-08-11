@@ -5,7 +5,7 @@ from .data_handler import (
     HuggingFaceDataHandler,
     LocalDataHandler,
 )
-from .experiment import Experiment, Parameters
+from .experiment import Experiment
 from .interface import Interface, CLIInterface
 from .acquisition_function import (
     AcquisitionFunction,
@@ -17,3 +17,4 @@ from .sample_generator import (
     DummySampleGenerator,
     PlainGPT2SampleGenerator,
 )
+from .parameters import Parameters
