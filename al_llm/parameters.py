@@ -1,6 +1,7 @@
 class Parameters(dict):
-    """A sub-class of dict storing the parameters for this experiment, functions
-    in the same way as a dict. It has the following sturcture:
+    """A sub-class of dict storing the parameters for this experiment.
+
+    Functions in the same way as a dict. It has the following sturcture:
 
         is_dummy : bool
             True if the experiment should only use dummy values.
