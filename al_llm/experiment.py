@@ -67,6 +67,7 @@ class Experiment:
         "batch_size": 8,
         "num_epochs": 3,
         "num_samples": 5,
+        "num_warmup_steps": 0,
         "sample_pool_size": 20,
         "learning_rate": 5e-5,
         "dev_mode": False,

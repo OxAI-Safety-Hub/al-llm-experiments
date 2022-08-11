@@ -226,7 +226,7 @@ class GPT2Classifier(Classifier):
         lr_scheduler = get_scheduler(
             name="linear",
             optimizer=self.optimizer,
-            num_warmup_steps=0,
+            num_warmup_steps=self.parameters["num_warmup_steps"],
             num_training_steps=num_training_steps,
         )
 
@@ -279,7 +279,7 @@ class GPT2Classifier(Classifier):
         lr_scheduler = get_scheduler(
             name="linear",
             optimizer=self.optimizer,
-            num_warmup_steps=0,
+            num_warmup_steps=self.parameters["num_warmup_steps"],
             num_training_steps=num_training_steps,
         )
 
