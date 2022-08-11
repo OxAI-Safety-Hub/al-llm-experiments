@@ -130,16 +130,6 @@ class DummyClassifier(UncertaintyMixin, Classifier):
                 f"Parameter `samples` must be a string or list, got {type(samples)}"
             )
 
-    def calculate_uncertainties(self, samples: Union[str, list]) -> Union[float, list]:
-        if isinstance(samples, str):
-            return 0
-        elif isinstance(samples, list):
-            return [0] * len(samples)
-        else:
-            raise TypeError(
-                f"Parameter `samples` must be a string or list, got {type(samples)}"
-            )
-
 
 class GPT2Classifier(Classifier):
     """GPT-2 classifier"""
