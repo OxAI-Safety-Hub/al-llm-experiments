@@ -59,6 +59,10 @@ class Experiment:
             When using an acquisition function, this is the number of samples
             to generate first, from which the function selects the appropriate
             number.
+    categories : dict
+        A dictionary containing the categories used in the dataset labels column
+        (as an `int`) which are the keys for the human-readable versions of each
+        (as a `str`)
     """
 
     default_parameters = {
