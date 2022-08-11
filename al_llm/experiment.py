@@ -148,7 +148,7 @@ class Experiment:
         )
 
     @classmethod
-    def make_dummy_experiment():
+    def make_dummy_experiment(cls):
         """Get dummy instances to feed into the constructor
 
         Returns
@@ -185,7 +185,7 @@ class Experiment:
         return dummy_args
 
     @classmethod
-    def make_experiment(dataset_name: str):
+    def make_experiment(cls, dataset_name: str):
         """Get experiment instances to feed into the constructor
 
         Parameters
