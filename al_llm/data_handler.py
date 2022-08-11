@@ -1,6 +1,6 @@
 # The python abc module for making abstract base classes
 # https://docs.python.org/3.10/library/abc.html
-from abc import ABC, abstractmethod
+from abc import ABC
 from typing import Union
 
 import torch
@@ -46,7 +46,7 @@ class DataHandler(ABC):
         The classifier instance which will be using the data.
     """
 
-    def __init__(self, classifier, parameters):
+    def __init__(self, classifier: Classifier, parameters: dict):
         self.dataset_train = None
         self.dataset_validation = None
         self.dataset_test = None
@@ -72,7 +72,6 @@ class DataHandler(ABC):
 
         return self.classifier.tokenize(text)
 
-    @abstractmethod
     def new_labelled(
         self, samples: list, labels: list
     ) -> Union[datasets.Dataset, torch.utils.data.Dataset]:
@@ -91,7 +90,38 @@ class DataHandler(ABC):
             A PyTorch dataset consisting of the newly added tokenized samples
             and their labels, ready for fine-tuning
         """
-        return None
+
+        # store the number of new samples being processed
+        num_samples = len(samples)
+
+        # iterate over each sample-label pair
+        for i in range(num_samples):
+
+            # store the original sample text and label
+            sample_text = samples[i]
+            label = labels[i]
+
+            # add this sample-label pair to the raw `dataset_train`
+            self.dataset_train = self.dataset_train.add_item(
+                {"text": sample_text, "label": label}
+            )
+
+            # tokenize the `sample_text` using the classifier's tokenizer
+            sample_tokenized = self.classifier.tokenize(sample_text)
+
+            # add this tokenized sample-label triple to `tokenized_train`
+            self.tokenized_train = self.tokenized_train.add_item(
+                {
+                    "input_ids": sample_tokenized["input_ids"],
+                    "attention_mask": sample_tokenized["attention_mask"],
+                    "labels": label,
+                }
+            )
+
+        # having added all the new samples, return the last `num_samples`
+        # entries from `tokenized_train` (because adding items puts them at
+        # the end of the dataset)
+        return self.tokenized_train[-num_samples:]
 
 
 class DummyDataHandler(DataHandler):
@@ -114,6 +144,8 @@ class HuggingFaceDataHandler(DataHandler):
     classifier : classifier.Classifier
         The classifier instance which will be using the data. We will use this
         to know how to tokenize the data.
+    parameters : dict
+        The dictionary of parameters for the present experiment
     validation_proportion : float, default=0.2
         Proportion of the training data to be used for validation, if it's not
         provided by the Hugging Face dataset.
@@ -193,12 +225,20 @@ class HuggingFaceDataHandler(DataHandler):
         # load the testing dataset from Hugging Face
         self.dataset_test = datasets.load_dataset(dataset_name, split="test")
 
+        # next, rename 'label' to 'labels' (expected by some HuggingFace
+        # classifiers - MORE RESEARCH NEEDED)
+        self.dataset_train = self.dataset_train.rename_column("label", "labels")
+        self.dataset_validation = self.dataset_validation.rename_column(
+            "label", "labels"
+        )
+        self.dataset_test = self.dataset_test.rename_column("label", "labels")
+
         # slightly altered tokenizing function allows for easy use of
         # dataset `map` method
         def tokenize_function(examples):
             return self.classifier.tokenize(examples["text"])
 
-        # to get each tokenized dataset, first map `_tokenize_function` over each
+        # to get each tokenized dataset, first map `tokenize_function` over each
         # of the raw datasets, setting batching to True for efficiency
         self.tokenized_train = self.dataset_train.map(tokenize_function, batched=True)
         self.tokenized_validation = self.dataset_validation.map(
@@ -226,9 +266,18 @@ class HuggingFaceDataHandler(DataHandler):
             "torch", columns=["input_ids", "attention_mask", "labels"]
         )
 
-        self.tokenized_train.remove_columns(["text"])
-        self.tokenized_validation.remove_columns(["text"])
-        self.tokenized_test.remove_columns(["text"])
+        # if within a dummy experiment (checked by self.parameters["dev_mode"]),
+        # limit the size of the datasets significantly
+        if self.parameters["dev_mode"]:
+            self.tokenized_train = self.tokenized_train.shuffle(seed=1091).select(
+                range(5)
+            )
+            self.tokenized_validation = self.tokenized_validation.shuffle(
+                seed=1091
+            ).select(range(100))
+            self.tokenized_test = self.tokenized_test.shuffle(seed=1091).select(
+                range(100)
+            )
 
         # if within a dummy experiment (checked by self.parameters["dev_mode"]),
         # limit the size of the datasets significantly
@@ -243,48 +292,93 @@ class HuggingFaceDataHandler(DataHandler):
                 range(100)
             )
 
-    def new_labelled(
-        self, samples: list, labels: list
-    ) -> Union[datasets.Dataset, torch.utils.data.Dataset]:
+class LocalDataHandler(DataHandler):
+    """A data handler for datasets that are stored locally.
 
-        # store the number of new samples being processed
-        num_samples = len(samples)
+    In the dataset_path folder, three files must exist which hold the data:
+        {"train.csv", "evaluation.csv", "test.cs"} (see README.csv for more info)
 
-        # iterate over each sample-label pair
-        for i in range(num_samples):
+    The data handler keeps track of both the raw dataset consisting of
+    sentences and labels, and the tokenized version.
 
-            # store the original sample text and label
-            sample_text = samples[i]
-            label = labels[i]
+    Parameters
+    ----------
+    dataset_path : str
+        The path of the file containing {"train.csv", "evaluation.csv", "test.cs"}
+    classifier : classifier.Classifier
+        The classifier instance which will be using the data. We will use this
+        to know how to tokenize the data.
+    parameters : dict
+        The dictionary of parameters for the present experiment
 
-            # add this sample-label pair to the raw `dataset_train`
-            self.dataset_train = self.dataset_train.add_item(
-                {"text": sample_text, "label": label}
-            )
+    Attributes
+    ----------
+    dataset_train : datasets.Dataset
+        The raw dataset consisting of labelled sentences used for training, as
+        a Hugging Face Dataset.
+    dataset_validation : datasets.Dataset
+        The raw dataset consisting of labelled sentences used for validation, as
+        a Hugging Face Dataset.
+    dataset_test : datasets.Dataset
+        The raw dataset consisting of labelled sentences used for testing, as
+        a Hugging Face dataset.
+    tokenized_train : torch.utils.data.Dataset
+        The tokenized dataset for training, as a PyTorch dataset.
+    tokenized_validation : torch.utils.data.Dataset
+        The tokenized dataset for validation, as a PyTorch dataset.
+    tokenized_test : torch.utils.data.Dataset
+        The tokenized dataset for testing, as a PyTorch dataset.
+    classifier : classifier.Classifier
+        The classifier instance which will be using the data.
+    """
 
-            # tokenize the `sample_text` using the classifier's tokenizer
-            sample_tokenized = self.classifier.tokenize(sample_text)
+    def __init__(
+        self,
+        dataset_path: str,
+        classifier: Classifier,
+        parameters: dict,
+    ):
 
-            # add this tokenized sample-label triple to `tokenized_train`
-            self.tokenized_train = self.tokenized_train.add_item(
-                {
-                    "input_ids": sample_tokenized["input_ids"],
-                    "attention_mask": sample_tokenized["attention_mask"],
-                    "labels": label,
-                }
-            )
+        super().__init__(classifier, parameters)
 
-        # having added all the new samples, get the last `num_samples`
-        # entries from `tokenized_train` (because adding items puts them at
-        # the end of the dataset) and convert to HuggingFace dataset
-        samples_dataset = datasets.Dataset.from_dict(
-            self.tokenized_train[-num_samples:]
+        # load the local dataset, splitting by the data file names
+        data_files = {
+            "train": "train.csv",
+            "validation": "evaluation.csv",
+            "test": "test.csv",
+        }
+        dataset_dictionary = datasets.load_dataset(dataset_path, data_files=data_files)
+
+        # use this split to store the raw datasets
+        self.dataset_train = dataset_dictionary["train"]
+        self.dataset_validation = dataset_dictionary["validation"]
+        self.dataset_test = dataset_dictionary["test"]
+
+        # slightly altered tokenizing function allows for easy use of
+        # dataset `map` method
+        def tokenize_function(examples):
+            return self.classifier.tokenize(examples["text"])
+
+        # to get each tokenized dataset, first map `tokenize_function` over each
+        # of the raw datasets, setting batching to True for efficiency
+        self.tokenized_train = self.dataset_train.map(tokenize_function, batched=True)
+        self.tokenized_validation = self.dataset_validation.map(
+            tokenize_function, batched=True
         )
+        self.tokenized_test = self.dataset_test.map(tokenize_function, batched=True)
 
-        # then convert the dataset's format to torch tensors
-        samples_dataset.set_format(
+        # finally, format all tokenized datasets as PyTorch datasets, keeping
+        # only the necessary columns
+        self.tokenized_train.set_format(
+            "torch", columns=["input_ids", "attention_mask", "labels"]
+        )
+        self.tokenized_validation.set_format(
+            "torch", columns=["input_ids", "attention_mask", "labels"]
+        )
+        self.tokenized_test.set_format(
             "torch", columns=["input_ids", "attention_mask", "labels"]
         )
 
-        # and return the samples_dataset
-        return samples_dataset
+        self.tokenized_train.remove_columns(["text"])
+        self.tokenized_validation.remove_columns(["text"])
+        self.tokenized_test.remove_columns(["text"])

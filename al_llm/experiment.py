@@ -11,6 +11,7 @@ from al_llm.sample_generator import (
     SampleGenerator,
     DummySampleGenerator,
 )
+from al_llm.acquisition_function import DummyAcquisitionFunction
 from al_llm.interface import Interface, CLIInterface
 
 
@@ -54,6 +55,10 @@ class Experiment:
             the number of samples which will be sent to the human every iteration
         learning_rate : float, default=5e-5
             Initial learning rate for training
+        sample_pool_size : int, default=20
+            When using an acquisition function, this is the number of samples
+            to generate first, from which the function selects the appropriate
+            number.
     """
 
     default_parameters = {
@@ -62,6 +67,7 @@ class Experiment:
         "batch_size": 8,
         "num_epochs": 3,
         "num_samples": 5,
+        "sample_pool_size": 20,
         "learning_rate": 5e-5,
         "dev_mode": False,
     }
@@ -142,7 +148,7 @@ class Experiment:
         )
 
     @classmethod
-    def make_dummy_experiment(self):
+    def make_dummy_experiment():
         """Get dummy instances to feed into the constructor
 
         Returns
@@ -161,7 +167,10 @@ class Experiment:
         categories = {0: "Valid sentence", 1: "Invalid sentence"}
         classifier = DummyClassifier(parameters)
         data_handler = DummyDataHandler(classifier, parameters)
-        sample_generator = DummySampleGenerator(parameters)
+        acquisition_function = DummyAcquisitionFunction(parameters)
+        sample_generator = DummySampleGenerator(
+            parameters, acquisition_function=acquisition_function
+        )
         interface = CLIInterface(categories)
 
         dummy_args = {
@@ -176,7 +185,7 @@ class Experiment:
         return dummy_args
 
     @classmethod
-    def make_experiment(self, dataset_name: str):
+    def make_experiment(dataset_name: str):
         """Get experiment instances to feed into the constructor
 
         Parameters
