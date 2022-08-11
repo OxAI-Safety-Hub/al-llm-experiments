@@ -216,6 +216,13 @@ class HuggingFaceDataHandler(DataHandler):
             self.dataset_validation = dataset_train_split[-validation_length:]
             self.dataset_train = dataset_train_split[:-validation_length]
 
+            # make sure to convert to HuggingFace datasets, since splicing
+            # operation above returns Python dicts
+            self.dataset_validation = datasets.Dataset.from_dict(
+                self.dataset_validation
+            )
+            self.dataset_train = datasets.Dataset.from_dict(self.dataset_train)
+
         # load the testing dataset from Hugging Face
         self.dataset_test = datasets.load_dataset(dataset_name, split="test")
 
@@ -252,9 +259,31 @@ class HuggingFaceDataHandler(DataHandler):
             "torch", columns=["input_ids", "attention_mask", "labels"]
         )
 
-        self.tokenized_train.remove_columns(["text"])
-        self.tokenized_validation.remove_columns(["text"])
-        self.tokenized_test.remove_columns(["text"])
+        # if within a dummy experiment (checked by self.parameters["dev_mode"]),
+        # limit the size of the datasets significantly
+        if self.parameters["dev_mode"]:
+            self.tokenized_train = self.tokenized_train.shuffle(seed=1091).select(
+                range(5)
+            )
+            self.tokenized_validation = self.tokenized_validation.shuffle(
+                seed=1091
+            ).select(range(100))
+            self.tokenized_test = self.tokenized_test.shuffle(seed=1091).select(
+                range(100)
+            )
+
+        # if within a dummy experiment (checked by self.parameters["dev_mode"]),
+        # limit the size of the datasets significantly
+        if self.parameters["dev_mode"]:
+            self.tokenized_train = self.tokenized_train.shuffle(seed=1091).select(
+                range(5)
+            )
+            self.tokenized_validation = self.tokenized_validation.shuffle(
+                seed=1091
+            ).select(range(100))
+            self.tokenized_test = self.tokenized_test.shuffle(seed=1091).select(
+                range(100)
+            )
 
 
 class LocalDataHandler(DataHandler):
