@@ -76,9 +76,15 @@ class Experiment:
         self.already_finetuned = already_finetuned
 
         # initialise weights and biases
+        #   Set resume to allow which resumes the previous run if there is already
+        #   a run with the id `run_id`.
+        #   Set mode to disabled when running pytests so that a login is not required
+        #   for the program to run.
         wandb.init(
             project="Labs_Project_Experiments",
             entity="oxai-safety-labs-active-learning",
+            resume="allow",
+            id=run_id,
             mode="disabled" if is_running_pytests else "online",
         )
 
