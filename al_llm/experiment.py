@@ -213,17 +213,17 @@ class Experiment:
 
         parameters = Parameters(dev_mode=True)
         categories = {0: "Valid sentence", 1: "Invalid sentence"}
-        classifier = DummyClassifier(parameters, run_id)
-        data_handler = DummyDataHandler(classifier, parameters, run_id)
+        classifier = DummyClassifier(parameters, wandb_run)
+        data_handler = DummyDataHandler(classifier, parameters, wandb_run)
         classifier.attach_data_handler(data_handler)
         acquisition_function = DummyAcquisitionFunction(parameters)
         sample_generator = DummySampleGenerator(
             parameters, acquisition_function=acquisition_function
         )
         if full_loop:
-            interface = CLIInterface(categories, run_id)
+            interface = CLIInterface(categories, wandb_run)
         else:
-            interface = CLIBrokenLoopInterface(categories, run_id)
+            interface = CLIBrokenLoopInterface(categories, wandb_run)
 
         dummy_args = {
             "data_handler": data_handler,
@@ -285,13 +285,13 @@ class Experiment:
 
         parameters = Parameters(dev_mode=True)
         categories = {0: "Negative sentence", 1: "Positive sentence"}
-        classifier = GPT2Classifier(parameters, run_id)
+        classifier = GPT2Classifier(parameters, wandb_run)
         data_handler = HuggingFaceDataHandler(
-            dataset_name, classifier, parameters, run_id
+            dataset_name, classifier, parameters, wandb_run
         )
         classifier.attach_data_handler(data_handler)
         sample_generator = PlainGPT2SampleGenerator(parameters)
-        interface = CLIInterface(categories, run_id)
+        interface = CLIInterface(categories, wandb_run)
 
         experiment_args = {
             "data_handler": data_handler,

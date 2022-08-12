@@ -333,7 +333,7 @@ class CLIBrokenLoopInterface(CLIInterfaceMixin, BrokenLoopInterface):
             parameter_string = f"Parameters: {parameters}"
             text += "\n" + self._wrap(parameter_string)
 
-        run_id_string = f"Parameters: {self.wandb_run}"
+        run_id_string = f"Run ID: {self.wandb_run.id}"
         text += "\n" + self._wrap(run_id_string)
 
         # Print the message
