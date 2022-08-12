@@ -1,3 +1,4 @@
+from operator import mod
 from typing import Union
 
 import torch
@@ -70,9 +71,10 @@ class Experiment:
         self.parameters = parameters
 
         # initialise weights and biases
-        wandb.init(
+        wandb_run = wandb.init(
             project="Labs_Project_Experiments",
             entity="oxai-safety-labs-active-learning",
+            mode="disabled"
         )
 
     def run(self):
