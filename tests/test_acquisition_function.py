@@ -22,7 +22,7 @@ def _basic_acquisition_function_test(acquisition_function_cls):
 
     # Make the instances
     if acquisition_function_cls == MaxUncertaintyAcquisitionFunction:
-        classifier = DummyClassifier(parameters)
+        classifier = DummyClassifier(parameters, "test")
         acquisition_function = acquisition_function_cls(parameters, classifier)
     else:
         acquisition_function = acquisition_function_cls(parameters)
@@ -58,7 +58,7 @@ def test_max_uncertainty_function():
     parameters = {"num_samples": num_samples, "sample_pool_size": sample_pool_size}
 
     # Set up the acquisition function
-    classifier = LengthUncertaintyClassifier(parameters)
+    classifier = LengthUncertaintyClassifier(parameters, "test")
     acquisition_function = MaxUncertaintyAcquisitionFunction(parameters, classifier)
 
     # Generate some samples with increasing length

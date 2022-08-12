@@ -1,3 +1,4 @@
+import string
 from typing import Union
 
 import torch
@@ -12,7 +13,7 @@ from al_llm.sample_generator import (
     DummySampleGenerator,
 )
 from al_llm.acquisition_function import DummyAcquisitionFunction
-from al_llm.interface import Interface, CLIInterface
+from al_llm.interface import CLIBrokenLoopInterface, Interface, CLIInterface
 from al_llm.parameters import Parameters
 
 
@@ -35,6 +36,8 @@ class Experiment:
         The interface instance to use
     parameters : Parameters
         A dictionary of parameters to identify this experiment
+    run_id : str
+        The ID of the current run
     already_finetuned : bool, default=False
         Is the classifier already fine-tuned on the dataset?
 
@@ -55,6 +58,7 @@ class Experiment:
         sample_generator: SampleGenerator,
         interface: Interface,
         parameters: Parameters,
+        run_id: str,
         already_finetuned: bool = False,
     ):
 
@@ -64,40 +68,84 @@ class Experiment:
         self.classifier = classifier
         self.sample_generator = sample_generator
         self.interface = interface
-        self.already_finetuned = already_finetuned
         self.parameters = parameters
+        self.run_id = run_id
+        self.already_finetuned = already_finetuned
 
-    def run(self):
-        """Run the experiment"""
+    def run_full(self):
+        """Run the whole experiment in one go, through all iterations"""
 
         # Start the interface
         self.interface.begin(parameters=self.parameters)
 
-        # Fine-tune the classifier on the dataset, if necessary
-        if not self.already_finetuned:
-            self._train_afresh()
+        for iteration in range(self.parameters["num_iterations"]):
 
-        for round in range(self.parameters["num_iterations"]):
-
-            # Generate some new samples to query
-            samples = self.sample_generator.generate()
+            # Perform a single iteration of model update, obtaining new samples
+            # to label
+            samples = self._single_iteration(iteration)
 
             # Get the labels from the human
             labels = self.interface.prompt(samples)
 
-            # Update the dataset
-            dataset_samples = self.data_handler.new_labelled(samples, labels)
+            # Add these samples to the dataset
+            self.data_handler.new_labelled(samples, labels)
 
-            # Fine-tune, resetting if necessary
-            if self.parameters["refresh_every"] == 1 or (
-                (round + 1) % self.parameters["refresh_every"] == 0 and round != 0
-            ):
-                self._train_afresh()
-            else:
-                self._train_update(dataset_samples)
+            # Save the current version of the classifier and dataset
+            self._save()
 
         # End the interface
         self.interface.end()
+
+    def run_single_iteration(self, iteration: int):
+        """Run a single iteration of active learning
+
+        Parameters
+        ----------
+        iteration : int
+            The index of the current iteration number, starting with 0
+        """
+
+        # Start the interface
+        self.interface.begin(parameters=self.parameters)
+
+        # Perform a single iteration of model update, obtaining new samples
+        # to label
+        samples = self._single_iteration(iteration)
+
+        # Make a request for labels from the human
+        self.data_handler.make_label_request(samples)
+
+        # Save the current version of the classifier and dataset
+        self._save()
+
+    def _single_iteration(self, iteration: int) -> list:
+        """Perform a single iteration of the active learning loop
+
+        Parameters
+        ----------
+        iteration : int
+            The index of the current iteration number, starting with 0
+
+        Returns
+        -------
+        samples : list
+            The latest samples for labelling
+        """
+
+        dataset_samples = self.data_handler.get_latest_tokenized_datapoints()
+
+        # Produce the latest classifier
+        if iteration == 0:
+            self.classifier.initialise()
+        elif (iteration + 1) % self.parameters["refresh_every"] == 0:
+            self._train_afresh()
+        else:
+            self._train_update(dataset_samples)
+
+        # Generate some new samples to query
+        samples = self.sample_generator.generate()
+
+        return samples
 
     def _train_afresh(self):
         """Fine-tune the classifier from scratch"""
@@ -115,9 +163,21 @@ class Experiment:
             dataset_samples,
         )
 
+    def _save(self):
+        """Save the current classifier and dataset"""
+        self.classifier.save()
+        self.data_handler.save()
+
     @classmethod
-    def make_dummy_experiment(cls):
+    def make_dummy_experiment(cls, run_id: string, full_loop=True):
         """Get dummy instances to feed into the constructor
+
+        Parameters
+        ----------
+        run_id : str
+            The ID of the current run
+        full_loop : bool, default=True
+            Design the experiment to run the full loop of active learning
 
         Returns
         -------
@@ -133,14 +193,17 @@ class Experiment:
 
         parameters = Parameters(dev_mode=True)
         categories = {0: "Valid sentence", 1: "Invalid sentence"}
-        classifier = DummyClassifier(parameters)
-        data_handler = DummyDataHandler(classifier, parameters)
+        classifier = DummyClassifier(parameters, run_id)
+        data_handler = DummyDataHandler(classifier, parameters, run_id)
         classifier.attach_data_handler(data_handler)
         acquisition_function = DummyAcquisitionFunction(parameters)
         sample_generator = DummySampleGenerator(
             parameters, acquisition_function=acquisition_function
         )
-        interface = CLIInterface(categories)
+        if full_loop:
+            interface = CLIInterface(categories, run_id)
+        else:
+            interface = CLIBrokenLoopInterface(categories, run_id)
 
         dummy_args = {
             "data_handler": data_handler,
@@ -149,12 +212,13 @@ class Experiment:
             "sample_generator": sample_generator,
             "interface": interface,
             "parameters": parameters,
+            "run_id": run_id,
         }
 
         return dummy_args
 
     @classmethod
-    def make_experiment(cls, dataset_name: str):
+    def make_experiment(cls, dataset_name: str, run_id: str):
         """Get experiment instances to feed into the constructor
 
         Default setup expects Rotten Tomatoes dataset, and uses a classifier built
@@ -167,6 +231,8 @@ class Experiment:
         ----------
         dataset_name : str
             The name of the dataset this experiment should use
+        run_id : str
+            The ID of the current run
 
         Returns
         -------
@@ -181,11 +247,13 @@ class Experiment:
 
         parameters = Parameters(dev_mode=True)
         categories = {0: "Negative sentence", 1: "Positive sentence"}
-        classifier = GPT2Classifier(parameters)
-        data_handler = HuggingFaceDataHandler(dataset_name, classifier, parameters)
+        classifier = GPT2Classifier(parameters, run_id)
+        data_handler = HuggingFaceDataHandler(
+            dataset_name, classifier, parameters, run_id
+        )
         classifier.attach_data_handler(data_handler)
         sample_generator = PlainGPT2SampleGenerator(parameters)
-        interface = CLIInterface(categories)
+        interface = CLIInterface(categories, run_id)
 
         experiment_args = {
             "data_handler": data_handler,
@@ -194,6 +262,7 @@ class Experiment:
             "sample_generator": sample_generator,
             "interface": interface,
             "parameters": parameters,
+            "run_id": run_id,
         }
 
         return experiment_args

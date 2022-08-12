@@ -16,27 +16,13 @@ class Interface(ABC):
         A dictionary of categories used by the classifier. The keys are the
         names of the categories as understood by the model, and the values
         are the human-readable names.
+    run_id : str
+        The ID of the current run
     """
 
-    def __init__(self, categories: dict):
+    def __init__(self, categories: dict, run_id: str):
         self.categories = categories
-
-    @abstractmethod
-    def prompt(self, samples: list) -> list:
-        """Prompt the human for labels for the samples
-
-        Parameters
-        ----------
-        samples : list
-            A list of samples to query the human
-
-        Returns
-        -------
-        labels : list
-            A list of labels, one for each element in `samples`
-        """
-
-        return []
+        self.run_id = run_id
 
     def begin(self, message: str = None, parameters: Parameters = None):
         """Initialise the interface, displaying a welcome message
@@ -83,7 +69,95 @@ class Interface(ABC):
         pass
 
 
-class CLIInterface(Interface):
+class FullLoopInterface(Interface, ABC):
+    """Base interface class for running the loop all in one go
+
+    Parameters
+    ----------
+    categories : dict
+        A dictionary of categories used by the classifier. The keys are the
+        names of the categories as understood by the model, and the values
+        are the human-readable names.
+    run_id : str
+        The ID of the current run
+    """
+
+    @abstractmethod
+    def prompt(self, samples: list) -> list:
+        """Prompt the human for labels for the samples
+
+        Parameters
+        ----------
+        samples : list
+            A list of samples to query the human
+
+        Returns
+        -------
+        labels : list
+            A list of labels, one for each element in `samples`
+        """
+
+        return []
+
+
+class BrokenLoopInterface(Interface, ABC):
+    """Base interface class for broken loop experiments
+
+    Parameters
+    ----------
+    categories : dict
+        A dictionary of categories used by the classifier. The keys are the
+        names of the categories as understood by the model, and the values
+        are the human-readable names.
+    run_id : str
+        The ID of the current run
+    """
+
+    pass
+
+
+class CLIInterfaceMixin:
+    """A mixin providing useful methods for CLI interfaces
+
+    Attributes
+    ----------
+    line_width : int
+        The width of the lines to wrap the output.
+    """
+
+    def _output(self, text: str):
+        """Output something to the CLI"""
+        print(text)
+
+    def _input(self, prompt: str) -> str:
+        """Get some input from the CLI"""
+        return input(prompt)
+
+    def _wrap(self, text: str) -> str:
+        """Wrap some text to the line width"""
+        return textwrap.fill(text, width=self.line_width)
+
+    def _head_text(
+        self, message: str, initial_newline: bool = True, trailing_newline: bool = False
+    ) -> str:
+        """Generate a message with horizontal rules above and below"""
+        text = ""
+        if initial_newline:
+            text += "\n"
+        text += self._horizontal_rule()
+        text += message + "\n"
+        text += self._horizontal_rule(trailing_newline)
+        return text
+
+    def _horizontal_rule(self, trailing_newline: bool = True) -> str:
+        """Generate a horizontal rule"""
+        text = "-" * self.line_width
+        if trailing_newline:
+            text += "\n"
+        return text
+
+
+class CLIInterface(CLIInterfaceMixin, FullLoopInterface):
     """A command line interface for obtaining labels
 
     Enumerates the categories, and asks the human to input the number
@@ -95,13 +169,15 @@ class CLIInterface(Interface):
         A dictionary of categories used by the classifier. The keys are the
         names of the categories as understood by the model, and the values
         are the human-readable names.
+    run_id : str
+        The ID of the current run
     line_width : int
         The width of the lines to wrap the output.
     """
 
-    def __init__(self, categories: dict, *, line_width: int = 70):
+    def __init__(self, categories: dict, run_id: str, *, line_width: int = 70):
 
-        super().__init__(categories)
+        super().__init__(categories, run_id)
 
         self.line_width = line_width
 
@@ -210,33 +286,70 @@ class CLIInterface(Interface):
         text = self._head_text(text)
         self._output(text)
 
+
+class CLIBrokenLoopInterface(CLIInterfaceMixin, BrokenLoopInterface):
+    """A CLI implementation of an interface for broken loop experiments
+
+    Parameters
+    ----------
+    categories : dict
+        A dictionary of categories used by the classifier. The keys are the
+        names of the categories as understood by the model, and the values
+        are the human-readable names.
+    run_id : str
+        The ID of the current run
+    line_width : int
+        The width of the lines to wrap the output.
+    """
+
+    def __init__(self, categories: dict, run_id: str, *, line_width: int = 70):
+        super().__init__(categories, run_id)
+        self.line_width = line_width
+
+    def begin(self, message: str = None, parameters: Parameters = None):
+
+        # Default message
+        if message is None:
+            message = "AL LLM"
+
+        # Wrap the message
+        text = self._wrap(message)
+
+        # Add the parameters
+        if parameters is not None:
+            parameter_string = f"Parameters: {parameters}"
+            text += "\n" + self._wrap(parameter_string)
+
+        run_id_string = f"Parameters: {self.run_id}"
+        text += "\n" + self._wrap(run_id_string)
+
+        # Print the message
+        self._output(text)
+
+    def train_afresh(self, message: str = None):
+
+        # Default message
+        if message is None:
+            message = "Fine-tuning from scratch..."
+
+        # Wrap the message
+        text = self._wrap(message)
+
+        # Print the message
+        self._output(text)
+
+    def train_update(self, message: str = None):
+
+        # Default message
+        if message is None:
+            message = "Fine-tuning with new datapoints..."
+
+        # Wrap the message
+        text = self._wrap(message)
+
+        # Print the message
+        self._output(text)
+
     def _output(self, text: str):
         """Output something to the CLI"""
         print(text)
-
-    def _input(self, prompt: str) -> str:
-        """Get some input from the CLI"""
-        return input(prompt)
-
-    def _wrap(self, text: str) -> str:
-        """Wrap some text to the line width"""
-        return textwrap.fill(text, width=self.line_width)
-
-    def _head_text(
-        self, message: str, initial_newline: bool = True, trailing_newline: bool = False
-    ) -> str:
-        """Generate a message with horizontal rules above and below"""
-        text = ""
-        if initial_newline:
-            text += "\n"
-        text += self._horizontal_rule()
-        text += message + "\n"
-        text += self._horizontal_rule(trailing_newline)
-        return text
-
-    def _horizontal_rule(self, trailing_newline: bool = True) -> str:
-        """Generate a horizontal rule"""
-        text = "-" * self.line_width
-        if trailing_newline:
-            text += "\n"
-        return text
