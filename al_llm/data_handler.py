@@ -2,6 +2,7 @@
 # https://docs.python.org/3.10/library/abc.html
 from abc import ABC, abstractmethod
 from typing import Union
+import configparser
 
 import torch
 from torch.utils.data import TensorDataset
@@ -11,6 +12,11 @@ import wandb
 
 from al_llm.classifier import Classifier
 from al_llm.parameters import Parameters
+
+
+# Load the configuration
+config = configparser.ConfigParser()
+config.read("config.ini")
 
 
 class DataHandler(ABC):
@@ -126,7 +132,10 @@ class DataHandler(ABC):
 
             # add this sample-label pair to the raw `dataset_train`
             self.dataset_train = self.dataset_train.add_item(
-                {"text": sample_text, "label": label}
+                {
+                    config["Data Handling"]["TextColumnName"]: sample_text,
+                    config["Data Handling"]["LabelColumnName"]: label,
+                }
             )
 
             # tokenize the `sample_text` using the classifier's tokenizer
@@ -137,7 +146,7 @@ class DataHandler(ABC):
                 {
                     "input_ids": sample_tokenized["input_ids"],
                     "attention_mask": sample_tokenized["attention_mask"],
-                    "labels": label,
+                    config["Data Handling"]["LabelColumnName"]: label,
                 }
             )
 
@@ -283,16 +292,22 @@ class HuggingFaceDataHandler(DataHandler):
 
         # next, rename 'label' to 'labels' (expected by some HuggingFace
         # classifiers - MORE RESEARCH NEEDED)
-        self.dataset_train = self.dataset_train.rename_column("label", "labels")
-        self.dataset_validation = self.dataset_validation.rename_column(
-            "label", "labels"
+        self.dataset_train = self.dataset_train.rename_column(
+            "label", config["Data Handling"]["LabelColumnName"]
         )
-        self.dataset_test = self.dataset_test.rename_column("label", "labels")
+        self.dataset_validation = self.dataset_validation.rename_column(
+            "label", config["Data Handling"]["LabelColumnName"]
+        )
+        self.dataset_test = self.dataset_test.rename_column(
+            "label", config["Data Handling"]["LabelColumnName"]
+        )
 
         # slightly altered tokenizing function allows for easy use of
         # dataset `map` method
         def tokenize_function(examples):
-            return self.classifier.tokenize(examples["text"])
+            return self.classifier.tokenize(
+                examples[config["Data Handling"]["TextColumnName"]]
+            )
 
         # to get each tokenized dataset, first map `tokenize_function` over each
         # of the raw datasets, setting batching to True for efficiency
@@ -305,13 +320,28 @@ class HuggingFaceDataHandler(DataHandler):
         # finally, format all tokenized datasets as PyTorch datasets, keeping
         # only the necessary columns
         self.tokenized_train.set_format(
-            "torch", columns=["input_ids", "attention_mask", "labels"]
+            "torch",
+            columns=[
+                "input_ids",
+                "attention_mask",
+                config["Data Handling"]["LabelColumnName"],
+            ],
         )
         self.tokenized_validation.set_format(
-            "torch", columns=["input_ids", "attention_mask", "labels"]
+            "torch",
+            columns=[
+                "input_ids",
+                "attention_mask",
+                config["Data Handling"]["LabelColumnName"],
+            ],
         )
         self.tokenized_test.set_format(
-            "torch", columns=["input_ids", "attention_mask", "labels"]
+            "torch",
+            columns=[
+                "input_ids",
+                "attention_mask",
+                config["Data Handling"]["LabelColumnName"],
+            ],
         )
 
         # if within a dummy experiment (checked by self.parameters["dev_mode"]),
@@ -420,7 +450,9 @@ class LocalDataHandler(DataHandler):
         # slightly altered tokenizing function allows for easy use of
         # dataset `map` method
         def tokenize_function(examples):
-            return self.classifier.tokenize(examples["text"])
+            return self.classifier.tokenize(
+                examples[config["Data Handling"]["TextColumnName"]]
+            )
 
         # to get each tokenized dataset, first map `tokenize_function` over each
         # of the raw datasets, setting batching to True for efficiency
@@ -433,18 +465,35 @@ class LocalDataHandler(DataHandler):
         # finally, format all tokenized datasets as PyTorch datasets, keeping
         # only the necessary columns
         self.tokenized_train.set_format(
-            "torch", columns=["input_ids", "attention_mask", "labels"]
+            "torch",
+            columns=[
+                "input_ids",
+                "attention_mask",
+                config["Data Handling"]["LabelColumnName"],
+            ],
         )
         self.tokenized_validation.set_format(
-            "torch", columns=["input_ids", "attention_mask", "labels"]
+            "torch",
+            columns=[
+                "input_ids",
+                "attention_mask",
+                config["Data Handling"]["LabelColumnName"],
+            ],
         )
         self.tokenized_test.set_format(
-            "torch", columns=["input_ids", "attention_mask", "labels"]
+            "torch",
+            columns=[
+                "input_ids",
+                "attention_mask",
+                config["Data Handling"]["LabelColumnName"],
+            ],
         )
 
-        self.tokenized_train.remove_columns(["text"])
-        self.tokenized_validation.remove_columns(["text"])
-        self.tokenized_test.remove_columns(["text"])
+        self.tokenized_train.remove_columns([config["Data Handling"]["TextColumnName"]])
+        self.tokenized_validation.remove_columns(
+            [config["Data Handling"]["TextColumnName"]]
+        )
+        self.tokenized_test.remove_columns([config["Data Handling"]["TextColumnName"]])
 
     def get_latest_tokenized_datapoints(
         self,

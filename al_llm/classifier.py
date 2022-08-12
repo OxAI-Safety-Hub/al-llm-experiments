@@ -2,6 +2,7 @@
 # https://docs.python.org/3.10/library/abc.html
 from abc import ABC, abstractmethod
 from typing import Union, Any
+import configparser
 
 import torch
 import wandb
@@ -14,6 +15,11 @@ from torch.utils.data import DataLoader
 from torch.optim import AdamW
 import datasets
 from al_llm.parameters import Parameters
+
+
+# Load the configuration
+config = configparser.ConfigParser()
+config.read("config.ini")
 
 
 class Classifier(ABC):
@@ -379,7 +385,10 @@ class GPT2Classifier(Classifier):
             predictions = torch.argmax(logits, dim=-1)
 
             # give the predictions to the metric(s)
-            metric.add_batch(predictions=predictions, references=batch["labels"])
+            metric.add_batch(
+                predictions=predictions,
+                references=batch[config["Data Handling"]["LabelColumnName"]],
+            )
 
         # finally, print the metric's result
         print(metric.compute())
