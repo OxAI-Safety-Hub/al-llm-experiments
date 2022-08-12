@@ -329,14 +329,12 @@ class GPT2Classifier(Classifier):
         # use a temporary directory as an inbetween
         with tempfile.TemporaryDirectory() as tmpdirname:
             # download the model into this directory from wandb
-            artifact_path = (
-                config["Wandb"]["Entity"]
-                + "/"
-                + config["Wandb"]["Project"]
-                + "/"
-                + self.ARTIFACT_NAME
-                + ":latest"
+            artifact_path_components = (
+                config["Wandb"]["Entity"],
+                config["Wandb"]["Project"],
+                self.ArtifactName + ":latest",
             )
+            artifact_path = "/".join(artifact_path_components)
             artifact = self.wandb_run.use_artifact(
                 artifact_path,
                 type="classifier-model",
