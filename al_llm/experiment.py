@@ -38,8 +38,8 @@ class Experiment:
         The interface instance to use
     parameters : Parameters
         A dictionary of parameters to identify this experiment
-    run_id : str
-        The ID of the current run
+    wandb_run : wandb.sdk.wandb_run.Run
+        The current wandb run
     already_finetuned : bool, default=False
         Is the classifier already fine-tuned on the dataset?
 
