@@ -5,6 +5,8 @@ import torch
 
 import datasets
 
+import wandb
+
 from al_llm.data_handler import DataHandler, DummyDataHandler, HuggingFaceDataHandler
 from al_llm.classifier import Classifier, DummyClassifier, GPT2Classifier
 from al_llm.sample_generator import (
@@ -60,6 +62,7 @@ class Experiment:
         parameters: Parameters,
         run_id: str,
         already_finetuned: bool = False,
+        is_running_pytests: bool = False,
     ):
 
         # Set the instance attributes
@@ -71,6 +74,13 @@ class Experiment:
         self.parameters = parameters
         self.run_id = run_id
         self.already_finetuned = already_finetuned
+
+        # initialise weights and biases
+        wandb.init(
+            project="Labs_Project_Experiments",
+            entity="oxai-safety-labs-active-learning",
+            mode="disabled" if is_running_pytests else "online",
+        )
 
     def run_full(self):
         """Run the whole experiment in one go, through all iterations"""

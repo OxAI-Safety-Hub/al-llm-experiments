@@ -4,6 +4,7 @@ transformers
 datasets
 wheel
 sklearn
+wandb
 
 # Formatting and linting
 black
