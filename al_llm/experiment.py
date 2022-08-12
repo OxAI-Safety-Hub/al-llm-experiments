@@ -4,6 +4,7 @@ from typing import Union
 import torch
 
 import datasets
+from transformers import set_seed
 
 import wandb
 
@@ -133,6 +134,10 @@ class Experiment:
         samples : list
             The latest samples for labelling
         """
+
+        # Set the random number seed, so that the experiment is
+        # reproducible whether we do full loop AL or broken loop
+        set_seed(self.parameters["seed"] + iteration)
 
         dataset_samples = self.data_handler.get_latest_tokenized_datapoints()
 
