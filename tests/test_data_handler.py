@@ -10,9 +10,10 @@ import datasets
 # define a dummy classifer that only loads the tokenizer for gpt2
 # without loading the rest of the model to save time for each test
 class DummyClassifierForTests(Classifier):
-    def __init__(self, parameters: dict):
+    def __init__(self, parameters: dict, run_id: str):
         self.tokenizer = AutoTokenizer.from_pretrained("gpt2")
         self.parameters = parameters
+        self.run_id = run_id
 
     def train_afresh(self, data: Any):
         pass
@@ -23,21 +24,34 @@ class DummyClassifierForTests(Classifier):
     def tokenize(self, text: Union[str, list]):
         return self.tokenizer(text)
 
+    def initialise(self):
+        pass
+
+    def save(self):
+        pass
+
+    def make_label_request(self, samples: list):
+        pass
+
+
+# Set the run_id
+run_id = "test"
 
 # create parameters and classifier to pass to data handlers
-dummy_args = Experiment.make_dummy_experiment()
+dummy_args = Experiment.make_dummy_experiment(run_id)
 dummy_args["parameters"]["num_epochs"] = 1
-dummy_args["classifier"] = DummyClassifierForTests(dummy_args["parameters"])
+dummy_args["classifier"] = DummyClassifierForTests(dummy_args["parameters"], run_id)
 
 # create a HuggingFaceDataHandler to compare output types of each data handler
 hugging_data_handler = HuggingFaceDataHandler(
-    "rotten_tomatoes", dummy_args["classifier"], dummy_args["parameters"]
+    "rotten_tomatoes", dummy_args["classifier"], dummy_args["parameters"], run_id
 )
 # create LocalDataHandler using dummy_local_dataset
 local_data_handler = LocalDataHandler(
     "local_datasets/dummy_local_dataset",
     dummy_args["classifier"],
     dummy_args["parameters"],
+    run_id,
 )
 
 

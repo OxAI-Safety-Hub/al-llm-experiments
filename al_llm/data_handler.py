@@ -1,6 +1,6 @@
 # The python abc module for making abstract base classes
 # https://docs.python.org/3.10/library/abc.html
-from abc import ABC
+from abc import ABC, abstractmethod
 from typing import Union
 
 import torch
@@ -47,7 +47,7 @@ class DataHandler(ABC):
         The classifier instance which will be using the data.
     """
 
-    def __init__(self, classifier: Classifier, parameters: Parameters):
+    def __init__(self, classifier: Classifier, parameters: Parameters, run_id: str):
         self.dataset_train = None
         self.dataset_validation = None
         self.dataset_test = None
@@ -56,6 +56,7 @@ class DataHandler(ABC):
         self.tokenized_test = None
         self.classifier = classifier
         self.parameters = parameters
+        self.run_id = run_id
 
     def _tokenize(self, text: Union[str, list]) -> torch.Tensor:
         """Tokenize a string or batch of strings
@@ -72,6 +73,19 @@ class DataHandler(ABC):
         """
 
         return self.classifier.tokenize(text)
+
+    @abstractmethod
+    def get_latest_tokenized_datapoints(
+        self,
+    ) -> Union[datasets.Dataset, torch.utils.data.Dataset]:
+        """Get the most recently added datapoints, obtained from the human
+
+        Returns
+        -------
+        dataset_samples : datasets.Dataset or torch.utils.data.Dataset
+            The latest datapoints
+        """
+        pass
 
     def new_labelled(
         self, samples: list, labels: list
@@ -124,12 +138,41 @@ class DataHandler(ABC):
         # the end of the dataset)
         return self.tokenized_train[-num_samples:]
 
+    @abstractmethod
+    def make_label_request(self, samples: list):
+        """Make a request for labels for the samples from the human
+
+        Parameters
+        ----------
+        samples : list
+            The sample sentences for which to get the labels
+        """
+        pass
+
+    @abstractmethod
+    def save(self):
+        """Save the current dataset"""
+        pass
+
 
 class DummyDataHandler(DataHandler):
+    """A dummy data handler, which holds a dummy dataset"""
+
     def new_labelled(
         self, samples: list, labels: list
     ) -> Union[datasets.Dataset, torch.utils.data.Dataset]:
         return TensorDataset(torch.rand(100, 100))
+
+    def get_latest_tokenized_datapoints(
+        self,
+    ) -> Union[datasets.Dataset, torch.utils.data.Dataset]:
+        return TensorDataset(torch.rand(100, 20))
+
+    def make_label_request(self, samples: list):
+        pass
+
+    def save(self):
+        pass
 
 
 class HuggingFaceDataHandler(DataHandler):
@@ -177,10 +220,11 @@ class HuggingFaceDataHandler(DataHandler):
         dataset_name: str,
         classifier: Classifier,
         parameters: Parameters,
+        run_id: str,
         validation_proportion: float = 0.2,
     ):
 
-        super().__init__(classifier, parameters)
+        super().__init__(classifier, parameters, run_id)
 
         # Make sure that `validation_proportion` is in [0,1]
         if validation_proportion < 0 or validation_proportion > 1:
@@ -286,6 +330,17 @@ class HuggingFaceDataHandler(DataHandler):
                 range(100)
             )
 
+    def get_latest_tokenized_datapoints(
+        self,
+    ) -> Union[datasets.Dataset, torch.utils.data.Dataset]:
+        return TensorDataset(torch.zeros(2, 2))
+
+    def make_label_request(self, samples: list):
+        pass
+
+    def save(self):
+        pass
+
 
 class LocalDataHandler(DataHandler):
     """A data handler for datasets that are stored locally.
@@ -332,9 +387,10 @@ class LocalDataHandler(DataHandler):
         dataset_path: str,
         classifier: Classifier,
         parameters: Parameters,
+        run_id: str,
     ):
 
-        super().__init__(classifier, parameters)
+        super().__init__(classifier, parameters, run_id)
 
         # load the local dataset, splitting by the data file names
         data_files = {
@@ -377,3 +433,14 @@ class LocalDataHandler(DataHandler):
         self.tokenized_train.remove_columns(["text"])
         self.tokenized_validation.remove_columns(["text"])
         self.tokenized_test.remove_columns(["text"])
+
+    def get_latest_tokenized_datapoints(
+        self,
+    ) -> Union[datasets.Dataset, torch.utils.data.Dataset]:
+        return TensorDataset(torch.zeros(2, 2))
+
+    def make_label_request(self, samples: list):
+        pass
+
+    def save(self):
+        pass
