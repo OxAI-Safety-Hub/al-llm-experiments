@@ -4,6 +4,8 @@ import torch
 
 import datasets
 
+import wandb
+
 from al_llm.data_handler import DataHandler, DummyDataHandler, HuggingFaceDataHandler
 from al_llm.classifier import Classifier, DummyClassifier, GPT2Classifier
 from al_llm.sample_generator import (
@@ -66,6 +68,12 @@ class Experiment:
         self.interface = interface
         self.already_finetuned = already_finetuned
         self.parameters = parameters
+
+        # initialise weights and biases
+        wandb.init(
+            project="Labs_Project_Experiments",
+            entity="oxai-safety-labs-active-learning",
+        )
 
     def run(self):
         """Run the experiment"""
