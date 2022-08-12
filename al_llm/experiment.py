@@ -1,7 +1,6 @@
 import string
 from typing import Union
 import configparser
-import os
 
 import torch
 
