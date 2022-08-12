@@ -21,7 +21,11 @@ class Parameters(dict):
         sample_pool_size : int, default=20
             When using an acquisition function, this is the number of samples
             to generate first, from which the function selects the appropriate
-            number."""
+            number.
+        seed : int, default=459834
+            The random seed to use for random number generation. The seed is
+            set at the beginning of each AL iteration to `seed+iteration`.
+        """
 
     # defined default paramets
     default_parameters = {
@@ -34,6 +38,7 @@ class Parameters(dict):
         "sample_pool_size": 20,
         "learning_rate": 5e-5,
         "dev_mode": False,
+        "seed": 459834,
     }
 
     def __init__(self, *args, **kw):
