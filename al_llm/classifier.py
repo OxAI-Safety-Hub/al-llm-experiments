@@ -210,7 +210,7 @@ class GPT2Classifier(Classifier):
     [1] Radford et al., "Language Models are Unsupervised Multitask Learners", 2019
     """
 
-    ArtifactName = "gpt2-classifier"
+    ARTIFACT_NAME = "gpt2-classifier"
 
     def __init__(self, parameters: Parameters, wandb_run: wandb.sdk.wandb_run.Run):
 
@@ -319,7 +319,7 @@ class GPT2Classifier(Classifier):
             self.model.save_pretrained(file_path)
 
             # upload this model to weights and biases as an artifact
-            artifact = wandb.Artifact(self.ArtifactName, type="classifier-model")
+            artifact = wandb.Artifact(self.ARTIFACT_NAME, type="classifier-model")
             artifact.add_dir(tmpdirname)
             self.wandb_run.log_artifact(artifact)
 
@@ -334,7 +334,7 @@ class GPT2Classifier(Classifier):
                 + "/"
                 + config["Wandb"]["Project"]
                 + "/"
-                + self.ArtifactName
+                + self.ARTIFACT_NAME
                 + ":latest"
             )
             artifact = self.wandb_run.use_artifact(
