@@ -173,6 +173,8 @@ class GPT2Classifier(Classifier):
     ----------
     parameters : Parameters
         The dictionary of parameters for the present experiment
+    run_id : str
+        The ID of the current run, used for loading and saving the model
 
     Attributes
     ----------
