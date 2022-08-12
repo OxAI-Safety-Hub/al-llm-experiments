@@ -92,7 +92,7 @@ class Experiment:
 
             # Perform a single iteration of model update, obtaining new samples
             # to label
-            samples = self._single_iteration(iteration)
+            samples = self._train_and_get_samples(iteration)
 
             # Get the labels from the human
             labels = self.interface.prompt(samples)
@@ -120,7 +120,7 @@ class Experiment:
 
         # Perform a single iteration of model update, obtaining new samples
         # to label
-        samples = self._single_iteration(iteration)
+        samples = self._train_and_get_samples(iteration)
 
         # Make a request for labels from the human
         self.data_handler.make_label_request(samples)
@@ -128,8 +128,8 @@ class Experiment:
         # Save the current version of the classifier and dataset
         self._save()
 
-    def _single_iteration(self, iteration: int) -> list:
-        """Perform a single iteration of the active learning loop
+    def _train_and_get_samples(self, iteration: int) -> list:
+        """Train the classifier with the latest datapoints, and get new samples
 
         Parameters
         ----------
