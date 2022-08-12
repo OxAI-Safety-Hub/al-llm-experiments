@@ -315,11 +315,15 @@ class GPT2Classifier(Classifier):
         # use a temporary directory as an inbetween
         with tempfile.TemporaryDirectory() as tmpdirname:
             # store the model in this directory
-            file_path = os.path.join(tmpdirname, "model_home.pt")
+            file_path = os.path.join(
+                tmpdirname, config["Classifier Loading"]["ModelFileName"]
+            )
             self.model.save_pretrained(file_path)
 
             # upload this model to weights and biases as an artifact
-            artifact = wandb.Artifact(self.ARTIFACT_NAME, type="classifier-model")
+            artifact = wandb.Artifact(
+                self.ARTIFACT_NAME, type=config["Classifier Loading"]["ClassifierType"]
+            )
             artifact.add_dir(tmpdirname)
             self.wandb_run.log_artifact(artifact)
 
@@ -337,12 +341,14 @@ class GPT2Classifier(Classifier):
             artifact_path = "/".join(artifact_path_components)
             artifact = self.wandb_run.use_artifact(
                 artifact_path,
-                type="classifier-model",
+                type=config["Classifier Loading"]["ClassifierType"],
             )
             artifact.download(tmpdirname)
 
             # load model from this directory
-            file_path = os.path.join(tmpdirname, "model_home.pt")
+            file_path = os.path.join(
+                tmpdirname, config["Classifier Loading"]["ModelFileName"]
+            )
             self.model = AutoModelForSequenceClassification.from_pretrained(file_path)
 
     def _train_loop(self, train_dataloader, lr_scheduler):
