@@ -5,6 +5,8 @@ from typing import Union, Any
 
 import torch
 import wandb
+import tempfile
+import os
 from transformers import (
     AutoTokenizer,
     AutoModelForSequenceClassification,
@@ -202,6 +204,8 @@ class GPT2Classifier(Classifier):
     [1] Radford et al., "Language Models are Unsupervised Multitask Learners", 2019
     """
 
+    ArtifactName = "gpt2-classifier"
+
     def __init__(self, parameters: Parameters, wandb_run: wandb.sdk.wandb_run.Run):
 
         # initialises the parameters in the same way as the base class
@@ -302,7 +306,16 @@ class GPT2Classifier(Classifier):
         )
 
     def save(self):
-        pass
+        # use a temporary directory as an inbetween
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            # store the model in this directory
+            file_path = os.path.join(tmpdirname, "model_home.pt")
+            self.model.save_pretrained(file_path)
+
+            # upload this model to weights and biases as an artifact
+            artifact = wandb.Artifact(self.ArtifactName, type="classifier-model")
+            artifact.add_dir(tmpdirname)
+            self.wandb_run.log_artifact(artifact)
 
     def _load_model(self):
         """Load the classifier using the wandb_run"""
