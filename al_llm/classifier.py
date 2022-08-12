@@ -6,6 +6,8 @@ import configparser
 
 import torch
 import wandb
+import tempfile
+import os
 from transformers import (
     AutoTokenizer,
     AutoModelForSequenceClassification,
@@ -208,6 +210,8 @@ class GPT2Classifier(Classifier):
     [1] Radford et al., "Language Models are Unsupervised Multitask Learners", 2019
     """
 
+    ARTIFACT_NAME = "gpt2-classifier"
+
     def __init__(self, parameters: Parameters, wandb_run: wandb.sdk.wandb_run.Run):
 
         # initialises the parameters in the same way as the base class
@@ -308,15 +312,44 @@ class GPT2Classifier(Classifier):
         )
 
     def save(self):
-        pass
+        # use a temporary directory as an inbetween
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            # store the model in this directory
+            file_path = os.path.join(
+                tmpdirname, config["Classifier Loading"]["ModelFileName"]
+            )
+            self.model.save_pretrained(file_path)
+
+            # upload this model to weights and biases as an artifact
+            artifact = wandb.Artifact(
+                self.ARTIFACT_NAME, type=config["Classifier Loading"]["ClassifierType"]
+            )
+            artifact.add_dir(tmpdirname)
+            self.wandb_run.log_artifact(artifact)
 
     def _load_model(self):
         """Load the classifier using the wandb_run"""
 
-        # Dummy loading: just load GPT2 afresh
-        self.model = AutoModelForSequenceClassification.from_pretrained(
-            "distilgpt2", num_labels=2
-        )
+        # use a temporary directory as an inbetween
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            # download the model into this directory from wandb
+            artifact_path_components = (
+                config["Wandb"]["Entity"],
+                config["Wandb"]["Project"],
+                self.ArtifactName + ":latest",
+            )
+            artifact_path = "/".join(artifact_path_components)
+            artifact = self.wandb_run.use_artifact(
+                artifact_path,
+                type=config["Classifier Loading"]["ClassifierType"],
+            )
+            artifact.download(tmpdirname)
+
+            # load model from this directory
+            file_path = os.path.join(
+                tmpdirname, config["Classifier Loading"]["ModelFileName"]
+            )
+            self.model = AutoModelForSequenceClassification.from_pretrained(file_path)
 
     def _train_loop(self, train_dataloader, lr_scheduler):
         """Run a native PyTorch training loop
