@@ -320,7 +320,7 @@ class GPT2Classifier(Classifier):
 
     def _load_model(self, current_run: wandb.sdk.wandb_run.Run):
         """Load the classifier using the run ID
-        
+
         Parameters
         ----------
         current_run : wandb.sdk.wandb_run.Run
