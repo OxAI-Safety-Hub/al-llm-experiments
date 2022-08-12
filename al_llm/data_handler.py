@@ -7,6 +7,7 @@ import torch
 from torch.utils.data import TensorDataset
 
 import datasets
+import wandb
 
 from al_llm.classifier import Classifier
 from al_llm.parameters import Parameters
@@ -25,6 +26,8 @@ class DataHandler(ABC):
         to know how to tokenize the data.
     parameters : Parameters
         The dictionary of parameters for the present experiment
+    wandb_run : wandb.sdk.wandb_run.Run
+        The current wandb run
 
     Attributes
     ----------
@@ -47,7 +50,12 @@ class DataHandler(ABC):
         The classifier instance which will be using the data.
     """
 
-    def __init__(self, classifier: Classifier, parameters: Parameters, run_id: str):
+    def __init__(
+        self,
+        classifier: Classifier,
+        parameters: Parameters,
+        wandb_run: wandb.sdk.wandb_run.Run,
+    ):
         self.dataset_train = None
         self.dataset_validation = None
         self.dataset_test = None
@@ -56,7 +64,7 @@ class DataHandler(ABC):
         self.tokenized_test = None
         self.classifier = classifier
         self.parameters = parameters
-        self.run_id = run_id
+        self.wandb_run = wandb_run
 
     def _tokenize(self, text: Union[str, list]) -> torch.Tensor:
         """Tokenize a string or batch of strings
@@ -190,6 +198,8 @@ class HuggingFaceDataHandler(DataHandler):
         to know how to tokenize the data.
     parameters : Parameters
         The dictionary of parameters for the present experiment
+    wandb_run : wandb.sdk.wandb_run.Run
+        The current wandb run
     validation_proportion : float, default=0.2
         Proportion of the training data to be used for validation, if it's not
         provided by the Hugging Face dataset.
@@ -220,11 +230,11 @@ class HuggingFaceDataHandler(DataHandler):
         dataset_name: str,
         classifier: Classifier,
         parameters: Parameters,
-        run_id: str,
+        wandb_run: wandb.sdk.wandb_run.Run,
         validation_proportion: float = 0.2,
     ):
 
-        super().__init__(classifier, parameters, run_id)
+        super().__init__(classifier, parameters, wandb_run)
 
         # Make sure that `validation_proportion` is in [0,1]
         if validation_proportion < 0 or validation_proportion > 1:
@@ -360,6 +370,8 @@ class LocalDataHandler(DataHandler):
         to know how to tokenize the data.
     parameters : Parameters
         The dictionary of parameters for the present experiment
+    wandb_run : wandb.sdk.wandb_run.Run
+        The current wandb run
 
     Attributes
     ----------
@@ -387,10 +399,10 @@ class LocalDataHandler(DataHandler):
         dataset_path: str,
         classifier: Classifier,
         parameters: Parameters,
-        run_id: str,
+        wandb_run: wandb.sdk.wandb_run.Run,
     ):
 
-        super().__init__(classifier, parameters, run_id)
+        super().__init__(classifier, parameters, wandb_run)
 
         # load the local dataset, splitting by the data file names
         data_files = {

@@ -60,9 +60,8 @@ class Experiment:
         sample_generator: SampleGenerator,
         interface: Interface,
         parameters: Parameters,
-        run_id: str,
+        wandb_run: wandb.sdk.wandb_run.Run,
         already_finetuned: bool = False,
-        is_running_pytests: bool = False,
     ):
 
         # Set the instance attributes
@@ -72,21 +71,8 @@ class Experiment:
         self.sample_generator = sample_generator
         self.interface = interface
         self.parameters = parameters
-        self.run_id = run_id
+        self.wandb_run = wandb_run
         self.already_finetuned = already_finetuned
-
-        # initialise weights and biases
-        #   Set resume to allow which resumes the previous run if there is already
-        #   a run with the id `run_id`.
-        #   Set mode to disabled when running pytests so that a login is not required
-        #   for the program to run.
-        wandb.init(
-            project="Labs_Project_Experiments",
-            entity="oxai-safety-labs-active-learning",
-            resume="allow",
-            id=run_id,
-            mode="disabled" if is_running_pytests else "online",
-        )
 
     def run_full(self):
         """Run the whole experiment in one go, through all iterations"""
@@ -185,7 +171,12 @@ class Experiment:
         self.data_handler.save()
 
     @classmethod
-    def make_dummy_experiment(cls, run_id: string, full_loop=True):
+    def make_dummy_experiment(
+        cls,
+        run_id: string,
+        full_loop=True,
+        is_running_pytests: bool = False,
+    ):
         """Get dummy instances to feed into the constructor
 
         Parameters
@@ -206,6 +197,19 @@ class Experiment:
         >>> dummy_args = Experiment.make_dummy_experiment()
         >>> experiment = Experiment(**dummy_args)
         """
+
+        # initialise weights and biases
+        #   Set resume to allow which resumes the previous run if there is already
+        #   a run with the id `run_id`.
+        #   Set mode to disabled when running pytests so that a login is not required
+        #   for the program to run.
+        wandb_run = wandb.init(
+            project="Labs_Project_Experiments",
+            entity="oxai-safety-labs-active-learning",
+            resume="allow",
+            id=run_id,
+            mode="disabled" if is_running_pytests else "online",
+        )
 
         parameters = Parameters(dev_mode=True)
         categories = {0: "Valid sentence", 1: "Invalid sentence"}
@@ -228,13 +232,18 @@ class Experiment:
             "sample_generator": sample_generator,
             "interface": interface,
             "parameters": parameters,
-            "run_id": run_id,
+            "wandb_run": wandb_run,
         }
 
         return dummy_args
 
     @classmethod
-    def make_experiment(cls, dataset_name: str, run_id: str):
+    def make_experiment(
+        cls,
+        dataset_name: str,
+        run_id: str,
+        is_running_pytests: bool = False,
+    ):
         """Get experiment instances to feed into the constructor
 
         Default setup expects Rotten Tomatoes dataset, and uses a classifier built
@@ -261,6 +270,19 @@ class Experiment:
         >>> experiment = Experiment(**experiment_args)
         """
 
+        # initialise weights and biases
+        #   Set resume to allow which resumes the previous run if there is already
+        #   a run with the id `run_id`.
+        #   Set mode to disabled when running pytests so that a login is not required
+        #   for the program to run.
+        wandb_run = wandb.init(
+            project="Labs_Project_Experiments",
+            entity="oxai-safety-labs-active-learning",
+            resume="allow",
+            id=run_id,
+            mode="disabled" if is_running_pytests else "online",
+        )
+
         parameters = Parameters(dev_mode=True)
         categories = {0: "Negative sentence", 1: "Positive sentence"}
         classifier = GPT2Classifier(parameters, run_id)
@@ -278,7 +300,7 @@ class Experiment:
             "sample_generator": sample_generator,
             "interface": interface,
             "parameters": parameters,
-            "run_id": run_id,
+            "wandb_run": wandb_run,
         }
 
         return experiment_args
