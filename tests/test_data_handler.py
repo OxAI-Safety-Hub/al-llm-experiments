@@ -38,7 +38,7 @@ class DummyClassifierForTests(Classifier):
 run_id = "test"
 
 # create parameters and classifier to pass to data handlers
-dummy_args = Experiment.make_dummy_experiment(run_id)
+dummy_args = Experiment.make_dummy_experiment(run_id, is_running_pytests=True)
 dummy_args["parameters"]["num_epochs"] = 1
 dummy_args["classifier"] = DummyClassifierForTests(dummy_args["parameters"], run_id)
 
