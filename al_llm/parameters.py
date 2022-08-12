@@ -27,7 +27,7 @@ class Parameters(dict):
         seed : int, default=459834
             The random seed to use for random number generation. The seed is
             set at the beginning of each AL iteration to `seed+iteration`.
-        """
+    """
 
     # defined default paramets
     default_parameters = {

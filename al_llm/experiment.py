@@ -149,7 +149,7 @@ class Experiment:
             The latest samples for labelling
         """
 
-        # Set the random number seed, so that the experiment is 
+        # Set the random number seed, so that the experiment is
         # reproducible whether we do full loop AL or broken loop
         set_seed(self.parameters["seed"] + iteration)
 
