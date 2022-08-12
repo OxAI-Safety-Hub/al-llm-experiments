@@ -80,7 +80,7 @@ class Experiment:
         #   a run with the id `run_id`.
         #   Set mode to disabled when running pytests so that a login is not required
         #   for the program to run.
-        wandb.init(
+        self.current_run = wandb.init(
             project="Labs_Project_Experiments",
             entity="oxai-safety-labs-active-learning",
             resume="allow",
@@ -177,11 +177,12 @@ class Experiment:
         self.interface.train_update()
         self.classifier.train_update(
             dataset_samples,
+            self.current_run,
         )
 
     def _save(self):
         """Save the current classifier and dataset"""
-        self.classifier.save()
+        self.classifier.save(self.current_run)
         self.data_handler.save()
 
     @classmethod
