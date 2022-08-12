@@ -110,6 +110,9 @@ ENV/
 env.bak/
 venv.bak/
 
+# Weights and biases
+wandb/
+
 # Spyder project settings
 .spyderproject
 .spyproject
