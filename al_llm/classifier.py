@@ -326,10 +326,26 @@ class GPT2Classifier(Classifier):
     def _load_model(self):
         """Load the classifier using the wandb_run"""
 
-        # Dummy loading: just load GPT2 afresh
-        self.model = AutoModelForSequenceClassification.from_pretrained(
-            "distilgpt2", num_labels=2
-        )
+        # use a temporary directory as an inbetween
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            # download the model into this directory from wandb
+            artifact_path = (
+                config["Wandb"]["Entity"]
+                + "/"
+                + config["Wandb"]["Project"]
+                + "/"
+                + self.ArtifactName
+                + ":latest"
+            )
+            artifact = self.wandb_run.use_artifact(
+                artifact_path,
+                type="classifier-model",
+            )
+            artifact.download(tmpdirname)
+
+            # load model from this directory
+            file_path = os.path.join(tmpdirname, "model_home.pt")
+            self.model = AutoModelForSequenceClassification.from_pretrained(file_path)
 
     def _train_loop(self, train_dataloader, lr_scheduler):
         """Run a native PyTorch training loop
