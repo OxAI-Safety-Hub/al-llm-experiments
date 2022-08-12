@@ -58,6 +58,7 @@ class Experiment:
         interface: Interface,
         parameters: Parameters,
         already_finetuned: bool = False,
+        is_running_pytests: bool = False,
     ):
 
         # Set the instance attributes
@@ -73,7 +74,7 @@ class Experiment:
         wandb.init(
             project="Labs_Project_Experiments",
             entity="oxai-safety-labs-active-learning",
-            mode="disabled",
+            mode="disabled" if is_running_pytests else "online",
         )
 
     def run(self):

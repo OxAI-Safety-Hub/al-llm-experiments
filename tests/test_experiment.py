@@ -16,7 +16,7 @@ class TestDummyExperiment:
 
     def test_dummy_experiment(self):
         dummy_args = Experiment.make_dummy_experiment()
-        experiment = Experiment(**dummy_args)
+        experiment = Experiment(**dummy_args, is_running_pytests=True)
         sys.stdin = ZeroStringIO()
         experiment.run()
 
