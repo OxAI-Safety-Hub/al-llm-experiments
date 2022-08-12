@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from typing import Union, Any
 
 import torch
+import wandb
 from transformers import (
     AutoTokenizer,
     AutoModelForSequenceClassification,
@@ -22,8 +23,8 @@ class Classifier(ABC):
     ----------
     parameters : Parameters
         The dictionary of parameters for the present experiment
-    run_id : str
-        The ID of the current run, used for loading and saving the model
+    wandb_run : wandb.sdk.wandb_run.Run
+        The current wandb run
 
     Attributes
     ----------
@@ -31,9 +32,9 @@ class Classifier(ABC):
         The DataHandler instance attached to this classifier
     """
 
-    def __init__(self, parameters: Parameters, run_id: str):
+    def __init__(self, parameters: Parameters, wandb_run: wandb.sdk.wandb_run.Run):
         self.parameters = parameters
-        self.run_id = run_id
+        self.wandb_run = wandb_run
         self.data_handler = None
 
     @abstractmethod
@@ -87,7 +88,7 @@ class Classifier(ABC):
 
     @abstractmethod
     def save(self):
-        """Save the classifier, using the run ID"""
+        """Save the classifier, using the wandb_run"""
         pass
 
     def attach_data_handler(self, data_handler):
@@ -173,6 +174,8 @@ class GPT2Classifier(Classifier):
     ----------
     parameters : Parameters
         The dictionary of parameters for the present experiment
+    wandb_run : wandb.sdk.wandb_run.Run
+        The current wandb run
 
     Attributes
     ----------
@@ -199,10 +202,10 @@ class GPT2Classifier(Classifier):
     [1] Radford et al., "Language Models are Unsupervised Multitask Learners", 2019
     """
 
-    def __init__(self, parameters: Parameters, run_id: str):
+    def __init__(self, parameters: Parameters, wandb_run: wandb.sdk.wandb_run.Run):
 
         # initialises the parameters in the same way as the base class
-        super().__init__(parameters, run_id)
+        super().__init__(parameters, wandb_run)
 
         # loads the tokenizer that the model will use
         self.tokenizer = AutoTokenizer.from_pretrained("distilgpt2")
@@ -302,7 +305,7 @@ class GPT2Classifier(Classifier):
         pass
 
     def _load_model(self):
-        """Load the classifier using the run ID"""
+        """Load the classifier using the wandb_run"""
 
         # Dummy loading: just load GPT2 afresh
         self.model = AutoModelForSequenceClassification.from_pretrained(

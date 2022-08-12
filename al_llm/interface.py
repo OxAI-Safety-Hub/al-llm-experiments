@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 import textwrap
+import wandb
 from al_llm.parameters import Parameters
 
 
@@ -16,13 +17,13 @@ class Interface(ABC):
         A dictionary of categories used by the classifier. The keys are the
         names of the categories as understood by the model, and the values
         are the human-readable names.
-    run_id : str
-        The ID of the current run
+    wandb_run : wandb.sdk.wandb_run.Run
+        The current wandb run
     """
 
-    def __init__(self, categories: dict, run_id: str):
+    def __init__(self, categories: dict, wandb_run: wandb.sdk.wandb_run.Run):
         self.categories = categories
-        self.run_id = run_id
+        self.wandb_run = wandb_run
 
     def begin(self, message: str = None, parameters: Parameters = None):
         """Initialise the interface, displaying a welcome message
@@ -78,8 +79,8 @@ class FullLoopInterface(Interface, ABC):
         A dictionary of categories used by the classifier. The keys are the
         names of the categories as understood by the model, and the values
         are the human-readable names.
-    run_id : str
-        The ID of the current run
+    wandb_run : wandb.sdk.wandb_run.Run
+        The current wandb run
     """
 
     @abstractmethod
@@ -109,8 +110,8 @@ class BrokenLoopInterface(Interface, ABC):
         A dictionary of categories used by the classifier. The keys are the
         names of the categories as understood by the model, and the values
         are the human-readable names.
-    run_id : str
-        The ID of the current run
+    wandb_run : wandb.sdk.wandb_run.Run
+        The current wandb run
     """
 
     pass
@@ -169,15 +170,21 @@ class CLIInterface(CLIInterfaceMixin, FullLoopInterface):
         A dictionary of categories used by the classifier. The keys are the
         names of the categories as understood by the model, and the values
         are the human-readable names.
-    run_id : str
-        The ID of the current run
+    wandb_run : wandb.sdk.wandb_run.Run
+        The current wandb run
     line_width : int
         The width of the lines to wrap the output.
     """
 
-    def __init__(self, categories: dict, run_id: str, *, line_width: int = 70):
+    def __init__(
+        self,
+        categories: dict,
+        wandb_run: wandb.sdk.wandb_run.Run,
+        *,
+        line_width: int = 70,
+    ):
 
-        super().__init__(categories, run_id)
+        super().__init__(categories, wandb_run)
 
         self.line_width = line_width
 
@@ -296,14 +303,20 @@ class CLIBrokenLoopInterface(CLIInterfaceMixin, BrokenLoopInterface):
         A dictionary of categories used by the classifier. The keys are the
         names of the categories as understood by the model, and the values
         are the human-readable names.
-    run_id : str
-        The ID of the current run
+    wandb_run : wandb.sdk.wandb_run.Run
+        The current wandb run
     line_width : int
         The width of the lines to wrap the output.
     """
 
-    def __init__(self, categories: dict, run_id: str, *, line_width: int = 70):
-        super().__init__(categories, run_id)
+    def __init__(
+        self,
+        categories: dict,
+        wandb_run: wandb.sdk.wandb_run.Run,
+        *,
+        line_width: int = 70,
+    ):
+        super().__init__(categories, wandb_run)
         self.line_width = line_width
 
     def begin(self, message: str = None, parameters: Parameters = None):
@@ -320,7 +333,7 @@ class CLIBrokenLoopInterface(CLIInterfaceMixin, BrokenLoopInterface):
             parameter_string = f"Parameters: {parameters}"
             text += "\n" + self._wrap(parameter_string)
 
-        run_id_string = f"Parameters: {self.run_id}"
+        run_id_string = f"Run ID: {self.wandb_run.id}"
         text += "\n" + self._wrap(run_id_string)
 
         # Print the message
