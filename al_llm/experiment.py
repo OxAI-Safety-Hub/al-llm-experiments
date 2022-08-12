@@ -1,5 +1,7 @@
 import string
 from typing import Union
+import configparser
+import os
 
 import torch
 
@@ -18,6 +20,11 @@ from al_llm.sample_generator import (
 from al_llm.acquisition_function import DummyAcquisitionFunction
 from al_llm.interface import CLIBrokenLoopInterface, Interface, CLIInterface
 from al_llm.parameters import Parameters
+
+
+# Load the configuration
+config = configparser.ConfigParser()
+config.read("config.ini")
 
 
 class Experiment:
@@ -209,8 +216,8 @@ class Experiment:
         #   Set mode to disabled when running pytests so that a login is not required
         #   for the program to run.
         wandb_run = wandb.init(
-            project="Labs_Project_Experiments",
-            entity="oxai-safety-labs-active-learning",
+            project=config["Wandb"]["Project"],
+            entity=config["Wandb"]["Entity"],
             resume="allow",
             id=run_id,
             mode="disabled" if is_running_pytests else "online",
@@ -281,8 +288,8 @@ class Experiment:
         #   Set mode to disabled when running pytests so that a login is not required
         #   for the program to run.
         wandb_run = wandb.init(
-            project="Labs_Project_Experiments",
-            entity="oxai-safety-labs-active-learning",
+            project=config["Wandb"]["Project"],
+            entity=config["Wandb"]["Entity"],
             resume="allow",
             id=run_id,
             mode="disabled" if is_running_pytests else "online",
