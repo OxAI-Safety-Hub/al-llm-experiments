@@ -133,3 +133,6 @@ dmypy.json
 
 # VisualStudioCode
 .vscode/*
+
+# Local notebooks
+notebooks/local/*
