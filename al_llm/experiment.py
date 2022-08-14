@@ -209,6 +209,8 @@ class Experiment:
         >>> experiment = Experiment(**dummy_args)
         """
 
+        parameters = Parameters(dev_mode=True)
+
         # initialise weights and biases
         #   Set resume to allow which resumes the previous run if there is already
         #   a run with the id `run_id`.
@@ -220,9 +222,9 @@ class Experiment:
             resume="allow",
             id=run_id,
             mode="disabled" if is_running_pytests else "online",
+            config=parameters,
         )
 
-        parameters = Parameters(dev_mode=True)
         categories = {0: "Valid sentence", 1: "Invalid sentence"}
         classifier = DummyClassifier(parameters, wandb_run)
         data_handler = DummyDataHandler(classifier, parameters, wandb_run)
@@ -281,6 +283,8 @@ class Experiment:
         >>> experiment = Experiment(**experiment_args)
         """
 
+        parameters = Parameters(dev_mode=True)
+
         # initialise weights and biases
         #   Set resume to allow which resumes the previous run if there is already
         #   a run with the id `run_id`.
@@ -292,9 +296,8 @@ class Experiment:
             resume="allow",
             id=run_id,
             mode="disabled" if is_running_pytests else "online",
+            config=parameters,
         )
-
-        parameters = Parameters(dev_mode=True)
         categories = {0: "Negative sentence", 1: "Positive sentence"}
         classifier = GPT2Classifier(parameters, wandb_run)
         data_handler = HuggingFaceDataHandler(
