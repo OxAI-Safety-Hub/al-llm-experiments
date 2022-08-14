@@ -105,6 +105,13 @@ class Experiment:
         # End the interface
         self.interface.end()
 
+        # Alert the slack channel that the experiment is complete
+        if self.parameters["send_alerts"]:
+            wandb.alert(
+                title="Full Experiment Complete",
+                text="The `run_full()` experiment has been completed.",
+            )
+
     def run_single_iteration(self, iteration: int):
         """Run a single iteration of active learning
 
@@ -126,6 +133,13 @@ class Experiment:
 
         # Save the current version of the classifier and dataset
         self._save()
+
+        # Alert the slack channel that the iteration is complete
+        if self.parameters["send_alerts"]:
+            wandb.alert(
+                title="AL Loop Iteration Complete",
+                text="There is new data to be labelled.",
+            )
 
     def _train_and_get_samples(self, iteration: int) -> list:
         """Train the classifier with the latest datapoints, and get new samples
