@@ -221,6 +221,7 @@ class GPT2Classifier(UncertaintyMixin, Classifier):
     [1] Radford et al., "Language Models are Unsupervised Multitask Learners", 2019
     """
 
+    MODEL_NAME = "distilgpt2"
     ARTIFACT_NAME = "gpt2-classifier"
 
     def __init__(self, parameters: Parameters, wandb_run: wandb.sdk.wandb_run.Run):
@@ -229,7 +230,7 @@ class GPT2Classifier(UncertaintyMixin, Classifier):
         super().__init__(parameters, wandb_run)
 
         # loads the tokenizer that the model will use
-        self.tokenizer = AutoTokenizer.from_pretrained("distilgpt2")
+        self.tokenizer = AutoTokenizer.from_pretrained(self.MODEL_NAME)
         self.tokenizer.pad_token = self.tokenizer.eos_token
 
         # Set up the Hugging Face metric evaluator
@@ -249,15 +250,8 @@ class GPT2Classifier(UncertaintyMixin, Classifier):
         tokenized_train: Union[datasets.Dataset, torch.utils.data.Dataset],
         iteration: int,
     ):
-        # load a fresh version of the model
-        self.model = AutoModelForSequenceClassification.from_pretrained(
-            "distilgpt2", num_labels=2
-        )
 
-        # set the End of Sentence token as the token used for padding by the model
-        self.model.config.pad_token_id = self.model.config.eos_token_id
-        # assign the model to the device (CUDA or GPU)
-        self.model.to(self.device)
+        self._load_fresh_model()
 
         # create an optimizer for the model
         optimizer = AdamW(self.model.parameters(), lr=self.parameters["learning_rate"])
@@ -358,9 +352,7 @@ class GPT2Classifier(UncertaintyMixin, Classifier):
             )
 
     def initialise(self):
-        self.model = AutoModelForSequenceClassification.from_pretrained(
-            "distilgpt2", num_labels=2
-        )
+        self._load_fresh_model()
 
     def save(self):
         # use a temporary directory as an inbetween
@@ -378,7 +370,18 @@ class GPT2Classifier(UncertaintyMixin, Classifier):
             artifact.add_dir(tmpdirname)
             self.wandb_run.log_artifact(artifact)
 
-    def _load_model(self):
+    def _load_fresh_model(self):
+        """Load the classifier model afresh"""
+
+        # load a fresh version of the model
+        self.model = AutoModelForSequenceClassification.from_pretrained(
+            self.MODEL_NAME, num_labels=2
+        )
+
+        # Setup the model
+        self._setup_model()
+
+    def _load_model_from_wandb(self):
         """Load the classifier using the wandb_run"""
 
         # use a temporary directory as an inbetween
@@ -401,6 +404,18 @@ class GPT2Classifier(UncertaintyMixin, Classifier):
                 tmpdirname, config["Classifier Loading"]["ModelFileName"]
             )
             self.model = AutoModelForSequenceClassification.from_pretrained(file_path)
+
+        # Setup the model
+        self._setup_model()
+
+    def _setup_model(self):
+        """Perform some intial setup on the classifier model"""
+
+        # set the End of Sentence token as the token used for padding by the model
+        self.model.config.pad_token_id = self.model.config.eos_token_id
+
+        # assign the model to the device (CUDA or GPU)
+        self.model.to(self.device)
 
     def _train_loop(
         self,
