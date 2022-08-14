@@ -103,6 +103,7 @@ class DataHandler(ABC):
         # (because adding items puts them at the end of the dataset)
         samples_dict = self.tokenized_train[-self.parameters["num_samples"] :]
         tokenized_samples = datasets.Dataset.from_dict(samples_dict)
+        tokenized_samples.set_format("torch")
         return tokenized_samples
 
     def new_labelled(
