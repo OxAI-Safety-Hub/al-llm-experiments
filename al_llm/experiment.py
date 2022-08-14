@@ -16,7 +16,10 @@ from al_llm.sample_generator import (
     SampleGenerator,
     DummySampleGenerator,
 )
-from al_llm.acquisition_function import DummyAcquisitionFunction
+from al_llm.acquisition_function import (
+    DummyAcquisitionFunction,
+    MaxUncertaintyAcquisitionFunction,
+)
 from al_llm.interface import CLIBrokenLoopInterface, Interface, CLIInterface
 from al_llm.parameters import Parameters
 
@@ -282,9 +285,9 @@ class Experiment:
 
         Default setup expects Rotten Tomatoes dataset, and uses a classifier built
         on GPT-2, the HuggingFaceDataHandler, a GPT-2-based sentence generator that
-        just produces real sentences, and the Command Line Interface. Also sets
-        `dev_mode` parameter to `True`, which reduces size of datasets provided to
-        the classifier.
+        produces real sentences and filters using a maximum uncertainty acquisition
+        function, and the Command Line Interface. Also sets `dev_mode` parameter to
+        `True`, which reduces size of datasets provided to the classifier.
 
         Parameters
         ----------
@@ -329,7 +332,10 @@ class Experiment:
             dataset_name, classifier, parameters, wandb_run
         )
         classifier.attach_data_handler(data_handler)
-        sample_generator = PlainGPT2SampleGenerator(parameters)
+        acquisition_function = MaxUncertaintyAcquisitionFunction(parameters, classifier)
+        sample_generator = PlainGPT2SampleGenerator(
+            parameters, acquisition_function=acquisition_function
+        )
         interface = CLIInterface(categories, wandb_run)
 
         experiment_args = {
