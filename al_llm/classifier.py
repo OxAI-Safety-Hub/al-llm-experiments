@@ -9,6 +9,7 @@ import os
 import torch
 from torch.utils.data import DataLoader
 from torch.optim import AdamW
+import torch.nn.functional as F
 
 from transformers import (
     AutoTokenizer,
@@ -541,8 +542,12 @@ class GPT2Classifier(UncertaintyMixin, Classifier):
 
         return eval_metrics
 
-    def tokenize(self, string: str):
-        return self.tokenizer(string, padding="max_length", truncation=True)
+    def tokenize(
+        self, string: str, padding="max_length", truncation=True, *args, **kwargs
+    ):
+        return self.tokenizer(
+            string, padding=padding, truncation=truncation, *args, **kwargs
+        )
 
     def calculate_uncertainties(self, samples: Union[str, list]) -> Union[float, list]:
 
@@ -564,12 +569,34 @@ class GPT2Classifier(UncertaintyMixin, Classifier):
         # set the model to eval mode
         self.model.eval()
 
+        # A list of the uncertainties (entropies) for each element of `samples`
+        uncertainties = []
+
         # iterate over all the batches in the dataloader
         for batch in samples_dataloader:
 
             # Move the batch to the appropriate device
-            batch = [sample.to(self.device) for sample in batch]
+            batch = {k: v.to(self.device) for k, v in batch.items()}
 
-            # Get the model outputs
             with torch.no_grad():
-                outputs = self.model(*batch)
+
+                # Get the raw model output logits
+                outputs = self.model(**batch)
+                logits = outputs.logits
+
+                # Compute the class probabilities
+                probabilities = F.softmax(logits, dim=1)
+
+                # Compute the entropies per element
+                per_class_entropies = torch.special.entr(probabilities)
+
+                # Take the sum over all these
+                sum_entropies = torch.sum(per_class_entropies, dim=-1)
+
+                # Add these to the list of uncertainties
+                uncertainties.extend(sum_entropies.tolist())
+
+        if return_string:
+            return uncertainties[0]
+        else:
+            return uncertainties
