@@ -105,6 +105,13 @@ class Experiment:
         # End the interface
         self.interface.end()
 
+        # Alert the slack channel that the experiment is complete
+        if self.parameters["send_alerts"]:
+            wandb.alert(
+                title="Full Experiment Complete",
+                text="The `run_full()` experiment has been completed.",
+            )
+
     def run_single_iteration(self, iteration: int):
         """Run a single iteration of active learning
 
