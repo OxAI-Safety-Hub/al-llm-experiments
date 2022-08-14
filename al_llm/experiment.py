@@ -150,30 +150,34 @@ class Experiment:
         # Produce the latest classifier
         if iteration == 0:
             self.classifier.initialise()
-        elif (iteration + 1) % self.parameters["refresh_every"] == 0:
-            self._train_afresh()
+        elif iteration % self.parameters["refresh_every"] == 0:
+            self._train_afresh(iteration)
         else:
-            self._train_update(dataset_samples)
+            self._train_update(dataset_samples, iteration)
 
         # Generate some new samples to query
         samples = self.sample_generator.generate()
 
         return samples
 
-    def _train_afresh(self):
+    def _train_afresh(self, iteration: int):
         """Fine-tune the classifier from scratch"""
         self.interface.train_afresh()
         self.classifier.train_afresh(
             self.data_handler.tokenized_train,
+            iteration,
         )
 
     def _train_update(
-        self, dataset_samples: Union[datasets.Dataset, torch.utils.data.Dataset]
+        self,
+        dataset_samples: Union[datasets.Dataset, torch.utils.data.Dataset],
+        iteration: int,
     ):
         """Fine-tune the classifier with new datapoints, without resetting"""
         self.interface.train_update()
         self.classifier.train_update(
             dataset_samples,
+            iteration,
         )
 
     def _save(self):
@@ -209,6 +213,8 @@ class Experiment:
         >>> experiment = Experiment(**dummy_args)
         """
 
+        parameters = Parameters(dev_mode=True)
+
         # initialise weights and biases
         #   Set resume to allow which resumes the previous run if there is already
         #   a run with the id `run_id`.
@@ -220,9 +226,9 @@ class Experiment:
             resume="allow",
             id=run_id,
             mode="disabled" if is_running_pytests else "online",
+            config=parameters,
         )
 
-        parameters = Parameters(dev_mode=True)
         categories = {0: "Valid sentence", 1: "Invalid sentence"}
         classifier = DummyClassifier(parameters, wandb_run)
         data_handler = DummyDataHandler(classifier, parameters, wandb_run)
@@ -281,6 +287,8 @@ class Experiment:
         >>> experiment = Experiment(**experiment_args)
         """
 
+        parameters = Parameters(dev_mode=True)
+
         # initialise weights and biases
         #   Set resume to allow which resumes the previous run if there is already
         #   a run with the id `run_id`.
@@ -292,9 +300,8 @@ class Experiment:
             resume="allow",
             id=run_id,
             mode="disabled" if is_running_pytests else "online",
+            config=parameters,
         )
-
-        parameters = Parameters(dev_mode=True)
         categories = {0: "Negative sentence", 1: "Positive sentence"}
         classifier = GPT2Classifier(parameters, wandb_run)
         data_handler = HuggingFaceDataHandler(
