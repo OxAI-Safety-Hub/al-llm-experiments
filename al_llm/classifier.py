@@ -559,7 +559,9 @@ class GPT2Classifier(UncertaintyMixin, Classifier):
             return_string = False
 
         # Tokenize the samples, ready for feeding into the model
-        tokenized_samples = self.tokenizer(samples)
+        tokenized_samples_dict = self.tokenize(samples)
+        tokenized_samples = datasets.Dataset.from_dict(tokenized_samples_dict)
+        tokenized_samples.set_format("torch", columns=["input_ids", "attention_mask"])
 
         # Put them in a PyTorch dataloader
         samples_dataloader = DataLoader(
