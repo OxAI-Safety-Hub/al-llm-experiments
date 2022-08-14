@@ -53,6 +53,7 @@ class Classifier(ABC):
     def train_afresh(
         self,
         dataset_train: Union[datasets.Dataset, torch.utils.data.Dataset],
+        iteration: int,
     ):
         """Reset the classifier and fine-tune it anew on tokenised data
 
@@ -60,6 +61,8 @@ class Classifier(ABC):
         ----------
         dataset_train : dataset.Dataset or torch.utils.data.Dataset
             The dataset with which to fine-tune
+        iteration : int
+            The index of the current iteration of the AL loop
         """
         pass
 
@@ -67,6 +70,7 @@ class Classifier(ABC):
     def train_update(
         self,
         dataset_train: Union[datasets.Dataset, torch.utils.data.Dataset],
+        iteration: int,
     ):
         """Fine-tune the classifier on more data tokenized, without resetting
 
@@ -74,6 +78,8 @@ class Classifier(ABC):
         ----------
         dataset_train : dataset.Dataset or torch.utils.data.Dataset
             The extra tokenized datapoints with which to fine-tune
+        iteration : int
+            The index of the current iteration of the AL loop
         """
         pass
 
@@ -142,10 +148,10 @@ class UncertaintyMixin(ABC):
 class DummyClassifier(UncertaintyMixin, Classifier):
     """Dummy classifier, which does nothing"""
 
-    def train_afresh(self, dataset_train: Any):
+    def train_afresh(self, dataset_train: Any, iteration: int):
         pass
 
-    def train_update(self, dataset_train: Any):
+    def train_update(self, dataset_train: Any, iteration: int):
         pass
 
     def tokenize(self, text: Union[str, list]) -> torch.Tensor:
@@ -225,6 +231,10 @@ class GPT2Classifier(Classifier):
         self.tokenizer = AutoTokenizer.from_pretrained("distilgpt2")
         self.tokenizer.pad_token = self.tokenizer.eos_token
 
+        # Set up the Hugging Face metric evaluator
+        metrics = config["Wandb"]["EvaluateMetrics"].replace(" ", "").split(",")
+        self.evaluator = evaluate.combine(metrics)
+
         # model and optimizer not required until a call to `train_afresh`
         self.model = None
         self.optimizer = None
@@ -237,6 +247,7 @@ class GPT2Classifier(Classifier):
     def train_afresh(
         self,
         dataset_train: Union[datasets.Dataset, torch.utils.data.Dataset],
+        iteration: int,
     ):
         # load a fresh version of the model
         self.model = AutoModelForSequenceClassification.from_pretrained(
@@ -272,14 +283,29 @@ class GPT2Classifier(Classifier):
         )
 
         # for each epoch, run the train and eval loops to train the model
-        for epoch in range(self.parameters["num_epochs"]):
-            print("running epoch " + str(epoch + 1))
-            self._train_loop(train_dataloader, lr_scheduler)
-            self._eval_loop(eval_dataloader)
+        for epoch in range(self.parameters["num_epochs_afresh"]):
+
+            # Output the current epoch
+            print(f"Epoch: {epoch+1}")
+
+            # Run the training and evaluation loops, obtaining the metrics
+            train_metrics = self._train_loop(train_dataloader, lr_scheduler)
+            eval_metrics = self._eval_loop(eval_dataloader)
+
+            # Record the metrics with W&B
+            self.wandb_run.log(
+                {
+                    "epoch": epoch,
+                    "iteration": iteration,
+                    "train": train_metrics,
+                    "eval": eval_metrics,
+                }
+            )
 
     def train_update(
         self,
         dataset_samples: Union[datasets.Dataset, torch.utils.data.Dataset],
+        iteration: int,
     ):
 
         # If the model is not already loaded then load it
@@ -306,9 +332,25 @@ class GPT2Classifier(Classifier):
             num_training_steps=num_training_steps,
         )
 
-        # only run one epoch of the train and eval loops
-        self._train_loop(small_samples_dataloader, lr_scheduler)
-        self._eval_loop(eval_dataloader)
+        # for each epoch, run the train and eval loops to train the model
+        for epoch in range(self.parameters["num_epochs_update"]):
+
+            # Output the current epoch
+            print(f"Epoch: {epoch+1}")
+
+            # Run the training and evaluation loops, obtaining the metrics
+            train_metrics = self._train_loop(small_samples_dataloader, lr_scheduler)
+            eval_metrics = self._eval_loop(eval_dataloader)
+
+            # Record the metrics with W&B
+            self.wandb_run.log(
+                {
+                    "epoch": epoch,
+                    "iteration": iteration,
+                    "train": train_metrics,
+                    "eval": eval_metrics,
+                }
+            )
 
     def initialise(self):
         self.model = AutoModelForSequenceClassification.from_pretrained(
@@ -355,23 +397,39 @@ class GPT2Classifier(Classifier):
             )
             self.model = AutoModelForSequenceClassification.from_pretrained(file_path)
 
-    def _train_loop(self, train_dataloader, lr_scheduler):
+    def _train_loop(
+        self,
+        train_dataloader: torch.utils.data.DataLoader,
+        lr_scheduler: Any,
+    ) -> dict:
         """Run a native PyTorch training loop
 
         The loop takes batches from the `train_dataloader` and for each one passes
         the data through the model, calculates the loss, and runs backpropogation
-        to adjust the model's parameters according to the optimizer
+        to adjust the model's parameters according to the optimizer.
+
+        The metrics and loss are computed while running the training loop, and
+        returned as a dictionary.
 
         Parameters
         ----------
         train_dataloader : torch.utils.data.DataLoader
             A DataLoader object containing the dataset we want to train the model on
-        lr_scheduler : torch.optim.lr_scheduler
+        lr_scheduler : torch.optim._LRScheduler
             A scheduler to dynamically change the learning rate over multiple epochs
+
+        Returns
+        -------
+        train_metrics : dict
+            A dictionary of metrics for the training loop. Consists of the
+            metrics computed by `self.evaluator`, plus "loss".
         """
 
         # set the model to train mode
         self.model.train()
+
+        # Recording the training loss by accumulating across batches
+        train_loss = 0
 
         # iterate over all the batches in the dataloader
         for batch in train_dataloader:
@@ -379,17 +437,44 @@ class GPT2Classifier(Classifier):
             # move batch data to same device as the model
             batch = {k: v.to(self.device) for k, v in batch.items()}
 
-            # pass the data to the model and calculate the loss and gradients
+            # pass the data to the model
             outputs = self.model(**batch)
+
+            # work out the model's predictions for the data using argmax on
+            # the logits
+            logits = outputs.logits
+            predictions = torch.argmax(logits, dim=-1)
+
+            # Use these outputs to calculate metrics
+            self.evaluator.add_batch(
+                predictions=predictions,
+                references=batch[config["Data Handling"]["LabelColumnName"]],
+            )
+
+            # Compute the loss
             loss = outputs.loss
+
+            # Add it to the accumulated loss
+            train_loss += loss.item() * len(batch)
+
+            # Perform back-propagation
             loss.backward()
 
-            # run backpropogation and step the scheduler along as well
+            # run and optimisation step and move the lr scheduler forward
             self.optimizer.step()
             lr_scheduler.step()
             self.optimizer.zero_grad()
 
-    def _eval_loop(self, eval_dataloader):
+        # Compute all the metrics for this epoch
+        train_metrics = self.evaluator.compute()
+
+        # Compute the average loss for this epoch
+        train_loss /= len(train_dataloader.dataset)
+        train_metrics["loss"] = train_loss
+
+        return train_metrics
+
+    def _eval_loop(self, eval_dataloader: torch.utils.data.DataLoader) -> dict:
         """Run a native PyTorch evaluation loop
 
         The loop takes batches from the `eval_dataloader` and does a forward pass
@@ -400,12 +485,19 @@ class GPT2Classifier(Classifier):
         ----------
         eval_dataloader : torch.utils.data.DataLoader
             A DataLoader object containing the dataset we want to evaluate the model on
+
+        Returns
+        -------
+        eval_metrics : dict
+            A dictionary of metrics for the evaluation loop. Consists of the
+            metrics computed by `self.evaluator`, plus "loss".
         """
-        # load in the metric(s) - in this case, just accuracy
-        metric = evaluate.load("accuracy")
 
         # set the model to eval mode
         self.model.eval()
+
+        # Recording the evaluation loss by accumulating across batches
+        eval_loss = 0
 
         # iterate over all the batches in the dataloader
         for batch in eval_dataloader:
@@ -422,13 +514,25 @@ class GPT2Classifier(Classifier):
             predictions = torch.argmax(logits, dim=-1)
 
             # give the predictions to the metric(s)
-            metric.add_batch(
+            self.evaluator.add_batch(
                 predictions=predictions,
                 references=batch[config["Data Handling"]["LabelColumnName"]],
             )
 
-        # finally, print the metric's result
-        print(metric.compute())
+            # Compute the loss
+            loss = outputs.loss
+
+            # Add it to the accumulated loss
+            eval_loss += loss.item() * len(batch)
+
+        # Compute all the metrics for this epoch
+        eval_metrics = self.evaluator.compute()
+
+        # Compute the average loss for this epoch
+        eval_loss /= len(eval_dataloader.dataset)
+        eval_metrics["loss"] = eval_loss
+
+        return eval_metrics
 
     def tokenize(self, string: str):
         return self.tokenizer(string, padding="max_length", truncation=True)

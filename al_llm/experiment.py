@@ -151,29 +151,33 @@ class Experiment:
         if iteration == 0:
             self.classifier.initialise()
         elif (iteration + 1) % self.parameters["refresh_every"] == 0:
-            self._train_afresh()
+            self._train_afresh(iteration)
         else:
-            self._train_update(dataset_samples)
+            self._train_update(dataset_samples, iteration)
 
         # Generate some new samples to query
         samples = self.sample_generator.generate()
 
         return samples
 
-    def _train_afresh(self):
+    def _train_afresh(self, iteration: int):
         """Fine-tune the classifier from scratch"""
         self.interface.train_afresh()
         self.classifier.train_afresh(
             self.data_handler.tokenized_train,
+            iteration,
         )
 
     def _train_update(
-        self, dataset_samples: Union[datasets.Dataset, torch.utils.data.Dataset]
+        self,
+        dataset_samples: Union[datasets.Dataset, torch.utils.data.Dataset],
+        iteration: int,
     ):
         """Fine-tune the classifier with new datapoints, without resetting"""
         self.interface.train_update()
         self.classifier.train_update(
             dataset_samples,
+            iteration,
         )
 
     def _save(self):
