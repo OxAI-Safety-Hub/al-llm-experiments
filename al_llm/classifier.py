@@ -171,7 +171,7 @@ class DummyClassifier(UncertaintyMixin, Classifier):
             )
 
 
-class GPT2Classifier(Classifier):
+class GPT2Classifier(UncertaintyMixin, Classifier):
     """Classifier class based on GPT-2
 
     A classifier class that uses the GPT-2[1]_ model available on HuggingFace
@@ -428,3 +428,33 @@ class GPT2Classifier(Classifier):
 
     def tokenize(self, string: str):
         return self.tokenizer(string, padding="max_length", truncation=True)
+
+    def calculate_uncertainties(self, samples: Union[str, list]) -> Union[float, list]:
+
+        # Turn samples into a list if it isn't already
+        if isinstance(samples, str):
+            samples = [str]
+            return_string = True
+        else:
+            return_string = False
+
+        # Tokenize the samples, ready for feeding into the model
+        tokenized_samples = self.tokenizer(samples)
+
+        # Put them in a PyTorch dataloader
+        samples_dataloader = DataLoader(
+            tokenized_samples, batch_size=self.parameters["batch_size"]
+        )
+
+        # set the model to eval mode
+        self.model.eval()
+
+        # iterate over all the batches in the dataloader
+        for batch in samples_dataloader:
+
+            # Move the batch to the appropriate device
+            batch = [sample.to(self.device) for sample in batch]
+
+            # Get the model outputs
+            with torch.no_grad():
+                outputs = self.model(*batch)
