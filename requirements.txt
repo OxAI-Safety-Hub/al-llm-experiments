@@ -2,6 +2,7 @@
 torch
 transformers
 datasets
+evaluate
 wheel
 sklearn
 wandb

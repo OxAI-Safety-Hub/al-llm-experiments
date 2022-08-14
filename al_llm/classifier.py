@@ -3,19 +3,23 @@
 from abc import ABC, abstractmethod
 from typing import Union, Any
 import configparser
-
-import torch
-import wandb
 import tempfile
 import os
+
+import torch
+from torch.utils.data import DataLoader
+from torch.optim import AdamW
+
 from transformers import (
     AutoTokenizer,
     AutoModelForSequenceClassification,
     get_scheduler,
 )
-from torch.utils.data import DataLoader
-from torch.optim import AdamW
 import datasets
+import evaluate
+
+import wandb
+
 from al_llm.parameters import Parameters
 
 
@@ -398,7 +402,7 @@ class GPT2Classifier(Classifier):
             A DataLoader object containing the dataset we want to evaluate the model on
         """
         # load in the metric(s) - in this case, just accuracy
-        metric = datasets.load_metric("accuracy")
+        metric = evaluate.load("accuracy")
 
         # set the model to eval mode
         self.model.eval()
