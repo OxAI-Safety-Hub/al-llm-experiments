@@ -17,8 +17,8 @@ from al_llm.sample_generator import (
     DummySampleGenerator,
 )
 from al_llm.acquisition_function import (
-    DummyAcquisitionFunction,
-    MaxUncertaintyAcquisitionFunction,
+    DummyAF,
+    MaxUncertaintyAF,
 )
 from al_llm.interface import CLIBrokenLoopInterface, Interface, CLIInterface
 from al_llm.parameters import Parameters
@@ -253,7 +253,7 @@ class Experiment:
         classifier = DummyClassifier(parameters, wandb_run)
         data_handler = DummyDataHandler(classifier, parameters, wandb_run)
         classifier.attach_data_handler(data_handler)
-        acquisition_function = DummyAcquisitionFunction(parameters)
+        acquisition_function = DummyAF(parameters)
         sample_generator = DummySampleGenerator(
             parameters, acquisition_function=acquisition_function
         )
@@ -332,7 +332,7 @@ class Experiment:
             dataset_name, classifier, parameters, wandb_run
         )
         classifier.attach_data_handler(data_handler)
-        acquisition_function = MaxUncertaintyAcquisitionFunction(parameters, classifier)
+        acquisition_function = MaxUncertaintyAF(parameters, classifier)
         sample_generator = PlainGPT2SampleGenerator(
             parameters, acquisition_function=acquisition_function
         )
