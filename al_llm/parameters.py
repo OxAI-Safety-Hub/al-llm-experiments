@@ -40,7 +40,7 @@ class Parameters(dict):
         "batch_size": 8,
         "num_epochs_update": 3,
         "num_epochs_afresh": 3,
-        "num_samples": 5,
+        "num_samples": 1,
         "num_warmup_steps": 0,
         "sample_pool_size": 20,
         "learning_rate": 5e-5,

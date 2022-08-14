@@ -150,7 +150,7 @@ class Experiment:
         # Produce the latest classifier
         if iteration == 0:
             self.classifier.initialise()
-        elif (iteration + 1) % self.parameters["refresh_every"] == 0:
+        elif iteration % self.parameters["refresh_every"] == 0:
             self._train_afresh(iteration)
         else:
             self._train_update(dataset_samples, iteration)

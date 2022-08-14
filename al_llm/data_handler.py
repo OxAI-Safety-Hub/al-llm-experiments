@@ -153,7 +153,8 @@ class DataHandler(ABC):
         # having added all the new samples, return the last `num_samples`
         # entries from `tokenized_train` (because adding items puts them at
         # the end of the dataset)
-        return self.tokenized_train[-num_samples:]
+        samples_dict = self.tokenized_train[-num_samples:]
+        return datasets.Dataset.from_dict(samples_dict)
 
     @abstractmethod
     def make_label_request(self, samples: list):

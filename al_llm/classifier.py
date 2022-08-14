@@ -269,12 +269,12 @@ class GPT2Classifier(Classifier):
             dataset_train, shuffle=True, batch_size=self.parameters["batch_size"]
         )
         eval_dataloader = DataLoader(
-            self.data_handler.dataset_validation,
+            self.data_handler.tokenized_validation,
             batch_size=self.parameters["batch_size"],
         )
 
         # create a learning rate scheduler
-        num_training_steps = self.parameters["num_epochs"] * len(train_dataloader)
+        num_training_steps = self.parameters["num_epochs_afresh"] * len(train_dataloader)
         lr_scheduler = get_scheduler(
             name="linear",
             optimizer=self.optimizer,
@@ -319,7 +319,7 @@ class GPT2Classifier(Classifier):
             dataset_samples, shuffle=True, batch_size=self.parameters["batch_size"]
         )
         eval_dataloader = DataLoader(
-            self.data_handler.dataset_validation,
+            self.data_handler.tokenized_validation,
             batch_size=self.parameters["batch_size"],
         )
 
