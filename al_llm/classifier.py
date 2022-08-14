@@ -9,6 +9,7 @@ import os
 import torch
 from torch.utils.data import DataLoader
 from torch.optim import AdamW
+import torch.nn.functional as F
 
 from transformers import (
     AutoTokenizer,
@@ -181,7 +182,7 @@ class DummyClassifier(UncertaintyMixin, Classifier):
             )
 
 
-class GPT2Classifier(Classifier):
+class GPT2Classifier(UncertaintyMixin, Classifier):
     """Classifier class based on GPT-2
 
     A classifier class that uses the GPT-2[1]_ model available on HuggingFace
@@ -220,6 +221,7 @@ class GPT2Classifier(Classifier):
     [1] Radford et al., "Language Models are Unsupervised Multitask Learners", 2019
     """
 
+    MODEL_NAME = "distilgpt2"
     ARTIFACT_NAME = "gpt2-classifier"
 
     def __init__(self, parameters: Parameters, wandb_run: wandb.sdk.wandb_run.Run):
@@ -228,7 +230,7 @@ class GPT2Classifier(Classifier):
         super().__init__(parameters, wandb_run)
 
         # loads the tokenizer that the model will use
-        self.tokenizer = AutoTokenizer.from_pretrained("distilgpt2")
+        self.tokenizer = AutoTokenizer.from_pretrained(self.MODEL_NAME)
         self.tokenizer.pad_token = self.tokenizer.eos_token
 
         # Set up the Hugging Face metric evaluator
@@ -248,15 +250,8 @@ class GPT2Classifier(Classifier):
         tokenized_train: Union[datasets.Dataset, torch.utils.data.Dataset],
         iteration: int,
     ):
-        # load a fresh version of the model
-        self.model = AutoModelForSequenceClassification.from_pretrained(
-            "distilgpt2", num_labels=2
-        )
 
-        # set the End of Sentence token as the token used for padding by the model
-        self.model.config.pad_token_id = self.model.config.eos_token_id
-        # assign the model to the device (CUDA or GPU)
-        self.model.to(self.device)
+        self._load_fresh_model()
 
         # create an optimizer for the model
         optimizer = AdamW(self.model.parameters(), lr=self.parameters["learning_rate"])
@@ -357,9 +352,7 @@ class GPT2Classifier(Classifier):
             )
 
     def initialise(self):
-        self.model = AutoModelForSequenceClassification.from_pretrained(
-            "distilgpt2", num_labels=2
-        )
+        self._load_fresh_model()
 
     def save(self):
         # use a temporary directory as an inbetween
@@ -377,7 +370,18 @@ class GPT2Classifier(Classifier):
             artifact.add_dir(tmpdirname)
             self.wandb_run.log_artifact(artifact)
 
-    def _load_model(self):
+    def _load_fresh_model(self):
+        """Load the classifier model afresh"""
+
+        # load a fresh version of the model
+        self.model = AutoModelForSequenceClassification.from_pretrained(
+            self.MODEL_NAME, num_labels=2
+        )
+
+        # Setup the model
+        self._setup_model()
+
+    def _load_model_from_wandb(self):
         """Load the classifier using the wandb_run"""
 
         # use a temporary directory as an inbetween
@@ -400,6 +404,18 @@ class GPT2Classifier(Classifier):
                 tmpdirname, config["Classifier Loading"]["ModelFileName"]
             )
             self.model = AutoModelForSequenceClassification.from_pretrained(file_path)
+
+        # Setup the model
+        self._setup_model()
+
+    def _setup_model(self):
+        """Perform some intial setup on the classifier model"""
+
+        # set the End of Sentence token as the token used for padding by the model
+        self.model.config.pad_token_id = self.model.config.eos_token_id
+
+        # assign the model to the device (CUDA or GPU)
+        self.model.to(self.device)
 
     def _train_loop(
         self,
@@ -541,5 +557,64 @@ class GPT2Classifier(Classifier):
 
         return eval_metrics
 
-    def tokenize(self, string: str):
-        return self.tokenizer(string, padding="max_length", truncation=True)
+    def tokenize(
+        self, string: str, padding="max_length", truncation=True, *args, **kwargs
+    ):
+        return self.tokenizer(
+            string, padding=padding, truncation=truncation, *args, **kwargs
+        )
+
+    def calculate_uncertainties(self, samples: Union[str, list]) -> Union[float, list]:
+
+        # Turn samples into a list if it isn't already
+        if isinstance(samples, str):
+            samples = [str]
+            return_string = True
+        else:
+            return_string = False
+
+        # Tokenize the samples, ready for feeding into the model
+        tokenized_samples_dict = self.tokenize(samples)
+        tokenized_samples = datasets.Dataset.from_dict(tokenized_samples_dict)
+        tokenized_samples.set_format("torch", columns=["input_ids", "attention_mask"])
+
+        # Put them in a PyTorch dataloader
+        samples_dataloader = DataLoader(
+            tokenized_samples, batch_size=self.parameters["batch_size"]
+        )
+
+        # set the model to eval mode
+        self.model.eval()
+
+        # A list of the uncertainties (entropies) for each element of `samples`
+        uncertainties = []
+
+        # iterate over all the batches in the dataloader
+        for batch in samples_dataloader:
+
+            # Move the batch to the appropriate device
+            batch = {k: v.to(self.device) for k, v in batch.items()}
+
+            with torch.no_grad():
+
+                # Get the raw model output logits
+                outputs = self.model(**batch)
+                logits = outputs.logits
+
+                # Compute the class probabilities
+                probabilities = F.softmax(logits, dim=1)
+
+                # Compute the entropies per element
+                per_class_entropies = torch.special.entr(probabilities)
+
+                # Take the sum over the entropies per class, to yield the
+                # total entropy per sample
+                sum_entropies = torch.sum(per_class_entropies, dim=-1)
+
+                # Add these to the list of uncertainties
+                uncertainties.extend(sum_entropies.tolist())
+
+        if return_string:
+            return uncertainties[0]
+        else:
+            return uncertainties
