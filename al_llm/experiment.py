@@ -229,6 +229,9 @@ class Experiment:
             config=parameters,
         )
 
+        # Set the seed now, because the data handler may do some shuffling
+        set_seed(parameters["seed"])
+
         categories = {0: "Valid sentence", 1: "Invalid sentence"}
         classifier = DummyClassifier(parameters, wandb_run)
         data_handler = DummyDataHandler(classifier, parameters, wandb_run)
@@ -302,6 +305,10 @@ class Experiment:
             mode="disabled" if is_running_pytests else "online",
             config=parameters,
         )
+
+        # Set the seed now, because the data handler may do some shuffling
+        set_seed(parameters["seed"])
+
         categories = {0: "Negative sentence", 1: "Positive sentence"}
         classifier = GPT2Classifier(parameters, wandb_run)
         data_handler = HuggingFaceDataHandler(
