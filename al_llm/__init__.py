@@ -11,6 +11,7 @@ from .acquisition_function import (
     AcquisitionFunction,
     DummyAcquisitionFunction,
     RandomAcquisitionFunction,
+    MaxUncertaintyAcquisitionFunction,
 )
 from .sample_generator import (
     SampleGenerator,
