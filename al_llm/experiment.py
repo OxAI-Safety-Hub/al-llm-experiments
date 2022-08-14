@@ -127,6 +127,13 @@ class Experiment:
         # Save the current version of the classifier and dataset
         self._save()
 
+        # Alert the slack channel that the iteration is complete
+        if self.parameters["send_alerts"]:
+            wandb.alert(
+                title="AL Loop Iteration Complete",
+                text="There is new data to be labelled.",
+            )
+
     def _train_and_get_samples(self, iteration: int) -> list:
         """Train the classifier with the latest datapoints, and get new samples
 
