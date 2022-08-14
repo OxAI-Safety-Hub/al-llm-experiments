@@ -245,7 +245,7 @@ class CLIInterface(CLIInterfaceMixin, FullLoopInterface):
                     valid_label = True
 
             # Append this label
-            labels.append(self._categories_list[label])
+            labels.append(self._categories_list[label][0])
 
         return labels
 
