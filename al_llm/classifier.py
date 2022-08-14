@@ -607,7 +607,8 @@ class GPT2Classifier(UncertaintyMixin, Classifier):
                 # Compute the entropies per element
                 per_class_entropies = torch.special.entr(probabilities)
 
-                # Take the sum over all these
+                # Take the sum over the entropies per class, to yield the
+                # total entropy per sample
                 sum_entropies = torch.sum(per_class_entropies, dim=-1)
 
                 # Add these to the list of uncertainties
