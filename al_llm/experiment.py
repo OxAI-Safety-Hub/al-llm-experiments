@@ -222,6 +222,9 @@ class Experiment:
             mode="disabled" if is_running_pytests else "online",
         )
 
+        # Set the seed now, because the data handler may do some shuffling
+        set_seed(parameters["seed"])
+
         parameters = Parameters(dev_mode=True)
         categories = {0: "Valid sentence", 1: "Invalid sentence"}
         classifier = DummyClassifier(parameters, wandb_run)
@@ -293,6 +296,9 @@ class Experiment:
             id=run_id,
             mode="disabled" if is_running_pytests else "online",
         )
+
+        # Set the seed now, because the data handler may do some shuffling
+        set_seed(parameters["seed"])
 
         parameters = Parameters(dev_mode=True)
         categories = {0: "Negative sentence", 1: "Positive sentence"}
