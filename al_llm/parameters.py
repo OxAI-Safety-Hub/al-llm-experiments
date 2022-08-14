@@ -26,11 +26,13 @@ class Parameters(dict):
             number.
         learning_rate : float, default=5e-5
             Initial learning rate for training.
-        dev_mode : bool
+        dev_mode : bool, default=False
             True if the experiment should only use dummy values.
         seed : int, default=459834
             The random seed to use for random number generation. The seed is
             set at the beginning of each AL iteration to `seed+iteration`.
+        send_alerts : bool, default=True
+            True if the experiment should send alerts to the slack channel.
     """
 
     # defined default paramets
@@ -46,6 +48,7 @@ class Parameters(dict):
         "learning_rate": 5e-5,
         "dev_mode": False,
         "seed": 459834,
+        "send_alerts": False,
     }
 
     def __init__(self, *args, **kw):

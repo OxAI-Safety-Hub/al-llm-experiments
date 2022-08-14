@@ -88,7 +88,6 @@ class DataHandler(ABC):
 
         return self.classifier.tokenize(text)
 
-    @abstractmethod
     def get_latest_tokenized_datapoints(
         self,
     ) -> Union[datasets.Dataset, torch.utils.data.Dataset]:
@@ -96,10 +95,15 @@ class DataHandler(ABC):
 
         Returns
         -------
-        dataset_samples : datasets.Dataset or torch.utils.data.Dataset
+        tokenized_samples : datasets.Dataset or torch.utils.data.Dataset
             The latest datapoints
         """
-        pass
+
+        # return the last `num_samples`entries from `tokenized_train`
+        # (because adding items puts them at the end of the dataset)
+        samples_dict = self.tokenized_train[-self.parameters["num_samples"] :]
+        tokenized_samples = datasets.Dataset.from_dict(samples_dict)
+        return tokenized_samples
 
     def new_labelled(
         self, samples: list, labels: list
@@ -371,11 +375,6 @@ class HuggingFaceDataHandler(DataHandler):
                 range(100)
             )
 
-    def get_latest_tokenized_datapoints(
-        self,
-    ) -> Union[datasets.Dataset, torch.utils.data.Dataset]:
-        return TensorDataset(torch.zeros(2, 2))
-
     def make_label_request(self, samples: list):
         pass
 
@@ -495,11 +494,6 @@ class LocalDataHandler(DataHandler):
             [config["Data Handling"]["TextColumnName"]]
         )
         self.tokenized_test.remove_columns([config["Data Handling"]["TextColumnName"]])
-
-    def get_latest_tokenized_datapoints(
-        self,
-    ) -> Union[datasets.Dataset, torch.utils.data.Dataset]:
-        return TensorDataset(torch.zeros(2, 2))
 
     def make_label_request(self, samples: list):
         pass
