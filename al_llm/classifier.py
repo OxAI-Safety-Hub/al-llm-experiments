@@ -288,7 +288,7 @@ class GPT2Classifier(Classifier):
             print(f"Epoch: {epoch+1}")
 
             # Run the training and evaluation loops, obtaining the metrics
-            train_metrics = self._train_loop(train_dataloader, lr_scheduler)
+            train_metrics = self._train_loop(train_dataloader, optimizer, lr_scheduler)
             eval_metrics = self._eval_loop(eval_dataloader)
 
             # Record the metrics with W&B
@@ -341,7 +341,7 @@ class GPT2Classifier(Classifier):
             print(f"Epoch: {epoch+1}")
 
             # Run the training and evaluation loops, obtaining the metrics
-            train_metrics = self._train_loop(small_samples_dataloader, lr_scheduler)
+            train_metrics = self._train_loop(small_samples_dataloader, optimizer, lr_scheduler)
             eval_metrics = self._eval_loop(eval_dataloader)
 
             # Record the metrics with W&B
@@ -402,6 +402,7 @@ class GPT2Classifier(Classifier):
     def _train_loop(
         self,
         train_dataloader: torch.utils.data.DataLoader,
+        optimizer: torch.optim.Optimizer,
         lr_scheduler: Any,
     ) -> dict:
         """Run a native PyTorch training loop
@@ -417,6 +418,8 @@ class GPT2Classifier(Classifier):
         ----------
         train_dataloader : torch.utils.data.DataLoader
             A DataLoader object containing the dataset we want to train the model on
+        optimizer : torch.optim.Optimizer
+            The pytorch optimizer to use
         lr_scheduler : torch.optim._LRScheduler
             A scheduler to dynamically change the learning rate over multiple epochs
 
