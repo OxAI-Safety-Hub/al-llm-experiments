@@ -103,12 +103,11 @@ class DataHandler(ABC):
         # (because adding items puts them at the end of the dataset)
         samples_dict = self.tokenized_train[-self.parameters["num_samples"] :]
         tokenized_samples = datasets.Dataset.from_dict(samples_dict)
+        tokenized_samples.set_format("torch")
         return tokenized_samples
 
-    def new_labelled(
-        self, samples: list, labels: list
-    ) -> Union[datasets.Dataset, torch.utils.data.Dataset]:
-        """Add new labelled samples, returning a PyTorch dataset for them
+    def new_labelled(self, samples: list, labels: list):
+        """Add new labelled samples to the dataset
 
         Parameters
         ----------
@@ -116,12 +115,6 @@ class DataHandler(ABC):
             The list of sample strings
         labels : list
             Labels for the samples
-
-        Returns
-        -------
-        samples_dataset : datasets.Dataset or torch.utils.data.Dataset
-            A PyTorch dataset consisting of the newly added tokenized samples
-            and their labels, ready for fine-tuning
         """
 
         # store the number of new samples being processed
@@ -154,12 +147,6 @@ class DataHandler(ABC):
                 }
             )
 
-        # having added all the new samples, return the last `num_samples`
-        # entries from `tokenized_train` (because adding items puts them at
-        # the end of the dataset)
-        samples_dict = self.tokenized_train[-num_samples:]
-        return datasets.Dataset.from_dict(samples_dict)
-
     @abstractmethod
     def make_label_request(self, samples: list):
         """Make a request for labels for the samples from the human
@@ -180,10 +167,8 @@ class DataHandler(ABC):
 class DummyDataHandler(DataHandler):
     """A dummy data handler, which holds a dummy dataset"""
 
-    def new_labelled(
-        self, samples: list, labels: list
-    ) -> Union[datasets.Dataset, torch.utils.data.Dataset]:
-        return TensorDataset(torch.rand(100, 100))
+    def new_labelled(self, samples: list, labels: list):
+        pass
 
     def get_latest_tokenized_datapoints(
         self,
@@ -348,19 +333,6 @@ class HuggingFaceDataHandler(DataHandler):
                 config["Data Handling"]["LabelColumnName"],
             ],
         )
-
-        # if within a dummy experiment (checked by self.parameters["dev_mode"]),
-        # limit the size of the datasets significantly
-        if self.parameters["dev_mode"]:
-            self.tokenized_train = self.tokenized_train.shuffle(seed=1091).select(
-                range(5)
-            )
-            self.tokenized_validation = self.tokenized_validation.shuffle(
-                seed=1091
-            ).select(range(100))
-            self.tokenized_test = self.tokenized_test.shuffle(seed=1091).select(
-                range(100)
-            )
 
         # if within a dummy experiment (checked by self.parameters["dev_mode"]),
         # limit the size of the datasets significantly
