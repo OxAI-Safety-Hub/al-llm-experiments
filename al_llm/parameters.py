@@ -36,6 +36,8 @@ class Parameters(dict):
 
         acquisition_function : str, default="DummyAF"
             The name of the acquisition function to use.
+        sample_generator : str, default="DummySampleGenerator"
+            The name of the acquisition function to use.
     """
 
     # defined default paramets
@@ -53,6 +55,7 @@ class Parameters(dict):
         "seed": 459834,
         "send_alerts": False,
         "acquisition_function": "DummyAF",
+        "sample_generator": "DummySampleGenerator",
     }
 
     def __init__(self, *args, **kw):

@@ -69,6 +69,10 @@ class Experiment:
         "RandomAF": RandomAF,
         "MaxUncertaintyAF": MaxUncertaintyAF,
     }
+    MAP_SAMPLE_GENERATOR = {
+        "DummySampleGenerator": DummySampleGenerator,
+        "PlainGPT2SampleGenerator": PlainGPT2SampleGenerator,
+    }
 
     def __init__(
         self,
@@ -353,7 +357,9 @@ class Experiment:
         else:
             acquisition_function = af_class(parameters)
 
-        sample_generator = PlainGPT2SampleGenerator(
+        # Set up the sample generator
+        sg_name = parameters["sample_generator"]
+        sample_generator = cls.MAP_SAMPLE_GENERATOR[sg_name](
             parameters, acquisition_function=acquisition_function
         )
         interface = CLIInterface(categories, wandb_run)
