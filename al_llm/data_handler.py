@@ -214,9 +214,6 @@ class HuggingFaceDataHandler(DataHandler):
         The dictionary of parameters for the present experiment
     wandb_run : wandb.sdk.wandb_run.Run
         The current wandb run
-    validation_proportion : float, default=0.2
-        Proportion of the training data to be used for validation, if it's not
-        provided by the Hugging Face dataset.
 
     Attributes
     ----------
@@ -245,12 +242,12 @@ class HuggingFaceDataHandler(DataHandler):
         classifier: Classifier,
         parameters: Parameters,
         wandb_run: wandb.sdk.wandb_run.Run,
-        validation_proportion: float = 0.2,
     ):
 
         super().__init__(classifier, parameters, wandb_run)
 
         # Make sure that `validation_proportion` is in [0,1]
+        validation_proportion = parameters["validation_proportion"]
         if validation_proportion < 0 or validation_proportion > 1:
             raise ValueError("`validation_proportion` should be in [0,1]")
 

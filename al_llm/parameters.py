@@ -33,11 +33,16 @@ class Parameters(dict):
             set at the beginning of each AL iteration to `seed+iteration`.
         send_alerts : bool, default=True
             True if the experiment should send alerts to the slack channel.
+        validation_proportion : float, default=0.2
+            Proportion of the training data to be used for validation, if it's not
+            provided by the Hugging Face dataset.
 
+        data_handler : str, default="DummyDataHandler"
+            The name of the data handler to use.
         acquisition_function : str, default="DummyAF"
             The name of the acquisition function to use.
         sample_generator : str, default="DummySampleGenerator"
-            The name of the acquisition function to use.
+            The name of the sample generator to use.
     """
 
     # defined default paramets
@@ -54,6 +59,8 @@ class Parameters(dict):
         "dev_mode": False,
         "seed": 459834,
         "send_alerts": False,
+        "validation_proportion": 0.2,
+        "data_handler": "DummyDataHandler",
         "acquisition_function": "DummyAF",
         "sample_generator": "DummySampleGenerator",
     }

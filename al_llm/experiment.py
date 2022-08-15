@@ -9,7 +9,12 @@ from transformers import set_seed
 
 import wandb
 
-from al_llm.data_handler import DataHandler, DummyDataHandler, HuggingFaceDataHandler
+from al_llm.data_handler import (
+    DataHandler,
+    DummyDataHandler,
+    HuggingFaceDataHandler,
+    LocalDataHandler,
+)
 from al_llm.classifier import Classifier, DummyClassifier, GPT2Classifier
 from al_llm.sample_generator import (
     PlainGPT2SampleGenerator,
@@ -63,6 +68,11 @@ class Experiment:
         (as a `str`)
     """
 
+    MAP_DATA_HANDLER = {
+        "DummyDataHandler": DummyDataHandler,
+        "HuggingFaceDataHandler": HuggingFaceDataHandler,
+        "LocalDataHandler": LocalDataHandler,
+    }
     MAP_ACQUISITION_FUNCTION = {
         "None": None,
         "DummyAF": DummyAF,
@@ -342,9 +352,18 @@ class Experiment:
 
         categories = {0: "Negative sentence", 1: "Positive sentence"}
         classifier = GPT2Classifier(parameters, wandb_run)
-        data_handler = HuggingFaceDataHandler(
-            dataset_name, classifier, parameters, wandb_run
-        )
+
+        # Set up data handler
+        dh_name = parameters["data_handler"]
+        if dh_name == "DummyDataHandler":
+            data_handler = cls.MAP_DATA_HANDLER[dh_name](
+                classifier, parameters, wandb_run
+            )
+        else:
+            data_handler = cls.MAP_DATA_HANDLER[dh_name](
+                dataset_name, classifier, parameters, wandb_run
+            )
+
         classifier.attach_data_handler(data_handler)
 
         # Set up acquisition function (could be None)
