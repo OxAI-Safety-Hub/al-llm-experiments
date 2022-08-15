@@ -75,8 +75,10 @@ def test_data_handler_consistency():
     loc_train_size = len(local_data_handler.tokenized_train)
 
     # add samples to each data handler
-    hug_new_data = hugging_data_handler.new_labelled(samples, labels)
-    loc_new_data = local_data_handler.new_labelled(samples, labels)
+    hugging_data_handler.new_labelled(samples, labels)
+    hug_new_data = hugging_data_handler.get_latest_tokenized_datapoints()
+    local_data_handler.new_labelled(samples, labels)
+    loc_new_data = local_data_handler.get_latest_tokenized_datapoints()
 
     # check that `new_labelled()` function returns a dataset of the right size
     assert len(hug_new_data) == 3 and len(loc_new_data) == 3
