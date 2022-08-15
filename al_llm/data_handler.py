@@ -363,19 +363,6 @@ class HuggingFaceDataHandler(DataHandler):
                 range(100)
             )
 
-        # if within a dummy experiment (checked by self.parameters["dev_mode"]),
-        # limit the size of the datasets significantly
-        if self.parameters["dev_mode"]:
-            self.tokenized_train = self.tokenized_train.shuffle(seed=1091).select(
-                range(5)
-            )
-            self.tokenized_validation = self.tokenized_validation.shuffle(
-                seed=1091
-            ).select(range(100))
-            self.tokenized_test = self.tokenized_test.shuffle(seed=1091).select(
-                range(100)
-            )
-
     def make_label_request(self, samples: list):
         pass
 
