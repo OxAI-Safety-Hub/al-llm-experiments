@@ -19,6 +19,7 @@ from al_llm.sample_generator import (
 from al_llm.acquisition_function import (
     DummyAF,
     MaxUncertaintyAF,
+    RandomAF,
 )
 from al_llm.interface import CLIBrokenLoopInterface, Interface, CLIInterface
 from al_llm.parameters import Parameters
@@ -61,6 +62,13 @@ class Experiment:
         (as an `int`) which are the keys for the human-readable versions of each
         (as a `str`)
     """
+
+    MAP_ACQUISITION_FUNCTION = {
+        "None": None,
+        "DummyAF": DummyAF,
+        "RandomAF": RandomAF,
+        "MaxUncertaintyAF": MaxUncertaintyAF,
+    }
 
     def __init__(
         self,
@@ -334,7 +342,17 @@ class Experiment:
             dataset_name, classifier, parameters, wandb_run
         )
         classifier.attach_data_handler(data_handler)
-        acquisition_function = MaxUncertaintyAF(parameters, classifier)
+
+        # Set up acquisition function (could be None)
+        af_name = parameters["acquisition_function"]
+        af_class = cls.MAP_ACQUISITION_FUNCTION[af_name]
+        if af_class is None:
+            acquisition_function = None
+        elif af_name == "MaxUncertaintyAF":
+            acquisition_function = af_class(parameters, classifier)
+        else:
+            acquisition_function = af_class(parameters)
+
         sample_generator = PlainGPT2SampleGenerator(
             parameters, acquisition_function=acquisition_function
         )

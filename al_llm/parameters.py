@@ -33,6 +33,9 @@ class Parameters(dict):
             set at the beginning of each AL iteration to `seed+iteration`.
         send_alerts : bool, default=True
             True if the experiment should send alerts to the slack channel.
+
+        acquisition_function : str, default="DummyAF"
+            The name of the acquisition function to use.
     """
 
     # defined default paramets
@@ -49,6 +52,7 @@ class Parameters(dict):
         "dev_mode": False,
         "seed": 459834,
         "send_alerts": False,
+        "acquisition_function": "DummyAF",
     }
 
     def __init__(self, *args, **kw):
