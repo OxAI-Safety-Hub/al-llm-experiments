@@ -37,6 +37,8 @@ class Parameters(dict):
             Proportion of the training data to be used for validation, if it's not
             provided by the Hugging Face dataset.
 
+        classifier : str, default="DummyClassifier"
+            The name of the classifier to use.
         data_handler : str, default="DummyDataHandler"
             The name of the data handler to use.
         acquisition_function : str, default="DummyAF"
@@ -62,6 +64,7 @@ class Parameters(dict):
         "seed": 459834,
         "send_alerts": False,
         "validation_proportion": 0.2,
+        "classifier": "DummyClassifier",
         "data_handler": "DummyDataHandler",
         "acquisition_function": "DummyAF",
         "sample_generator": "DummySampleGenerator",

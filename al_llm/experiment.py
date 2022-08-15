@@ -68,6 +68,10 @@ class Experiment:
         (as a `str`)
     """
 
+    MAP_CLASSIFIER = {
+        "DummyClassifier": DummyClassifier,
+        "GPT2Classifier": GPT2Classifier,
+    }
     MAP_DATA_HANDLER = {
         "DummyDataHandler": DummyDataHandler,
         "HuggingFaceDataHandler": HuggingFaceDataHandler,
@@ -355,9 +359,12 @@ class Experiment:
         set_seed(parameters["seed"])
 
         categories = {0: "Negative sentence", 1: "Positive sentence"}
-        classifier = GPT2Classifier(parameters, wandb_run)
 
-        # Set up data handler
+        # Set up the classifier
+        classifier_name = parameters["classifier"]
+        classifier = cls.MAP_CLASSIFIER[classifier_name](parameters, wandb_run)
+
+        # Set up the data handler
         dh_name = parameters["data_handler"]
         if dh_name == "DummyDataHandler":
             data_handler = cls.MAP_DATA_HANDLER[dh_name](
@@ -370,7 +377,7 @@ class Experiment:
 
         classifier.attach_data_handler(data_handler)
 
-        # Set up acquisition function (could be None)
+        # Set up the acquisition function (could be None)
         af_name = parameters["acquisition_function"]
         af_class = cls.MAP_ACQUISITION_FUNCTION[af_name]
         if af_class is None:
