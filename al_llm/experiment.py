@@ -83,6 +83,10 @@ class Experiment:
         "DummySampleGenerator": DummySampleGenerator,
         "PlainGPT2SampleGenerator": PlainGPT2SampleGenerator,
     }
+    MAP_INTERFACE = {
+        "CLIInterface": CLIInterface,
+        "CLIBrokenLoopInterface": CLIBrokenLoopInterface,
+    }
 
     def __init__(
         self,
@@ -381,7 +385,10 @@ class Experiment:
         sample_generator = cls.MAP_SAMPLE_GENERATOR[sg_name](
             parameters, acquisition_function=acquisition_function
         )
-        interface = CLIInterface(categories, wandb_run)
+
+        # Set up the interface
+        interface_name = parameters["interface"]
+        interface = cls.MAP_INTERFACE[interface_name](categories, wandb_run)
 
         experiment_args = {
             "data_handler": data_handler,
