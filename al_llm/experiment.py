@@ -277,6 +277,7 @@ class Experiment:
     @classmethod
     def make_experiment(
         cls,
+        parameters: Parameters,
         dataset_name: str,
         run_id: str,
         is_running_pytests: bool = False,
@@ -291,6 +292,8 @@ class Experiment:
 
         Parameters
         ----------
+        parameters : Parameters
+            The dictionary of parameters for the present experiment
         dataset_name : str
             The name of the dataset this experiment should use
         run_id : str
@@ -306,8 +309,6 @@ class Experiment:
         >>> experiment_args = Experiment.make_experiment("rotten_tomatoes")
         >>> experiment = Experiment(**experiment_args)
         """
-
-        parameters = Parameters(dev_mode=True)
 
         # initialise weights and biases
         #   Set resume to allow which resumes the previous run if there is already
