@@ -309,14 +309,9 @@ class Experiment:
 
         # Set up the data handler
         dh_name = parameters["data_handler"]
-        if dh_name == "DummyDataHandler":
-            data_handler = cls.MAP_DATA_HANDLER[dh_name](
-                classifier, parameters, wandb_run
-            )
-        else:
-            data_handler = cls.MAP_DATA_HANDLER[dh_name](
-                dataset_name, classifier, parameters, wandb_run
-            )
+        data_handler = cls.MAP_DATA_HANDLER[dh_name](
+            dataset_name, classifier, parameters, wandb_run
+        )
 
         classifier.attach_data_handler(data_handler)
 

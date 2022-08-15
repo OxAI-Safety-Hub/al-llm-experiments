@@ -27,6 +27,8 @@ class DataHandler(ABC):
 
     Parameters
     ----------
+    dataset_name : str
+        The name or path of the dataset
     classifier : classifier.Classifier
         The classifier instance which will be using the data. We will use this
         to know how to tokenize the data.
@@ -58,6 +60,7 @@ class DataHandler(ABC):
 
     def __init__(
         self,
+        dataset_name: str,
         classifier: Classifier,
         parameters: Parameters,
         wandb_run: wandb.sdk.wandb_run.Run,
@@ -229,7 +232,7 @@ class HuggingFaceDataHandler(DataHandler):
         wandb_run: wandb.sdk.wandb_run.Run,
     ):
 
-        super().__init__(classifier, parameters, wandb_run)
+        super().__init__(dataset_name, classifier, parameters, wandb_run)
 
         # Make sure that `validation_proportion` is in [0,1]
         validation_proportion = parameters["validation_proportion"]
@@ -401,7 +404,7 @@ class LocalDataHandler(DataHandler):
         wandb_run: wandb.sdk.wandb_run.Run,
     ):
 
-        super().__init__(classifier, parameters, wandb_run)
+        super().__init__(dataset_path, classifier, parameters, wandb_run)
 
         # load the local dataset, splitting by the data file names
         data_files = {
