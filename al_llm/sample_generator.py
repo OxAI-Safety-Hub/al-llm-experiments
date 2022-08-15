@@ -1,12 +1,12 @@
 # The python abc module for making abstract base classes
 # https://docs.python.org/3.10/library/abc.html
 from abc import ABC, abstractmethod
-
 from random import randrange
-
 from typing import Optional
 
-from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
+import torch
+
+from transformers import pipeline
 
 from al_llm.acquisition_function import AcquisitionFunction
 from al_llm.parameters import Parameters
@@ -119,9 +119,15 @@ class PlainGPT2SampleGenerator(SampleGenerator):
         self.max_length = max_length
         self.acquisition_function = acquisition_function
 
-        # Loads the GPT-2 model
-        self.tokenizer = AutoTokenizer.from_pretrained("gpt2")
-        self.model = AutoModelForCausalLM.from_pretrained("gpt2")
+        # Set the device to use
+        self.device = (
+            torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+        )
+
+        # Create a pipeline for text generation
+        self.generator = pipeline(
+            task="text-generation", model="gpt2", device=self.device
+        )
 
     def generate(self) -> list:
         """Use GTP-2 to generate new samples for querying
@@ -139,11 +145,8 @@ class PlainGPT2SampleGenerator(SampleGenerator):
         else:
             num_sentences_first = self.parameters["sample_pool_size"]
 
-        # Uses `pipeline` to generate real sentences
-        generator = pipeline(
-            task="text-generation", model=self.model, tokenizer=self.tokenizer
-        )
-        sentence_dicts = generator(
+        # Use the pipeline to generate real sentences
+        sentence_dicts = self.generator(
             "",
             max_length=self.max_length,
             num_return_sequences=num_sentences_first,
