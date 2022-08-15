@@ -107,6 +107,8 @@ class PlainGPT2SampleGenerator(SampleGenerator):
         The maximum length of the sentences generated.
     """
 
+    MODEL_NAME = "gpt2"
+
     def __init__(
         self,
         parameters: Parameters,
@@ -126,7 +128,7 @@ class PlainGPT2SampleGenerator(SampleGenerator):
 
         # Create a pipeline for text generation
         self.generator = pipeline(
-            task="text-generation", model="gpt2", device=self.device
+            task="text-generation", model=self.MODEL_NAME, device=self.device
         )
 
     def generate(self) -> list:
