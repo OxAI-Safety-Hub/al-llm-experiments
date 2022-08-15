@@ -68,6 +68,22 @@ class Experiment:
         (as a `str`)
     """
 
+    # A map from `dataset_name` to `categories`
+    CATEGORIES_MAP = {
+        "dummy": {
+            0: "Valid sentence",
+            1: "Invalid sentence",
+        },
+        "rotten_tomatoes": {
+            0: "Negative sentence",
+            1: "Positive sentence",
+        },
+        "local_datasets/dummy_local_dataset": {
+            0: "Valid sentence",
+            1: "Invalid sentence",
+        },
+    }
+
     MAP_CLASSIFIER = {
         "DummyClassifier": DummyClassifier,
         "GPT2Classifier": GPT2Classifier,
@@ -358,7 +374,8 @@ class Experiment:
         # Set the seed now, because the data handler may do some shuffling
         set_seed(parameters["seed"])
 
-        categories = {0: "Negative sentence", 1: "Positive sentence"}
+        # Set the categories
+        categories = cls.CATEGORIES_MAP[dataset_name]
 
         # Set up the classifier
         classifier_name = parameters["classifier"]
