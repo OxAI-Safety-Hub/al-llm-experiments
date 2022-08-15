@@ -103,10 +103,6 @@ class Experiment:
         "DummySampleGenerator": DummySampleGenerator,
         "PlainGPT2SampleGenerator": PlainGPT2SampleGenerator,
     }
-    MAP_INTERFACE = {
-        "CLIInterface": CLIInterface,
-        "CLIBrokenLoopInterface": CLIBrokenLoopInterface,
-    }
 
     def __init__(
         self,
@@ -326,6 +322,7 @@ class Experiment:
         parameters: Parameters,
         dataset_name: str,
         run_id: str,
+        full_loop=True,
         is_running_pytests: bool = False,
     ):
         """Get experiment instances to feed into the constructor
@@ -344,6 +341,8 @@ class Experiment:
             The name of the dataset this experiment should use
         run_id : str
             The ID of the current run
+        full_loop : bool, default=True
+            Design the experiment to run the full loop of active learning
 
         Returns
         -------
@@ -411,8 +410,10 @@ class Experiment:
         )
 
         # Set up the interface
-        interface_name = parameters["interface"]
-        interface = cls.MAP_INTERFACE[interface_name](categories, wandb_run)
+        if full_loop:
+            interface = CLIInterface(categories, wandb_run)
+        else:
+            interface = CLIBrokenLoopInterface(categories, wandb_run)
 
         experiment_args = {
             "data_handler": data_handler,

@@ -45,8 +45,6 @@ class Parameters(dict):
             The name of the acquisition function to use.
         sample_generator : str, default="DummySampleGenerator"
             The name of the sample generator to use.
-        interface : str, default="CLIInterface"
-            The name of the interface to use.
     """
 
     # defined default paramets
@@ -68,7 +66,6 @@ class Parameters(dict):
         "data_handler": "DummyDataHandler",
         "acquisition_function": "DummyAF",
         "sample_generator": "DummySampleGenerator",
-        "interface": "CLIInterface",
     }
 
     def __init__(self, *args, **kw):
