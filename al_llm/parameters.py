@@ -3,6 +3,8 @@ class Parameters(dict):
 
     Functions in the same way as a dict. It has the following structure:
 
+        dataset_name : str, default="dummy"
+            The name of (hugging face) or path of the (local) dataset.
         num_iterations : int, default=5
             The number of iterations over which to run the active learning.
         refresh_every : int, default=2
@@ -48,6 +50,7 @@ class Parameters(dict):
 
     # defined default paramets
     default_parameters = {
+        "dataset_name": "dummy",
         "num_iterations": 5,
         "refresh_every": 2,
         "batch_size": 8,

@@ -18,7 +18,7 @@ class TestFullLoopDummyExperiment:
     def test_dummy_experiment(self):
         parameters = Parameters(dev_mode=True)
         dummy_args = Experiment.make_experiment(
-            parameters, "dummy", "test", is_running_pytests=True
+            parameters, "test", is_running_pytests=True
         )
         experiment = Experiment(**dummy_args)
         sys.stdin = ZeroStringIO()
@@ -34,7 +34,7 @@ class TestFullLoopDummyExperiment:
 def test_broken_loop_dummy_experiment():
     parameters = Parameters(dev_mode=True)
     dummy_args = Experiment.make_experiment(
-        parameters, "dummy", "test", full_loop=False, is_running_pytests=True
+        parameters, "test", full_loop=False, is_running_pytests=True
     )
     experiment = Experiment(**dummy_args)
     for iteration in range(dummy_args["parameters"]["num_iterations"]):

@@ -247,7 +247,6 @@ class Experiment:
     def make_experiment(
         cls,
         parameters: Parameters,
-        dataset_name: str,
         run_id: str,
         full_loop=True,
         is_running_pytests: bool = False,
@@ -264,8 +263,6 @@ class Experiment:
         ----------
         parameters : Parameters
             The dictionary of parameters for the present experiment
-        dataset_name : str
-            The name of the dataset this experiment should use
         run_id : str
             The ID of the current run
         full_loop : bool, default=True
@@ -301,7 +298,7 @@ class Experiment:
         set_seed(parameters["seed"])
 
         # Set the categories
-        categories = cls.CATEGORIES_MAP[dataset_name]
+        categories = cls.CATEGORIES_MAP[parameters["dataset_name"]]
 
         # Set up the classifier
         classifier_name = parameters["classifier"]
@@ -310,7 +307,7 @@ class Experiment:
         # Set up the data handler
         dh_name = parameters["data_handler"]
         data_handler = cls.MAP_DATA_HANDLER[dh_name](
-            dataset_name, classifier, parameters, wandb_run
+            parameters["dataset_name"], classifier, parameters, wandb_run
         )
 
         classifier.attach_data_handler(data_handler)

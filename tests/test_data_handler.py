@@ -40,9 +40,7 @@ run_id = "test"
 
 # create parameters and classifier to pass to data handlers
 parameters = Parameters(dev_mode=True, num_epochs=1)
-dummy_args = Experiment.make_experiment(
-    parameters, "dummy", run_id, is_running_pytests=True
-)
+dummy_args = Experiment.make_experiment(parameters, run_id, is_running_pytests=True)
 dummy_args["classifier"] = DummyClassifierForTests(dummy_args["parameters"], run_id)
 
 # create a HuggingFaceDataHandler to compare output types of each data handler
