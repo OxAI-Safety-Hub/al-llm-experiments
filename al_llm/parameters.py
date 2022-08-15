@@ -36,7 +36,6 @@ class Parameters(dict):
         validation_proportion : float, default=0.2
             Proportion of the training data to be used for validation, if it's not
             provided by the Hugging Face dataset.
-
         classifier : str, default="DummyClassifier"
             The name of the classifier to use.
         data_handler : str, default="DummyDataHandler"
