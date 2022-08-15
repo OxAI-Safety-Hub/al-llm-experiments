@@ -306,8 +306,9 @@ class Experiment:
 
         Example
         -------
-        >>> experiment_args = Experiment.make_experiment("rotten_tomatoes")
-        >>> experiment = Experiment(**experiment_args)
+        >>> parameters = Parameters()
+        >>> args = Experiment.make_experiment(parameters, "rotten_tomatoes", "run_id")
+        >>> experiment = Experiment(**args)
         """
 
         # initialise weights and biases
