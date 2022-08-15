@@ -57,7 +57,7 @@ class AcquisitionFunction(ABC):
         return num_samples
 
 
-class DummyAcquisitionFunction(AcquisitionFunction):
+class DummyAF(AcquisitionFunction):
     """A dummy acquisition function, which selects the first slice of samples
 
     Parameters
@@ -71,7 +71,7 @@ class DummyAcquisitionFunction(AcquisitionFunction):
         return sample_pool[:num_samples]
 
 
-class RandomAcquisitionFunction(AcquisitionFunction):
+class RandomAF(AcquisitionFunction):
     """An acquisition function which selects randomly
 
     Parameters
@@ -85,7 +85,7 @@ class RandomAcquisitionFunction(AcquisitionFunction):
         return random.sample(sample_pool, num_samples)
 
 
-class MaxUncertaintyAcquisitionFunction(AcquisitionFunction):
+class MaxUncertaintyAF(AcquisitionFunction):
     """An acquisition function which selects for the highest uncertainty
 
     Parameters

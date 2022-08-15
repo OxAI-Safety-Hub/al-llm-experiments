@@ -1,9 +1,9 @@
 import random
 
 from al_llm.acquisition_function import (
-    DummyAcquisitionFunction,
-    RandomAcquisitionFunction,
-    MaxUncertaintyAcquisitionFunction,
+    DummyAF,
+    RandomAF,
+    MaxUncertaintyAF,
 )
 from al_llm.classifier import DummyClassifier
 
@@ -21,7 +21,7 @@ def _basic_acquisition_function_test(acquisition_function_cls):
     parameters = {"num_samples": 5, "sample_pool_size": 20}
 
     # Make the instances
-    if acquisition_function_cls == MaxUncertaintyAcquisitionFunction:
+    if acquisition_function_cls == MaxUncertaintyAF:
         classifier = DummyClassifier(parameters, "test")
         acquisition_function = acquisition_function_cls(parameters, classifier)
     else:
@@ -40,17 +40,17 @@ def _basic_acquisition_function_test(acquisition_function_cls):
 
 
 def test_random_acquisition_function():
-    _basic_acquisition_function_test(RandomAcquisitionFunction)
+    _basic_acquisition_function_test(RandomAF)
 
 
 def test_dummy_acquisition_function():
-    _basic_acquisition_function_test(DummyAcquisitionFunction)
+    _basic_acquisition_function_test(DummyAF)
 
 
 def test_max_uncertainty_function():
 
     # Do a basic test with this sampler
-    _basic_acquisition_function_test(MaxUncertaintyAcquisitionFunction)
+    _basic_acquisition_function_test(MaxUncertaintyAF)
 
     # Some basic parameters
     num_samples = 5
@@ -59,7 +59,7 @@ def test_max_uncertainty_function():
 
     # Set up the acquisition function
     classifier = LengthUncertaintyClassifier(parameters, "test")
-    acquisition_function = MaxUncertaintyAcquisitionFunction(parameters, classifier)
+    acquisition_function = MaxUncertaintyAF(parameters, classifier)
 
     # Generate some samples with increasing length
     sample_pool = ["a" * i for i in range(sample_pool_size)]
