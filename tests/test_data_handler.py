@@ -1,6 +1,7 @@
 from al_llm.experiment import Experiment
 from al_llm.classifier import Classifier
 from al_llm.data_handler import HuggingFaceDataHandler, LocalDataHandler
+from al_llm.parameters import Parameters
 from transformers import AutoTokenizer
 from typing import Union, Any
 
@@ -38,8 +39,10 @@ class DummyClassifierForTests(Classifier):
 run_id = "test"
 
 # create parameters and classifier to pass to data handlers
-dummy_args = Experiment.make_dummy_experiment(run_id, is_running_pytests=True)
-dummy_args["parameters"]["num_epochs"] = 1
+parameters = Parameters(dev_mode=True, num_epochs=1)
+dummy_args = Experiment.make_experiment(
+    parameters, "dummy", run_id, is_running_pytests=True
+)
 dummy_args["classifier"] = DummyClassifierForTests(dummy_args["parameters"], run_id)
 
 # create a HuggingFaceDataHandler to compare output types of each data handler
@@ -76,9 +79,9 @@ def test_data_handler_consistency():
 
     # add samples to each data handler
     hugging_data_handler.new_labelled(samples, labels)
-    hug_new_data = hugging_data_handler.get_latest_tokenized_datapoints()
+    # hug_new_data = hugging_data_handler.get_latest_tokenized_datapoints()
     local_data_handler.new_labelled(samples, labels)
-    loc_new_data = local_data_handler.get_latest_tokenized_datapoints()
+    # loc_new_data = local_data_handler.get_latest_tokenized_datapoints()
 
     # check that `new_labelled()` function returns a dataset of the right size
     # assert len(hug_new_data) == 3 and len(loc_new_data) == 3

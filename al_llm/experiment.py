@@ -1,4 +1,3 @@
-import string
 from typing import Union
 import configparser
 
@@ -243,78 +242,6 @@ class Experiment:
         """Save the current classifier and dataset"""
         self.classifier.save()
         self.data_handler.save()
-
-    @classmethod
-    def make_dummy_experiment(
-        cls,
-        run_id: string,
-        full_loop=True,
-        is_running_pytests: bool = False,
-    ):
-        """Get dummy instances to feed into the constructor
-
-        Parameters
-        ----------
-        run_id : str
-            The ID of the current run
-        full_loop : bool, default=True
-            Design the experiment to run the full loop of active learning
-
-        Returns
-        -------
-        dummy_args : dict
-            A dictionary of the non-optional arguments for `Experiment`,
-            whose values are dummy instances
-
-        Example
-        -------
-        >>> dummy_args = Experiment.make_dummy_experiment()
-        >>> experiment = Experiment(**dummy_args)
-        """
-
-        parameters = Parameters(dev_mode=True)
-
-        # initialise weights and biases
-        #   Set resume to allow which resumes the previous run if there is already
-        #   a run with the id `run_id`.
-        #   Set mode to disabled when running pytests so that a login is not required
-        #   for the program to run.
-        wandb_run = wandb.init(
-            project=config["Wandb"]["Project"],
-            entity=config["Wandb"]["Entity"],
-            resume="allow",
-            id=run_id,
-            mode="disabled" if is_running_pytests else "online",
-            config=parameters,
-        )
-
-        # Set the seed now, because the data handler may do some shuffling
-        set_seed(parameters["seed"])
-
-        categories = {0: "Valid sentence", 1: "Invalid sentence"}
-        classifier = DummyClassifier(parameters, wandb_run)
-        data_handler = DummyDataHandler(classifier, parameters, wandb_run)
-        classifier.attach_data_handler(data_handler)
-        acquisition_function = DummyAF(parameters)
-        sample_generator = DummySampleGenerator(
-            parameters, acquisition_function=acquisition_function
-        )
-        if full_loop:
-            interface = CLIInterface(categories, wandb_run)
-        else:
-            interface = CLIBrokenLoopInterface(categories, wandb_run)
-
-        dummy_args = {
-            "data_handler": data_handler,
-            "categories": categories,
-            "classifier": classifier,
-            "sample_generator": sample_generator,
-            "interface": interface,
-            "parameters": parameters,
-            "wandb_run": wandb_run,
-        }
-
-        return dummy_args
 
     @classmethod
     def make_experiment(
