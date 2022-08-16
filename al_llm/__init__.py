@@ -5,11 +5,11 @@ from .classifier import (
     DistilGPT2Classifier,
     GPT2Classifier,
 )
-from .data_handler import (
-    DataHandler,
-    DummyDataHandler,
-    HuggingFaceDataHandler,
-    LocalDataHandler,
+from .data_handler import DataHandler
+from .dataset_container import (
+    DatasetContainer,
+    DummyDatasetContainer,
+    RottenTomatoesDatasetHandler,
 )
 from .experiment import Experiment
 from .interface import Interface, CLIInterface
