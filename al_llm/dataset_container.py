@@ -69,7 +69,9 @@ class DatasetContainer(ABC):
 
         # Tokenize each dataset split
         self.tokenized_train = self._tokenize_dataset(self.dataset_train, tokenizer)
-        self.tokenized_validation = self._tokenize_dataset(self.dataset_validation, tokenizer)
+        self.tokenized_validation = self._tokenize_dataset(
+            self.dataset_validation, tokenizer
+        )
         self.tokenized_test = self._tokenize_dataset(self.dataset_test, tokenizer)
 
     def _tokenize_dataset(
