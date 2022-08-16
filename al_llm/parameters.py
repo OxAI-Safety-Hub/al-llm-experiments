@@ -3,6 +3,8 @@ class Parameters(dict):
 
     Functions in the same way as a dict. It has the following structure:
 
+        dataset_name : str, default="dummy"
+            The name of (hugging face) or path of the (local) dataset.
         num_iterations : int, default=5
             The number of iterations over which to run the active learning.
         refresh_every : int, default=2
@@ -33,10 +35,20 @@ class Parameters(dict):
             set at the beginning of each AL iteration to `seed+iteration`.
         send_alerts : bool, default=True
             True if the experiment should send alerts to the slack channel.
+        validation_proportion : float, default=0.2
+            Proportion of the training data to be used for validation, if it's not
+            provided by the Hugging Face dataset.
+        classifier : str, default="DummyClassifier"
+            The name of the classifier to use.
+        acquisition_function : str, default="DummyAF"
+            The name of the acquisition function to use.
+        sample_generator : str, default="DummySampleGenerator"
+            The name of the sample generator to use.
     """
 
     # defined default paramets
     default_parameters = {
+        "dataset_name": "dummy",
         "num_iterations": 5,
         "refresh_every": 2,
         "batch_size": 8,
@@ -49,6 +61,10 @@ class Parameters(dict):
         "dev_mode": False,
         "seed": 459834,
         "send_alerts": False,
+        "validation_proportion": 0.2,
+        "classifier": "DummyClassifier",
+        "acquisition_function": "DummyAF",
+        "sample_generator": "DummySampleGenerator",
     }
 
     def __init__(self, *args, **kw):
