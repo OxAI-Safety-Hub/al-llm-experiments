@@ -80,7 +80,7 @@ class DatasetContainer(ABC):
     ) -> datasets.Dataset:
         """Tokenize a Hugging Face dataset
 
-        Also sets the format to 'torch' and removes unnecessary columns.
+        Also sets the format to 'torch'.
 
         Parameters
         ----------
@@ -104,7 +104,7 @@ class DatasetContainer(ABC):
         # Tokenize the dataset
         tokenized = dataset.map(tokenize_function, batched=batched)
 
-        # Set the format to pytorch, and remove unnecessary columns
+        # Set the format to pytorch
         tokenized.set_format(
             "torch",
             columns=[
