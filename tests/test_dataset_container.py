@@ -61,9 +61,12 @@ def _basic_dataset_container_tests(dataset_container, tokenize):
     for i in range(items_len):
         i_dataset = -(items_len - i)
         assert dataset_container.dataset_train[i_dataset]["text"] == items["text"][i]
-        assert dataset_container.dataset_train[i_dataset]["labels"] == items["labels"][i]
+        assert (
+            dataset_container.dataset_train[i_dataset]["labels"] == items["labels"][i]
+        )
     assert len(dataset_container.dataset_train) == train_length + 1 + items_len
     assert len(dataset_container.tokenized_train) == train_length + 1 + items_len
+
 
 def test_dummy_dataset_container():
 
@@ -81,6 +84,7 @@ def test_dummy_dataset_container():
         return DummyClassifier.tokenize(None, text)
 
     _basic_dataset_container_tests(dataset_container, tokenize)
+
 
 def test_local_dataset_container():
 
