@@ -99,7 +99,7 @@ class DataHandler:
 
     def make_label_request(self, samples: list):
         """Make a request for labels for the samples from the human
-        
+
         Parameters
         ----------
         samples : list
