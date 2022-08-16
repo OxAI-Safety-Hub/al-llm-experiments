@@ -24,8 +24,12 @@ def test_dummy_dataset_container():
     assert isinstance(dataset_container.dataset_validation, datasets.Dataset)
     assert isinstance(dataset_container.dataset_test, datasets.Dataset)
 
+    # The tokenize function, is the dummy one from DummyClassifier
+    def tokenize(text):
+        return DummyClassifier.tokenize(None, text)
+
     # Tokenize the data
-    dataset_container.make_tokenized(lambda text: DummyClassifier.tokenize(None, text))
+    dataset_container.make_tokenized(tokenize)
 
     # Make sure the tokenized datasets have values of the correct type
     for value in dataset_container.tokenized_train[0].values():
@@ -48,12 +52,12 @@ def test_dummy_dataset_container():
     train_length = len(dataset_container.dataset_train)
 
     # Add an item
-    item = {"text": "This is a test sentence", "label": 0}
-    dataset_container.add_item(item)
+    item = {"text": "This is a test sentence", "labels": 0}
+    dataset_container.add_item(item, tokenize)
 
     # Check that it's been added
     assert dataset_container.dataset_train[-1]["text"] == item["text"]
-    assert dataset_container.dataset_train[-1]["label"] == item[0]
+    assert dataset_container.dataset_train[-1]["labels"] == item["labels"]
     assert len(dataset_container.dataset_train) == train_length + 1
     assert len(dataset_container.tokenized_train) == train_length + 1
 
@@ -63,11 +67,12 @@ def test_dummy_dataset_container():
         config["Data Handling"]["LabelColumnName"]: [0, 0],
     }
     items_len = len(items["text"])
+    dataset_container.add_items(items, tokenize)
 
     # Check that they've been added
-    for i in items_len:
+    for i in range(items_len):
         i_dataset = -(items_len - i)
         assert dataset_container.dataset_train[i_dataset]["text"] == items["text"][i]
-        assert dataset_container.dataset_train[i_dataset]["label"] == items[0][i]
+        assert dataset_container.dataset_train[i_dataset]["labels"] == items["labels"][i]
     assert len(dataset_container.dataset_train) == train_length + 1 + items_len
     assert len(dataset_container.tokenized_train) == train_length + 1 + items_len
