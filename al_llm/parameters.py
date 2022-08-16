@@ -5,7 +5,7 @@ class Parameters(dict):
     small values or basic implementations of components, meant primarily for
     testing.
 
-    To run an actual experiment, one should explicitly specify all the 
+    To run an actual experiment, one should explicitly specify all the
     components needed.
 
     Functions in the same way as a dict. It has the following structure:
