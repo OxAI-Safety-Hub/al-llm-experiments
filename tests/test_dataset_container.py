@@ -5,28 +5,16 @@ import datasets
 import torch
 
 from al_llm.parameters import Parameters
-from al_llm.dataset_container import DummyDatasetContainer
+from al_llm.dataset_container import DummyDatasetContainer, DummyLocalDatasetContainer
 from al_llm.classifier import DummyClassifier
+
 
 # Load the configuration
 config = configparser.ConfigParser()
 config.read("config.ini")
 
 
-def test_dummy_dataset_container():
-
-    # Set up the dummy dataset container
-    parameters = Parameters(dev_mode=True)
-    dataset_container = DummyDatasetContainer(parameters)
-
-    # Make sure the dataset splits are of the right type
-    assert isinstance(dataset_container.dataset_train, datasets.Dataset)
-    assert isinstance(dataset_container.dataset_validation, datasets.Dataset)
-    assert isinstance(dataset_container.dataset_test, datasets.Dataset)
-
-    # The tokenize function, is the dummy one from DummyClassifier
-    def tokenize(text):
-        return DummyClassifier.tokenize(None, text)
+def _basic_dataset_container_tests(dataset_container, tokenize):
 
     # Tokenize the data
     dataset_container.make_tokenized(tokenize)
@@ -76,3 +64,32 @@ def test_dummy_dataset_container():
         assert dataset_container.dataset_train[i_dataset]["labels"] == items["labels"][i]
     assert len(dataset_container.dataset_train) == train_length + 1 + items_len
     assert len(dataset_container.tokenized_train) == train_length + 1 + items_len
+
+def test_dummy_dataset_container():
+
+    # Set up the dummy dataset container
+    parameters = Parameters(dev_mode=True)
+    dataset_container = DummyDatasetContainer(parameters)
+
+    # Make sure the dataset splits are of the right type
+    assert isinstance(dataset_container.dataset_train, datasets.Dataset)
+    assert isinstance(dataset_container.dataset_validation, datasets.Dataset)
+    assert isinstance(dataset_container.dataset_test, datasets.Dataset)
+
+    # The tokenize function, is the dummy one from DummyClassifier
+    def tokenize(text):
+        return DummyClassifier.tokenize(None, text)
+
+    _basic_dataset_container_tests(dataset_container, tokenize)
+
+def test_local_dataset_container():
+
+    # Set up the dummy dataset container
+    parameters = Parameters(dev_mode=True)
+    dataset_container = DummyLocalDatasetContainer(parameters)
+
+    # The tokenize function, is the dummy one from DummyClassifier
+    def tokenize(text):
+        return DummyClassifier.tokenize(None, text)
+
+    _basic_dataset_container_tests(dataset_container, tokenize)
