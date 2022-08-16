@@ -1,7 +1,7 @@
 # The python abc module for making abstract base classes
 # https://docs.python.org/3.10/library/abc.html
 from abc import ABC, abstractmethod
-from typing import Callable
+from typing import Callable, Tuple
 import configparser
 import os
 
@@ -35,7 +35,11 @@ class DatasetContainer(ABC):
         human-readable names.
     dataset_train : datasets.Dataset
         The raw dataset consisting of labelled sentences used for training, as
-        a Hugging Face Dataset.
+        a Hugging Face Dataset. This is separated from the 'train' split of
+        the dataset by selecting `parameters["train_dataset_size"]` datapoints.
+    dataset_remainder : datasets.Dataset
+        The remainder of the 'train' split after `dataset_train` has been
+        selected. Used by the pool-based simulator.
     dataset_validation : datasets.Dataset
         The raw dataset consisting of labelled sentences used for validation, as
         a Hugging Face Dataset.
@@ -43,20 +47,26 @@ class DatasetContainer(ABC):
         The raw dataset consisting of labelled sentences used for testing, as
         a Hugging Face Dataset.
     tokenized_train : datasets.Dataset
-        The tokenized dataset for training, as a PyTorch dataset.
+        A tokenized version of `dataset_train`, consisting of PyTorch tensors.
+    tokenized_remainder : datasets.Dataset
+        A tokenized version of `dataset_remainder`, consisting of PyTorch
+        tensors.
     tokenized_validation : datasets.Dataset
-        The tokenized dataset for validation, as a PyTorch dataset.
+        A tokenized version of `dataset_validation`, consisting of PyTorch
+        tensors.
     tokenized_test : datasets.Dataset
-        The tokenized dataset for testing, as a PyTorch dataset.
+        A tokenized version of `dataset_test`, consisting of PyTorch tensors.
     """
 
     def __init__(self, parameters: Parameters):
         self.parameters = parameters
         self.categories = {}
         self.dataset_train = None
+        self.dataset_remainder = None
         self.dataset_validation = None
         self.dataset_test = None
         self.tokenized_train = None
+        self.tokenized_remainder = None
         self.tokenized_validation = None
         self.tokenized_test = None
         self.orig_train_size = 0
@@ -74,6 +84,9 @@ class DatasetContainer(ABC):
         self.tokenized_train = self._tokenize_dataset(self.dataset_train, tokenizer)
         self.tokenized_validation = self._tokenize_dataset(
             self.dataset_validation, tokenizer
+        )
+        self.tokenized_remainder = self._tokenize_dataset(
+            self.dataset_remainder, tokenizer
         )
         self.tokenized_test = self._tokenize_dataset(self.dataset_test, tokenizer)
 
@@ -117,6 +130,46 @@ class DatasetContainer(ABC):
         )
 
         return tokenized
+
+    def _train_remainder_split(
+        self, train_split: datasets.Dataset
+    ) -> Tuple[datasets.Dataset, datasets.Dataset]:
+        """Split a dataset 'train' split into a train and remainder dataset
+
+        We select `parameters["train_dataset_size"]` datapoints and set them
+        as a train dataset, the rest going to a remainder dataset.
+
+        Parameters
+        ----------
+        train_split : datasets.Dataset
+            The train split of a dataset, ready for separating.
+
+        Returns
+        -------
+        train_dataset : datasets.Dataset
+            A train dataset of size at most `parameters["train_dataset_size"]`,
+            selected from `train_split`.
+        remainder_dataset : datasets.Dataset
+            The remainder of the train split.
+        """
+
+        if len(train_split) < self.parameters["train_dataset_size"]:
+            raise ValueError(
+                f"Train split must be larger than train dataset size (currently"
+                f" {len(train_split)} < {self.parameters['train_dataset_size']})"
+            )
+
+        # Shuffle the train split
+        seed = int(config["Data Handling"]["PreprocessingSeed"])
+        train_split = train_split.shuffle(seed=seed)
+
+        # Select the train and remainder datasets
+        train_range = range(self.parameters["train_dataset_size"])
+        train_dataset = train_split.select(train_range)
+        remainder_range = range(self.parameters["train_dataset_size"], len(train_split))
+        remainder_dataset = train_split.select(remainder_range)
+
+        return train_dataset, remainder_dataset
 
     def add_item(self, item: dict, tokenizer: Callable):
         """Add an item to the training set
@@ -197,22 +250,31 @@ class DummyDatasetContainer(DatasetContainer):
         human-readable names.
     dataset_train : datasets.Dataset
         The raw dataset consisting of labelled sentences used for training, as
-        a Hugging Face Dataset.
+        a Hugging Face Dataset. This is separated from the 'train' split of
+        the dataset by selecting `parameters["train_dataset_size"]` datapoints.
+    dataset_remainder : datasets.Dataset
+        The remainder of the 'train' split after `dataset_train` has been
+        selected. Used by the pool-based simulator.
     dataset_validation : datasets.Dataset
         The raw dataset consisting of labelled sentences used for validation, as
         a Hugging Face Dataset.
     dataset_test : datasets.Dataset
         The raw dataset consisting of labelled sentences used for testing, as
         a Hugging Face Dataset.
-    tokenized_train : torch.utils.data.Dataset
-        The tokenized dataset for training, as a PyTorch dataset.
-    tokenized_validation : torch.utils.data.Dataset
-        The tokenized dataset for validation, as a PyTorch dataset.
-    tokenized_test : torch.utils.data.Dataset
-        The tokenized dataset for testing, as a PyTorch dataset.
+    tokenized_train : datasets.Dataset
+        A tokenized version of `dataset_train`, consisting of PyTorch tensors.
+    tokenized_remainder : datasets.Dataset
+        A tokenized version of `dataset_remainder`, consisting of PyTorch
+        tensors.
+    tokenized_validation : datasets.Dataset
+        A tokenized version of `dataset_validation`, consisting of PyTorch
+        tensors.
+    tokenized_test : datasets.Dataset
+        A tokenized version of `dataset_test`, consisting of PyTorch tensors.
     """
 
     TRAIN_SIZE = 100
+    REMAINDER_SIZE = 100
     VALIDATION_SIZE = 20
     TEST_SIZE = 50
 
@@ -233,11 +295,12 @@ class DummyDatasetContainer(DatasetContainer):
             list(self.categories.keys()), parameters["seed"]
         )
         train_labels = label_generator.generate(self.TRAIN_SIZE)
+        remainder_labels = label_generator.generate(self.REMAINDER_SIZE)
         validation_labels = label_generator.generate(self.VALIDATION_SIZE)
         test_labels = label_generator.generate(self.TEST_SIZE)
 
         # Compose everything to make the datasets
-        self.dataset_train = datasets.Dataset.from_dict(
+        train_split = datasets.Dataset.from_dict(
             {
                 config["Data Handling"]["TextColumnName"]: train_sentences,
                 config["Data Handling"]["LabelColumnName"]: train_labels,
@@ -254,6 +317,11 @@ class DummyDatasetContainer(DatasetContainer):
                 config["Data Handling"]["TextColumnName"]: test_sentences,
                 config["Data Handling"]["LabelColumnName"]: test_labels,
             }
+        )
+
+        # Divide the train split into train and remainder datasets
+        self.dataset_train, self.dataset_remainder = self._train_remainder_split(
+            train_split
         )
 
     def save(self):
@@ -273,25 +341,29 @@ class HuggingFaceDatasetContainer(DatasetContainer, ABC):
 
     Attributes
     ----------
-    categories : dict
-        A dictionary of the classes in the data. The keys are the names of the
-        categories as understood by the model, and the values are the
-        human-readable names.
     dataset_train : datasets.Dataset
         The raw dataset consisting of labelled sentences used for training, as
-        a Hugging Face Dataset.
+        a Hugging Face Dataset. This is separated from the 'train' split of
+        the dataset by selecting `parameters["train_dataset_size"]` datapoints.
+    dataset_remainder : datasets.Dataset
+        The remainder of the 'train' split after `dataset_train` has been
+        selected. Used by the pool-based simulator.
     dataset_validation : datasets.Dataset
         The raw dataset consisting of labelled sentences used for validation, as
         a Hugging Face Dataset.
     dataset_test : datasets.Dataset
         The raw dataset consisting of labelled sentences used for testing, as
         a Hugging Face Dataset.
-    tokenized_train : torch.utils.data.Dataset
-        The tokenized dataset for training, as a PyTorch dataset.
-    tokenized_validation : torch.utils.data.Dataset
-        The tokenized dataset for validation, as a PyTorch dataset.
-    tokenized_test : torch.utils.data.Dataset
-        The tokenized dataset for testing, as a PyTorch dataset.
+    tokenized_train : datasets.Dataset
+        A tokenized version of `dataset_train`, consisting of PyTorch tensors.
+    tokenized_remainder : datasets.Dataset
+        A tokenized version of `dataset_remainder`, consisting of PyTorch
+        tensors.
+    tokenized_validation : datasets.Dataset
+        A tokenized version of `dataset_validation`, consisting of PyTorch
+        tensors.
+    tokenized_test : datasets.Dataset
+        A tokenized version of `dataset_test`, consisting of PyTorch tensors.
     """
 
     DATASET_NAME = ""
@@ -304,11 +376,16 @@ class HuggingFaceDatasetContainer(DatasetContainer, ABC):
         self.categories = self.CATEGORIES
 
         # Download the datasets
-        self.dataset_train = datasets.load_dataset(self.DATASET_NAME, split="train")
+        train_split = datasets.load_dataset(self.DATASET_NAME, split="train")
         self.dataset_validation = datasets.load_dataset(
             self.DATASET_NAME, split="validation"
         )
         self.dataset_test = datasets.load_dataset(self.DATASET_NAME, split="test")
+
+        # Divide the train split into train and remainder datasets
+        self.dataset_train, self.dataset_remainder = self._train_remainder_split(
+            train_split
+        )
 
         # Do any preprocessing on the dataset
         self._preprocess_dataset()
@@ -336,19 +413,27 @@ class LocalDatasetContainer(DatasetContainer, ABC):
         human-readable names.
     dataset_train : datasets.Dataset
         The raw dataset consisting of labelled sentences used for training, as
-        a Hugging Face Dataset.
+        a Hugging Face Dataset. This is separated from the 'train' split of
+        the dataset by selecting `parameters["train_dataset_size"]` datapoints.
+    dataset_remainder : datasets.Dataset
+        The remainder of the 'train' split after `dataset_train` has been
+        selected. Used by the pool-based simulator.
     dataset_validation : datasets.Dataset
         The raw dataset consisting of labelled sentences used for validation, as
         a Hugging Face Dataset.
     dataset_test : datasets.Dataset
         The raw dataset consisting of labelled sentences used for testing, as
         a Hugging Face Dataset.
-    tokenized_train : torch.utils.data.Dataset
-        The tokenized dataset for training, as a PyTorch dataset.
-    tokenized_validation : torch.utils.data.Dataset
-        The tokenized dataset for validation, as a PyTorch dataset.
-    tokenized_test : torch.utils.data.Dataset
-        The tokenized dataset for testing, as a PyTorch dataset.
+    tokenized_train : datasets.Dataset
+        A tokenized version of `dataset_train`, consisting of PyTorch tensors.
+    tokenized_remainder : datasets.Dataset
+        A tokenized version of `dataset_remainder`, consisting of PyTorch
+        tensors.
+    tokenized_validation : datasets.Dataset
+        A tokenized version of `dataset_validation`, consisting of PyTorch
+        tensors.
+    tokenized_test : datasets.Dataset
+        A tokenized version of `dataset_test`, consisting of PyTorch tensors.
     """
 
     CATEGORIES = {}
@@ -371,10 +456,15 @@ class LocalDatasetContainer(DatasetContainer, ABC):
         )
         dataset_dictionary = datasets.load_dataset(dataset_path, data_files=data_files)
 
-        # use this split to store the raw datasets
-        self.dataset_train = dataset_dictionary["train"]
+        # use this split to get the raw datasets
+        train_split = dataset_dictionary["train"]
         self.dataset_validation = dataset_dictionary["validation"]
         self.dataset_test = dataset_dictionary["test"]
+
+        # Divide the train split into train and remainder datasets
+        self.dataset_train, self.dataset_remainder = self._train_remainder_split(
+            train_split
+        )
 
         # Do any preprocessing on the dataset
         self._preprocess_dataset()
@@ -402,19 +492,27 @@ class RottenTomatoesDatasetHandler(HuggingFaceDatasetContainer):
         human-readable names.
     dataset_train : datasets.Dataset
         The raw dataset consisting of labelled sentences used for training, as
-        a Hugging Face Dataset.
+        a Hugging Face Dataset. This is separated from the 'train' split of
+        the dataset by selecting `parameters["train_dataset_size"]` datapoints.
+    dataset_remainder : datasets.Dataset
+        The remainder of the 'train' split after `dataset_train` has been
+        selected. Used by the pool-based simulator.
     dataset_validation : datasets.Dataset
         The raw dataset consisting of labelled sentences used for validation, as
         a Hugging Face Dataset.
     dataset_test : datasets.Dataset
         The raw dataset consisting of labelled sentences used for testing, as
         a Hugging Face Dataset.
-    tokenized_train : torch.utils.data.Dataset
-        The tokenized dataset for training, as a PyTorch dataset.
-    tokenized_validation : torch.utils.data.Dataset
-        The tokenized dataset for validation, as a PyTorch dataset.
-    tokenized_test : torch.utils.data.Dataset
-        The tokenized dataset for testing, as a PyTorch dataset.
+    tokenized_train : datasets.Dataset
+        A tokenized version of `dataset_train`, consisting of PyTorch tensors.
+    tokenized_remainder : datasets.Dataset
+        A tokenized version of `dataset_remainder`, consisting of PyTorch
+        tensors.
+    tokenized_validation : datasets.Dataset
+        A tokenized version of `dataset_validation`, consisting of PyTorch
+        tensors.
+    tokenized_test : datasets.Dataset
+        A tokenized version of `dataset_test`, consisting of PyTorch tensors.
     """
 
     DATASET_NAME = "rotten_tomatoes"
@@ -456,19 +554,27 @@ class DummyLocalDatasetContainer(LocalDatasetContainer):
         human-readable names.
     dataset_train : datasets.Dataset
         The raw dataset consisting of labelled sentences used for training, as
-        a Hugging Face Dataset.
+        a Hugging Face Dataset. This is separated from the 'train' split of
+        the dataset by selecting `parameters["train_dataset_size"]` datapoints.
+    dataset_remainder : datasets.Dataset
+        The remainder of the 'train' split after `dataset_train` has been
+        selected. Used by the pool-based simulator.
     dataset_validation : datasets.Dataset
         The raw dataset consisting of labelled sentences used for validation, as
         a Hugging Face Dataset.
     dataset_test : datasets.Dataset
         The raw dataset consisting of labelled sentences used for testing, as
         a Hugging Face Dataset.
-    tokenized_train : torch.utils.data.Dataset
-        The tokenized dataset for training, as a PyTorch dataset.
-    tokenized_validation : torch.utils.data.Dataset
-        The tokenized dataset for validation, as a PyTorch dataset.
-    tokenized_test : torch.utils.data.Dataset
-        The tokenized dataset for testing, as a PyTorch dataset.
+    tokenized_train : datasets.Dataset
+        A tokenized version of `dataset_train`, consisting of PyTorch tensors.
+    tokenized_remainder : datasets.Dataset
+        A tokenized version of `dataset_remainder`, consisting of PyTorch
+        tensors.
+    tokenized_validation : datasets.Dataset
+        A tokenized version of `dataset_validation`, consisting of PyTorch
+        tensors.
+    tokenized_test : datasets.Dataset
+        A tokenized version of `dataset_test`, consisting of PyTorch tensors.
     """
 
     DATASET_NAME = "dummy_local_dataset"

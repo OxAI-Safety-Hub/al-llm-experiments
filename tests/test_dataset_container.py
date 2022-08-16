@@ -24,6 +24,8 @@ def _basic_dataset_container_tests(dataset_container, tokenize):
         assert isinstance(value, torch.Tensor)
     for value in dataset_container.tokenized_validation[0].values():
         assert isinstance(value, torch.Tensor)
+    for value in dataset_container.tokenized_validation[0].values():
+        assert isinstance(value, torch.Tensor)
     for value in dataset_container.tokenized_test[0].values():
         assert isinstance(value, torch.Tensor)
 
