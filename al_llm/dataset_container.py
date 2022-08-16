@@ -3,6 +3,7 @@
 from abc import ABC, abstractmethod
 from typing import Callable
 import configparser
+import os
 
 import datasets
 
@@ -322,7 +323,7 @@ class LocalDatasetContainer(DatasetContainer, ABC):
     """
 
     CATEGORIES = {}
-    DATASET_PATH = ""
+    DATASET_NAME = ""
 
     def __init__(self, parameters: Parameters):
         super().__init__(parameters)
@@ -336,9 +337,10 @@ class LocalDatasetContainer(DatasetContainer, ABC):
             "validation": "evaluation.csv",
             "test": "test.csv",
         }
-        dataset_dictionary = datasets.load_dataset(
-            self.DATASET_PATH, data_files=data_files
+        dataset_path = os.path.join(
+            config["Data Handling"]["LocalDatasetDir"], self.DATASET_NAME
         )
+        dataset_dictionary = datasets.load_dataset(dataset_path, data_files=data_files)
 
         # use this split to store the raw datasets
         self.dataset_train = dataset_dictionary["train"]
