@@ -406,3 +406,40 @@ class RottenTomatoesDatasetHandler(HuggingFaceDatasetContainer):
         self.dataset_test = self.dataset_test.rename_column(
             "label", config["Data Handling"]["LabelColumnName"]
         )
+
+class DummyLocalDatasetContainer(LocalDatasetContainer):
+    """A dataset container for a dummy local dataset
+
+    A dataset container which stores the various dataset splits and their
+    tokenized versions.
+
+    Parameters
+    ----------
+    parameters : Parameters
+        The parameters for the current experiment
+
+    Attributes
+    ----------
+    categories : dict
+        A dictionary of the classes in the data. The keys are the names of the
+        categories as understood by the model, and the values are the
+        human-readable names.
+    dataset_train : datasets.Dataset
+        The raw dataset consisting of labelled sentences used for training, as
+        a Hugging Face Dataset.
+    dataset_validation : datasets.Dataset
+        The raw dataset consisting of labelled sentences used for validation, as
+        a Hugging Face Dataset.
+    dataset_test : datasets.Dataset
+        The raw dataset consisting of labelled sentences used for testing, as
+        a Hugging Face Dataset.
+    tokenized_train : torch.utils.data.Dataset
+        The tokenized dataset for training, as a PyTorch dataset.
+    tokenized_validation : torch.utils.data.Dataset
+        The tokenized dataset for validation, as a PyTorch dataset.
+    tokenized_test : torch.utils.data.Dataset
+        The tokenized dataset for testing, as a PyTorch dataset.
+    """
+
+    DATASET_NAME = "dummy_local_dataset"
+    CATEGORIES = {0: "Negative", 1: "Positive"}

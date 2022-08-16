@@ -10,6 +10,7 @@ from .dataset_container import (
     DatasetContainer,
     DummyDatasetContainer,
     RottenTomatoesDatasetHandler,
+    DummyLocalDatasetContainer,
 )
 from .experiment import Experiment
 from .interface import Interface, CLIInterface
