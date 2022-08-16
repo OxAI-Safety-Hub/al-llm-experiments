@@ -1,4 +1,10 @@
-from .classifier import Classifier, DummyClassifier, GPT2Classifier
+from .classifier import (
+    Classifier,
+    DummyClassifier,
+    HuggingFaceClassifier,
+    DistilGPT2Classifier,
+    GPT2Classifier,
+)
 from .data_handler import (
     DataHandler,
     DummyDataHandler,
