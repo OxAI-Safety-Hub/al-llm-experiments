@@ -22,6 +22,7 @@ class DataHandler:
     """Data handler for loading and processing the data
     The data handler keeps track of both the raw dataset consisting of
     sentences and labels, and the tokenized version.
+
     Parameters
     ----------
     parameters : Parameters
@@ -33,6 +34,7 @@ class DataHandler:
         to know how to tokenize the data.
     wandb_run : wandb.sdk.wandb_run.Run
         The current wandb run
+        
     Attributes
     ----------
     classifier : classifier.Classifier
