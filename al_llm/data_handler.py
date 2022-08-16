@@ -20,6 +20,7 @@ config.read("config.ini")
 
 class DataHandler:
     """Data handler for loading and processing the data
+
     The data handler keeps track of both the raw dataset consisting of
     sentences and labels, and the tokenized version.
 
@@ -62,6 +63,7 @@ class DataHandler:
         self,
     ) -> Union[datasets.Dataset, torch.utils.data.Dataset]:
         """Get the most recently added datapoints, obtained from the human
+
         Returns
         -------
         tokenized_samples : datasets.Dataset or torch.utils.data.Dataset
@@ -79,6 +81,7 @@ class DataHandler:
 
     def new_labelled(self, samples: list, labels: list):
         """Add new labelled samples to the dataset
+
         Parameters
         ----------
         samples : list
@@ -96,6 +99,7 @@ class DataHandler:
 
     def make_label_request(self, samples: list):
         """Make a request for labels for the samples from the human
+        
         Parameters
         ----------
         samples : list
