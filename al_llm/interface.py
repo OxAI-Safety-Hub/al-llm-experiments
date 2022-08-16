@@ -5,6 +5,7 @@ from typing import Any
 
 import textwrap
 import wandb
+from .dataset_container import DatasetContainer
 from al_llm.parameters import Parameters
 
 
@@ -13,16 +14,16 @@ class Interface(ABC):
 
     Parameters
     ----------
-    categories : dict
-        A dictionary of categories used by the classifier. The keys are the
-        names of the categories as understood by the model, and the values
-        are the human-readable names.
+    dataset_container : DatasetContainer
+        The dataset container for this experiment
     wandb_run : wandb.sdk.wandb_run.Run
         The current wandb run
     """
 
-    def __init__(self, categories: dict, wandb_run: wandb.sdk.wandb_run.Run):
-        self.categories = categories
+    def __init__(
+        self, dataset_container: DatasetContainer, wandb_run: wandb.sdk.wandb_run.Run
+    ):
+        self.dataset_container = dataset_container
         self.wandb_run = wandb_run
 
     def begin(self, message: str = None, parameters: Parameters = None):
@@ -75,10 +76,8 @@ class FullLoopInterface(Interface, ABC):
 
     Parameters
     ----------
-    categories : dict
-        A dictionary of categories used by the classifier. The keys are the
-        names of the categories as understood by the model, and the values
-        are the human-readable names.
+    dataset_container : DatasetContainer
+        The dataset container for this experiment
     wandb_run : wandb.sdk.wandb_run.Run
         The current wandb run
     """
@@ -106,10 +105,8 @@ class BrokenLoopInterface(Interface, ABC):
 
     Parameters
     ----------
-    categories : dict
-        A dictionary of categories used by the classifier. The keys are the
-        names of the categories as understood by the model, and the values
-        are the human-readable names.
+    dataset_container : DatasetContainer
+        The dataset container for this experiment
     wandb_run : wandb.sdk.wandb_run.Run
         The current wandb run
     """
@@ -166,10 +163,8 @@ class CLIInterface(CLIInterfaceMixin, FullLoopInterface):
 
     Parameters
     ----------
-    categories : dict
-        A dictionary of categories used by the classifier. The keys are the
-        names of the categories as understood by the model, and the values
-        are the human-readable names.
+    dataset_container : DatasetContainer
+        The dataset container for this experiment
     wandb_run : wandb.sdk.wandb_run.Run
         The current wandb run
     line_width : int
@@ -178,17 +173,19 @@ class CLIInterface(CLIInterfaceMixin, FullLoopInterface):
 
     def __init__(
         self,
-        categories: dict,
+        dataset_container: DatasetContainer,
         wandb_run: wandb.sdk.wandb_run.Run,
         *,
         line_width: int = 70,
     ):
 
-        super().__init__(categories, wandb_run)
+        super().__init__(dataset_container, wandb_run)
 
         self.line_width = line_width
 
-        self._categories_list = [(k, v) for k, v in self.categories.items()]
+        self._categories_list = [
+            (k, v) for k, v in self.dataset_container.categories.items()
+        ]
         self._num_categories = len(self._categories_list)
 
     def begin(self, message: str = None, parameters: Parameters = None):
@@ -299,10 +296,8 @@ class CLIBrokenLoopInterface(CLIInterfaceMixin, BrokenLoopInterface):
 
     Parameters
     ----------
-    categories : dict
-        A dictionary of categories used by the classifier. The keys are the
-        names of the categories as understood by the model, and the values
-        are the human-readable names.
+    dataset_container : DatasetContainer
+        The dataset container for this experiment
     wandb_run : wandb.sdk.wandb_run.Run
         The current wandb run
     line_width : int
@@ -311,12 +306,12 @@ class CLIBrokenLoopInterface(CLIInterfaceMixin, BrokenLoopInterface):
 
     def __init__(
         self,
-        categories: dict,
+        dataset_container: DatasetContainer,
         wandb_run: wandb.sdk.wandb_run.Run,
         *,
         line_width: int = 70,
     ):
-        super().__init__(categories, wandb_run)
+        super().__init__(dataset_container, wandb_run)
         self.line_width = line_width
 
     def begin(self, message: str = None, parameters: Parameters = None):

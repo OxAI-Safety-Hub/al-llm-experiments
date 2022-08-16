@@ -8,11 +8,13 @@ from transformers import set_seed
 
 import wandb
 
-from al_llm.data_handler import (
-    DataHandler,
-    DummyDataHandler,
-    HuggingFaceDataHandler,
-    LocalDataHandler,
+
+from al_llm.data_handler import DataHandler
+from al_llm.dataset_container import (
+    DatasetContainer,
+    DummyDatasetContainer,
+    RottenTomatoesDatasetHandler,
+
 )
 from al_llm.classifier import Classifier, DummyClassifier, GPT2Classifier
 from al_llm.sample_generator import (
@@ -87,11 +89,6 @@ class Experiment:
         "DummyClassifier": DummyClassifier,
         "GPT2Classifier": GPT2Classifier,
     }
-    MAP_DATA_HANDLER = {
-        "DummyDataHandler": DummyDataHandler,
-        "HuggingFaceDataHandler": HuggingFaceDataHandler,
-        "LocalDataHandler": LocalDataHandler,
-    }
     MAP_ACQUISITION_FUNCTION = {
         "None": None,
         "DummyAF": DummyAF,
@@ -105,23 +102,23 @@ class Experiment:
 
     def __init__(
         self,
+        parameters: Parameters,
+        dataset_container: DatasetContainer,
         data_handler: DataHandler,
-        categories: dict,
         classifier: Classifier,
         sample_generator: SampleGenerator,
         interface: Interface,
-        parameters: Parameters,
         wandb_run: wandb.sdk.wandb_run.Run,
         already_finetuned: bool = False,
     ):
 
         # Set the instance attributes
+        self.parameters = parameters
+        self.dataset_container = dataset_container
         self.data_handler = data_handler
-        self.categories = categories
         self.classifier = classifier
         self.sample_generator = sample_generator
         self.interface = interface
-        self.parameters = parameters
         self.wandb_run = wandb_run
         self.already_finetuned = already_finetuned
 
@@ -222,7 +219,7 @@ class Experiment:
         """Fine-tune the classifier from scratch"""
         self.interface.train_afresh()
         self.classifier.train_afresh(
-            self.data_handler.tokenized_train,
+            self.dataset_container.tokenized_train,
             iteration,
         )
 
@@ -335,12 +332,12 @@ class Experiment:
             interface = CLIBrokenLoopInterface(categories, wandb_run)
 
         experiment_args = {
+            "parameters": parameters,
+            "dataset_container": dataset_container,
             "data_handler": data_handler,
-            "categories": categories,
             "classifier": classifier,
             "sample_generator": sample_generator,
             "interface": interface,
-            "parameters": parameters,
             "wandb_run": wandb_run,
         }
 
