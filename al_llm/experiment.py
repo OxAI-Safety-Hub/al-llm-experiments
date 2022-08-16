@@ -249,10 +249,18 @@ class Experiment:
         experiment_args : dict
             A dictionary of the non-optional arguments for `Experiment`
 
+        Notes
+        -----
+
+        By default all parameters are dummy parameters. This means that calling
+        this method with a plain `Parameters` instance will create a dummy
+        experiment.
+
         Example
         -------
+        Make a dummy experiment
         >>> parameters = Parameters()
-        >>> args = Experiment.make_experiment(parameters, "rotten_tomatoes", "run_id")
+        >>> args = Experiment.make_experiment(parameters, "dummy")
         >>> experiment = Experiment(**args)
         """
 

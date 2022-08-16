@@ -1,6 +1,13 @@
 class Parameters(dict):
     """A sub-class of dict storing the parameters for this experiment.
 
+    All parameters are dummy parameters by default. This means that we take
+    small values or basic implementations of components, meant primarily for
+    testing.
+
+    To run an actual experiment, one should explicitly specify all the 
+    components needed.
+
     Functions in the same way as a dict. It has the following structure:
 
         dataset_name : str, default="dummy"
