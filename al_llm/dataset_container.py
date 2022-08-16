@@ -166,9 +166,14 @@ class DatasetContainer(ABC):
 
         # If we're in dev mode, limit the size of the datasets significantly
         if self.parameters["dev_mode"]:
-            self.tokenized_train = self.tokenized_train.select(range(5))
-            self.tokenized_validation = self.tokenized_validation.select(range(100))
-            self.tokenized_test = self.tokenized_test.select(range(100))
+            train_slice_size = min(5, len(self.dataset_train))
+            self.dataset_train = self.dataset_train.select(range(train_slice_size))
+            validation_slice_size = min(5, len(self.dataset_validation))
+            self.dataset_validation = self.dataset_validation.select(
+                range(validation_slice_size)
+            )
+            test_slice_size = min(5, len(self.dataset_test))
+            self.dataset_test = self.dataset_test.select(range(test_slice_size))
 
 
 class DummyDatasetContainer(DatasetContainer):
@@ -347,6 +352,8 @@ class LocalDatasetContainer(DatasetContainer, ABC):
         self.dataset_validation = dataset_dictionary["validation"]
         self.dataset_test = dataset_dictionary["test"]
 
+        print(self.dataset_train)
+
         # Do any preprocessing on the dataset
         self._preprocess_dataset()
 
@@ -406,6 +413,7 @@ class RottenTomatoesDatasetHandler(HuggingFaceDatasetContainer):
         self.dataset_test = self.dataset_test.rename_column(
             "label", config["Data Handling"]["LabelColumnName"]
         )
+
 
 class DummyLocalDatasetContainer(LocalDatasetContainer):
     """A dataset container for a dummy local dataset
