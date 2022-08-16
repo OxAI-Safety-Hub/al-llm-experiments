@@ -649,6 +649,7 @@ class GPT2Classifier(HuggingFaceClassifier):
     """
 
     MODEL_NAME = "gpt2"
+    ARTIFACT_NAME = "gtp2-classifier"
 
     def __init__(self, parameters: Parameters, wandb_run: wandb.sdk.wandb_run.Run):
         super().__init__(parameters, wandb_run, model_name=self.MODEL_NAME)
@@ -691,6 +692,7 @@ class DistilGPT2Classifier(HuggingFaceClassifier):
     """
 
     MODEL_NAME = "distilgpt2"
+    ARTIFACT_NAME = "distilgpt2-classifier"
 
     def __init__(self, parameters: Parameters, wandb_run: wandb.sdk.wandb_run.Run):
         super().__init__(parameters, wandb_run, model_name=self.MODEL_NAME)
