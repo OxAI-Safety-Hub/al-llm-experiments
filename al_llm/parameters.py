@@ -65,7 +65,7 @@ class Parameters(dict):
         "num_warmup_steps": 0,
         "sample_pool_size": 20,
         "learning_rate": 5e-5,
-        "dev_mode": False,
+        "dev_mode": True,
         "seed": 459834,
         "send_alerts": False,
         "validation_proportion": 0.2,

@@ -230,8 +230,7 @@ class Experiment:
         Default setup expects Rotten Tomatoes dataset, and uses a classifier built
         on GPT-2, the HuggingFaceDataHandler, a GPT-2-based sentence generator that
         produces real sentences and filters using a maximum uncertainty acquisition
-        function, and the Command Line Interface. Also sets `dev_mode` parameter to
-        `True`, which reduces size of datasets provided to the classifier.
+        function, and the Command Line Interface.
 
         Parameters
         ----------

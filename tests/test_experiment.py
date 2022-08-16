@@ -16,7 +16,7 @@ class TestFullLoopDummyExperiment:
     """Run the full dummy experiment, repeatedly feeding '0' as the input"""
 
     def test_dummy_experiment(self):
-        parameters = Parameters(dev_mode=True)
+        parameters = Parameters()
         dummy_args = Experiment.make_experiment(
             parameters, "test", is_running_pytests=True
         )
@@ -32,7 +32,7 @@ class TestFullLoopDummyExperiment:
 
 
 def test_broken_loop_dummy_experiment():
-    parameters = Parameters(dev_mode=True)
+    parameters = Parameters()
     dummy_args = Experiment.make_experiment(
         parameters, "test", full_loop=False, is_running_pytests=True
     )
