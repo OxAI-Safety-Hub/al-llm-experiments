@@ -40,32 +40,22 @@ class Experiment:
 
     Parameters
     ----------
+    parameters : Parameters
+        A dictionary of parameters to identify this experiment
+    dataset_container : DatasetContainer
+        The dataset container to use
     data_handler : DataHandler
-        The starting dataset of labelled samples
-    categories : dict
-        A dictionary of categories used by the classifier. The keys are the
-        names of the categories as understood by the model, and the values
-        are the human-readable names.
+        The data handler to use
     classifier : Classifier
         The classifier instance to use.
     sample_generator : SampleGenerator
         The generator which produces samples for labelling
     interface : Interface
         The interface instance to use
-    parameters : Parameters
-        A dictionary of parameters to identify this experiment
     wandb_run : wandb.sdk.wandb_run.Run
         The current wandb run
     already_finetuned : bool, default=False
         Is the classifier already fine-tuned on the dataset?
-
-
-    Attributes
-    ----------
-    categories : dict
-        A dictionary containing the categories used in the dataset labels column
-        (as an `int`) which are the keys for the human-readable versions of each
-        (as a `str`)
     """
 
     MAP_DATASET_CONTAINER = {
@@ -251,6 +241,8 @@ class Experiment:
             The ID of the current run
         full_loop : bool, default=True
             Design the experiment to run the full loop of active learning
+        is_running_pytests: bool, default=False
+            If true, wandb will be disabled for the test experiments
 
         Returns
         -------
