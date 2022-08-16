@@ -1,14 +1,15 @@
 # The python abc module for making abstract base classes
 # https://docs.python.org/3.10/library/abc.html
 from abc import ABC, abstractmethod
-
 from random import randrange
-
 from typing import Optional
 
-from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
+import torch
+
+from transformers import pipeline
 
 from al_llm.acquisition_function import AcquisitionFunction
+from al_llm.parameters import Parameters
 
 
 class SampleGenerator(ABC):
@@ -16,14 +17,21 @@ class SampleGenerator(ABC):
 
     Parameters
     ----------
-    parameters : dict
+    parameters : Parameters
         The dictionary of parameters for the present experiment
+    acquisition_function : acquisition_function.AcquisitionFunction, optional
+        The acquisition function to use, if any. By default we simply generate
+        a number of samples with no selection procedure.
     """
 
-    def __init__(self, parameters: dict):
+    def __init__(
+        self,
+        parameters: Parameters,
+        acquisition_function: Optional[AcquisitionFunction] = None,
+    ):
         self.parameters = parameters
+        self.acquisition_function = acquisition_function
 
-    @abstractmethod
     def generate(self) -> list:
         """Generate new samples for querying
 
@@ -32,6 +40,35 @@ class SampleGenerator(ABC):
         samples : list
             A list of samples which are to be labelled of length `num_samples`
             as defined in the experiment parameters
+        """
+
+        if self.acquisition_function is None:
+
+            # With no acquisition function, just generate samples without
+            # filtering
+            return self._generate_sample_pool(self.parameters["num_samples"])
+
+        else:
+
+            # With an acquisition function, generate the samples, then filer
+            sample_pool = self._generate_sample_pool(
+                self.parameters["sample_pool_size"]
+            )
+            return self.acquisition_function.select(sample_pool)
+
+    @abstractmethod
+    def _generate_sample_pool(self, pool_size: int) -> list:
+        """Generate a pool of samples, from which to select
+
+        Parameters
+        ----------
+        pool_size: int
+            The number of samples to generate
+
+        Returns
+        -------
+        samples : list
+            A list of samples
         """
         return []
 
@@ -45,47 +82,27 @@ class DummySampleGenerator(SampleGenerator):
 
     Parameters
     ----------
-    parameters : dict
+    parameters : Parameters
         The dictionary of parameters for the present experiment
     acquisition_function : acquisition_function.AcquisitionFunction, optional
         The acquisition function to use, if any. By default we simply generate
         a number of samples with no selection procedure.
     """
 
-    def __init__(
-        self,
-        parameters: dict,
-        acquisition_function: Optional[AcquisitionFunction] = None,
-    ):
-        super().__init__(parameters)
-        self.acquisition_function = acquisition_function
-
-    def generate(self) -> list:
+    def _generate_sample_pool(self, pool_size: int) -> list:
 
         alphabet = "abcdefghijklmnopqrstuvwxyz         "
 
-        # The number of sentences to generate first
-        if self.acquisition_function is None:
-            num_sentences_first = self.parameters["num_samples"]
-        else:
-            num_sentences_first = self.parameters["sample_pool_size"]
-
         # Generate the samples by sampling from the alphabet
         sample_pool = []
-        for sample_index in range(num_sentences_first):
+        for sample_index in range(pool_size):
             length = randrange(5, 30)
             sample_nums = [randrange(len(alphabet)) for i in range(length)]
             sample_chars = map(lambda x: alphabet[x], sample_nums)
             sample = "".join(sample_chars)
             sample_pool.append(sample)
 
-        # Select from these, if using an acquisition function
-        if self.acquisition_function is not None:
-            samples = self.acquisition_function.select(sample_pool)
-        else:
-            samples = sample_pool
-
-        return samples
+        return sample_pool
 
 
 class PlainGPT2SampleGenerator(SampleGenerator):
@@ -97,7 +114,7 @@ class PlainGPT2SampleGenerator(SampleGenerator):
 
     Parameters
     ----------
-    parameters : dict
+    parameters : Parameters
         The dictionary of parameters for the present experiment
     acquisition_function : acquisition_function.AcquisitionFunction, optional
         The acquisition function to use, if any. By default we simply generate
@@ -106,56 +123,40 @@ class PlainGPT2SampleGenerator(SampleGenerator):
         The maximum length of the sentences generated.
     """
 
+    MODEL_NAME = "gpt2"
+
     def __init__(
         self,
-        parameters: dict,
+        parameters: Parameters,
         acquisition_function: Optional[AcquisitionFunction] = None,
         max_length: int = 30,
     ):
 
-        super().__init__(parameters)
+        super().__init__(parameters, acquisition_function)
 
         self.max_length = max_length
-        self.acquisition_function = acquisition_function
 
-        # Loads the GPT-2 model
-        self.tokenizer = AutoTokenizer.from_pretrained("gpt2")
-        self.model = AutoModelForCausalLM.from_pretrained("gpt2")
-
-    def generate(self) -> list:
-        """Use GTP-2 to generate new samples for querying
-
-        Returns
-        -------
-        samples : list
-            A list of samples which are to be labelled of length `num_samples`
-            as defined in the experiment parameters
-        """
-
-        # The number of sentences to generate first
-        if self.acquisition_function is None:
-            num_sentences_first = self.parameters["num_samples"]
-        else:
-            num_sentences_first = self.parameters["sample_pool_size"]
-
-        # Uses `pipeline` to generate real sentences
-        generator = pipeline(
-            task="text-generation", model=self.model, tokenizer=self.tokenizer
+        # Set the device to use
+        self.device = (
+            torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
         )
-        sentence_dicts = generator(
+
+        # Create a pipeline for text generation
+        self.generator = pipeline(
+            task="text-generation", model=self.MODEL_NAME, device=self.device
+        )
+
+    def _generate_sample_pool(self, pool_size: int) -> list:
+
+        # Use the pipeline to generate real sentences
+        sentence_dicts = self.generator(
             "",
             max_length=self.max_length,
-            num_return_sequences=num_sentences_first,
+            num_return_sequences=pool_size,
         )
         sample_pool = [d["generated_text"] for d in sentence_dicts]
 
-        # Select from these, if using an acquisition function
-        if self.acquisition_function is not None:
-            samples = self.acquisition_function.select(sample_pool)
-        else:
-            samples = sample_pool
-
-        return samples
+        return sample_pool
 
 
 class PoolSampleGenerator(SampleGenerator):

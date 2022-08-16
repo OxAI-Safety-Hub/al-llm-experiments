@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 import random
 
 from al_llm.classifier import Classifier, UncertaintyMixin
+from al_llm.parameters import Parameters
 
 
 class AcquisitionFunction(ABC):
@@ -12,11 +13,11 @@ class AcquisitionFunction(ABC):
 
     Parameters
     ----------
-    parameters : dict
+    parameters : Parameters
         The dictionary of parameters for the present experiment
     """
 
-    def __init__(self, parameters: dict):
+    def __init__(self, parameters: Parameters):
         self.parameters = parameters
 
     @abstractmethod
@@ -56,12 +57,12 @@ class AcquisitionFunction(ABC):
         return num_samples
 
 
-class DummyAcquisitionFunction(AcquisitionFunction):
+class DummyAF(AcquisitionFunction):
     """A dummy acquisition function, which selects the first slice of samples
 
     Parameters
     ----------
-    parameters : dict
+    parameters : Parameters
         The dictionary of parameters for the present experiment
     """
 
@@ -70,12 +71,12 @@ class DummyAcquisitionFunction(AcquisitionFunction):
         return sample_pool[:num_samples]
 
 
-class RandomAcquisitionFunction(AcquisitionFunction):
+class RandomAF(AcquisitionFunction):
     """An acquisition function which selects randomly
 
     Parameters
     ----------
-    parameters : dict
+    parameters : Parameters
         The dictionary of parameters for the present experiment
     """
 
@@ -84,16 +85,16 @@ class RandomAcquisitionFunction(AcquisitionFunction):
         return random.sample(sample_pool, num_samples)
 
 
-class MaxUncertaintyAcquisitionFunction(AcquisitionFunction):
+class MaxUncertaintyAF(AcquisitionFunction):
     """An acquisition function which selects for the highest uncertainty
 
     Parameters
     ----------
-    parameters : dict
+    parameters : Parameters
         The dictionary of parameters for the present experiment
     """
 
-    def __init__(self, parameters: dict, classifier: Classifier):
+    def __init__(self, parameters: Parameters, classifier: Classifier):
         super().__init__(parameters)
         if not isinstance(classifier, UncertaintyMixin):
             raise TypeError("`classifier` must implement uncertainty measuring")

@@ -4,6 +4,9 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 import textwrap
+import wandb
+from .dataset_container import DatasetContainer
+from al_llm.parameters import Parameters
 
 from al_llm.data_handler import DataHandler
 
@@ -13,40 +16,26 @@ class Interface(ABC):
 
     Parameters
     ----------
-    categories : dict
-        A dictionary of categories used by the classifier. The keys are the
-        names of the categories as understood by the model, and the values
-        are the human-readable names.
+    dataset_container : DatasetContainer
+        The dataset container for this experiment
+    wandb_run : wandb.sdk.wandb_run.Run
+        The current wandb run
     """
 
-    def __init__(self, categories: dict):
-        self.categories = categories
+    def __init__(
+        self, dataset_container: DatasetContainer, wandb_run: wandb.sdk.wandb_run.Run
+    ):
+        self.dataset_container = dataset_container
+        self.wandb_run = wandb_run
 
-    @abstractmethod
-    def prompt(self, samples: list) -> list:
-        """Prompt the human for labels for the samples
-
-        Parameters
-        ----------
-        samples : list
-            A list of samples to query the human
-
-        Returns
-        -------
-        labels : list
-            A list of labels, one for each element in `samples`
-        """
-
-        return []
-
-    def begin(self, message: str = None, parameters: dict = None):
+    def begin(self, message: str = None, parameters: Parameters = None):
         """Initialise the interface, displaying a welcome message
 
         Parameters
         ----------
         message : str, optional
             The welcome message to display. Defaults to a generic message.
-        parameters : dict, optional
+        parameters : Parameters, optional
             The parameters used in this experiment
         """
         pass
@@ -84,7 +73,91 @@ class Interface(ABC):
         pass
 
 
-class CLIInterface(Interface):
+class FullLoopInterface(Interface, ABC):
+    """Base interface class for running the loop all in one go
+
+    Parameters
+    ----------
+    dataset_container : DatasetContainer
+        The dataset container for this experiment
+    wandb_run : wandb.sdk.wandb_run.Run
+        The current wandb run
+    """
+
+    @abstractmethod
+    def prompt(self, samples: list) -> list:
+        """Prompt the human for labels for the samples
+
+        Parameters
+        ----------
+        samples : list
+            A list of samples to query the human
+
+        Returns
+        -------
+        labels : list
+            A list of labels, one for each element in `samples`
+        """
+
+        return []
+
+
+class BrokenLoopInterface(Interface, ABC):
+    """Base interface class for broken loop experiments
+
+    Parameters
+    ----------
+    dataset_container : DatasetContainer
+        The dataset container for this experiment
+    wandb_run : wandb.sdk.wandb_run.Run
+        The current wandb run
+    """
+
+    pass
+
+
+class CLIInterfaceMixin:
+    """A mixin providing useful methods for CLI interfaces
+
+    Attributes
+    ----------
+    line_width : int
+        The width of the lines to wrap the output.
+    """
+
+    def _output(self, text: str):
+        """Output something to the CLI"""
+        print(text)
+
+    def _input(self, prompt: str) -> str:
+        """Get some input from the CLI"""
+        return input(prompt)
+
+    def _wrap(self, text: str) -> str:
+        """Wrap some text to the line width"""
+        return textwrap.fill(text, width=self.line_width)
+
+    def _head_text(
+        self, message: str, initial_newline: bool = True, trailing_newline: bool = False
+    ) -> str:
+        """Generate a message with horizontal rules above and below"""
+        text = ""
+        if initial_newline:
+            text += "\n"
+        text += self._horizontal_rule()
+        text += message + "\n"
+        text += self._horizontal_rule(trailing_newline)
+        return text
+
+    def _horizontal_rule(self, trailing_newline: bool = True) -> str:
+        """Generate a horizontal rule"""
+        text = "-" * self.line_width
+        if trailing_newline:
+            text += "\n"
+        return text
+
+
+class CLIInterface(CLIInterfaceMixin, FullLoopInterface):
     """A command line interface for obtaining labels
 
     Enumerates the categories, and asks the human to input the number
@@ -92,24 +165,32 @@ class CLIInterface(Interface):
 
     Parameters
     ----------
-    categories : dict
-        A dictionary of categories used by the classifier. The keys are the
-        names of the categories as understood by the model, and the values
-        are the human-readable names.
+    dataset_container : DatasetContainer
+        The dataset container for this experiment
+    wandb_run : wandb.sdk.wandb_run.Run
+        The current wandb run
     line_width : int
         The width of the lines to wrap the output.
     """
 
-    def __init__(self, categories: dict, *, line_width: int = 70):
+    def __init__(
+        self,
+        dataset_container: DatasetContainer,
+        wandb_run: wandb.sdk.wandb_run.Run,
+        *,
+        line_width: int = 70,
+    ):
 
-        super().__init__(categories)
+        super().__init__(dataset_container, wandb_run)
 
         self.line_width = line_width
 
-        self._categories_list = [(k, v) for k, v in self.categories.items()]
+        self._categories_list = [
+            (k, v) for k, v in self.dataset_container.categories.items()
+        ]
         self._num_categories = len(self._categories_list)
 
-    def begin(self, message: str = None, parameters: dict = None):
+    def begin(self, message: str = None, parameters: Parameters = None):
 
         # Default message
         if message is None:
@@ -163,7 +244,7 @@ class CLIInterface(Interface):
                     valid_label = True
 
             # Append this label
-            labels.append(self._categories_list[label])
+            labels.append(self._categories_list[label][0])
 
         return labels
 
@@ -211,36 +292,77 @@ class CLIInterface(Interface):
         text = self._head_text(text)
         self._output(text)
 
+
+class CLIBrokenLoopInterface(CLIInterfaceMixin, BrokenLoopInterface):
+    """A CLI implementation of an interface for broken loop experiments
+
+    Parameters
+    ----------
+    dataset_container : DatasetContainer
+        The dataset container for this experiment
+    wandb_run : wandb.sdk.wandb_run.Run
+        The current wandb run
+    line_width : int
+        The width of the lines to wrap the output.
+    """
+
+    def __init__(
+        self,
+        dataset_container: DatasetContainer,
+        wandb_run: wandb.sdk.wandb_run.Run,
+        *,
+        line_width: int = 70,
+    ):
+        super().__init__(dataset_container, wandb_run)
+        self.line_width = line_width
+
+    def begin(self, message: str = None, parameters: Parameters = None):
+
+        # Default message
+        if message is None:
+            message = "AL LLM"
+
+        # Wrap the message
+        text = self._wrap(message)
+
+        # Add the parameters
+        if parameters is not None:
+            parameter_string = f"Parameters: {parameters}"
+            text += "\n" + self._wrap(parameter_string)
+
+        run_id_string = f"Run ID: {self.wandb_run.id}"
+        text += "\n" + self._wrap(run_id_string)
+
+        # Print the message
+        self._output(text)
+
+    def train_afresh(self, message: str = None):
+
+        # Default message
+        if message is None:
+            message = "Fine-tuning from scratch..."
+
+        # Wrap the message
+        text = self._wrap(message)
+
+        # Print the message
+        self._output(text)
+
+    def train_update(self, message: str = None):
+
+        # Default message
+        if message is None:
+            message = "Fine-tuning with new datapoints..."
+
+        # Wrap the message
+        text = self._wrap(message)
+
+        # Print the message
+        self._output(text)
+
     def _output(self, text: str):
         """Output something to the CLI"""
         print(text)
-
-    def _input(self, prompt: str) -> str:
-        """Get some input from the CLI"""
-        return input(prompt)
-
-    def _wrap(self, text: str) -> str:
-        """Wrap some text to the line width"""
-        return textwrap.fill(text, width=self.line_width)
-
-    def _head_text(
-        self, message: str, initial_newline: bool = True, trailing_newline: bool = False
-    ) -> str:
-        """Generate a message with horizontal rules above and below"""
-        text = ""
-        if initial_newline:
-            text += "\n"
-        text += self._horizontal_rule()
-        text += message + "\n"
-        text += self._horizontal_rule(trailing_newline)
-        return text
-
-    def _horizontal_rule(self, trailing_newline: bool = True) -> str:
-        """Generate a horizontal rule"""
-        text = "-" * self.line_width
-        if trailing_newline:
-            text += "\n"
-        return text
 
 
 class PoolSimulatorInterface(Interface):
@@ -252,18 +374,20 @@ class PoolSimulatorInterface(Interface):
 
     Parameters
     ----------
-    categories : dict
-        A dictionary of categories used by the classifier. The keys are the
-        names of the categories as understood by the model, and the values
-        are the human-readable names.
-    data_handler : DataHandler
-        The data hander to use when obtaining the labels. Only the train split
-        is used.
+    dataset_container : DatasetContainer
+        The dataset container for this experiment
+    wandb_run : wandb.sdk.wandb_run.Run
+        The current wandb run
     """
 
-    def __init__(self, categories: dict, data_handler: DataHandler):
+    def __init__(
+        self,
+        dataset_container: DatasetContainer,
+        wandb_run: wandb.sdk.wandb_run.Run,
+        data_handler: DataHandler,
+    ):
 
-        super().__init__(categories)
+        super().__init__(dataset_container, wandb_run)
 
         self.data_handler = data_handler
 

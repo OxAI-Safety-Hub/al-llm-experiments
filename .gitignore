@@ -110,6 +110,9 @@ ENV/
 env.bak/
 venv.bak/
 
+# Weights and biases
+wandb/
+
 # Spyder project settings
 .spyderproject
 .spyproject
@@ -130,3 +133,9 @@ dmypy.json
 
 # VisualStudioCode
 .vscode/*
+
+# Swp files
+*.swp
+
+# Local notebooks
+notebooks/local/*

@@ -2,6 +2,10 @@
 torch
 transformers
 datasets
+evaluate
+wheel
+sklearn
+wandb
 
 # Formatting and linting
 black

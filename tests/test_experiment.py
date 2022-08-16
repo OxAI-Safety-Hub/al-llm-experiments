@@ -2,6 +2,7 @@ import sys
 import io
 
 from al_llm.experiment import Experiment
+from al_llm.parameters import Parameters
 
 
 class ZeroStringIO(io.TextIOBase):
@@ -11,17 +12,30 @@ class ZeroStringIO(io.TextIOBase):
         return "0"
 
 
-class TestDummyExperiment:
-    """Run the dummy experiment, repeatedly feeding '0' as the input"""
+class TestFullLoopDummyExperiment:
+    """Run the full dummy experiment, repeatedly feeding '0' as the input"""
 
     def test_dummy_experiment(self):
-        dummy_args = Experiment.make_dummy_experiment()
+        parameters = Parameters(dev_mode=True)
+        dummy_args = Experiment.make_experiment(
+            parameters, "test", is_running_pytests=True
+        )
         experiment = Experiment(**dummy_args)
         sys.stdin = ZeroStringIO()
-        experiment.run()
+        experiment.run_full()
 
     def setup_method(self):
         self.orig_stdin = sys.stdin
 
     def teardown_method(self):
         sys.stdin = self.orig_stdin
+
+
+def test_broken_loop_dummy_experiment():
+    parameters = Parameters(dev_mode=True)
+    dummy_args = Experiment.make_experiment(
+        parameters, "test", full_loop=False, is_running_pytests=True
+    )
+    experiment = Experiment(**dummy_args)
+    for iteration in range(dummy_args["parameters"]["num_iterations"]):
+        experiment.run_single_iteration(iteration)
