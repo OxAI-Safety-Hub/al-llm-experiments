@@ -22,6 +22,7 @@ import evaluate
 import wandb
 
 from al_llm.parameters import Parameters
+from al_llm.dataset_container import DatasetContainer
 
 
 # Load the configuration
@@ -36,19 +37,21 @@ class Classifier(ABC):
     ----------
     parameters : Parameters
         The dictionary of parameters for the present experiment
+    dataset_container : DatasetContainer
+        The dataset container for the present experiment
     wandb_run : wandb.sdk.wandb_run.Run
         The current wandb run
-
-    Attributes
-    ----------
-    data_handler : DataHandler
-        The DataHandler instance attached to this classifier
     """
 
-    def __init__(self, parameters: Parameters, wandb_run: wandb.sdk.wandb_run.Run):
+    def __init__(
+        self,
+        parameters: Parameters,
+        dataset_container: DatasetContainer,
+        wandb_run: wandb.sdk.wandb_run.Run,
+    ):
         self.parameters = parameters
+        self.dataset_container = dataset_container
         self.wandb_run = wandb_run
-        self.data_handler = None
 
     @abstractmethod
     def train_afresh(
@@ -110,17 +113,6 @@ class Classifier(ABC):
         """Save the classifier, using the wandb_run"""
         pass
 
-    def attach_data_handler(self, data_handler):
-        """Attach an instance of a DataHandler to this classifier, so
-        validation and test datasets are easily accessible
-
-        Parameters
-        ----------
-        data_handler : DataHandler
-            The instance to be attached to this classifier
-        """
-        self.data_handler = data_handler
-
 
 class UncertaintyMixin(ABC):
     """A mixin for classifiers which provide a measure of uncertainty"""
@@ -157,9 +149,9 @@ class DummyClassifier(UncertaintyMixin, Classifier):
 
     def tokenize(self, text: Union[str, list]) -> torch.Tensor:
         if isinstance(text, str):
-            return torch.zeros(1)
+            return {"input_ids": [0], "attention_mask": [0]}
         elif isinstance(text, list):
-            return torch.zeros((1, len(text)))
+            return {"input_ids": [0] * len(text), "attention_mask": [0] * len(text)}
         else:
             raise TypeError(
                 f"Parameter `text` should be string or list, got {type(text)}"
@@ -196,8 +188,6 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
 
     Attributes
     ----------
-    data_handler : DataHandler
-        The DataHandler instance attached to this classifier
     tokenizer : transformers.AutoTokenizer
         The HuggingFace tokenizer associated with this classifier
     model : transformers.AutoModelForSequenceClassification
@@ -214,12 +204,13 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
     def __init__(
         self,
         parameters: Parameters,
+        dataset_container: DatasetContainer,
         wandb_run: wandb.sdk.wandb_run.Run,
         model_name: str,
     ):
 
         # initialises the parameters in the same way as the base class
-        super().__init__(parameters, wandb_run)
+        super().__init__(parameters, dataset_container, wandb_run)
 
         # Set the model name
         self.model_name = model_name
@@ -256,7 +247,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
             tokenized_train, shuffle=True, batch_size=self.parameters["batch_size"]
         )
         eval_dataloader = DataLoader(
-            self.data_handler.tokenized_validation,
+            self.dataset_container.tokenized_validation,
             batch_size=self.parameters["batch_size"],
         )
 
@@ -311,7 +302,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
             tokenized_samples, shuffle=True, batch_size=self.parameters["batch_size"]
         )
         eval_dataloader = DataLoader(
-            self.data_handler.tokenized_validation,
+            self.dataset_container.tokenized_validation,
             batch_size=self.parameters["batch_size"],
         )
 
@@ -631,8 +622,6 @@ class GPT2Classifier(HuggingFaceClassifier):
 
     Attributes
     ----------
-    data_handler : DataHandler
-        The DataHandler instance attached to this classifier
     tokenizer : transformers.AutoTokenizer
         The HuggingFace tokenizer associated with this classifier
     model : transformers.AutoModelForSequenceClassification
@@ -673,8 +662,6 @@ class DistilGPT2Classifier(HuggingFaceClassifier):
 
     Attributes
     ----------
-    data_handler : DataHandler
-        The DataHandler instance attached to this classifier
     tokenizer : transformers.AutoTokenizer
         The HuggingFace tokenizer associated with this classifier
     model : transformers.AutoModelForSequenceClassification

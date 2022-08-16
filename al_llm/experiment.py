@@ -9,7 +9,12 @@ from transformers import set_seed
 
 import wandb
 
-from al_llm.data_handler import DataHandler, DummyDataHandler, HuggingFaceDataHandler
+from al_llm.data_handler import DataHandler
+from al_llm.dataset_container import (
+    DatasetContainer,
+    DummyDatasetContainer,
+    RottenTomatoesDatasetHandler,
+)
 from al_llm.classifier import Classifier, DummyClassifier, GPT2Classifier
 from al_llm.sample_generator import (
     PlainGPT2SampleGenerator,
@@ -64,23 +69,23 @@ class Experiment:
 
     def __init__(
         self,
+        parameters: Parameters,
+        dataset_container: DatasetContainer,
         data_handler: DataHandler,
-        categories: dict,
         classifier: Classifier,
         sample_generator: SampleGenerator,
         interface: Interface,
-        parameters: Parameters,
         wandb_run: wandb.sdk.wandb_run.Run,
         already_finetuned: bool = False,
     ):
 
         # Set the instance attributes
+        self.parameters = parameters
+        self.dataset_container = dataset_container
         self.data_handler = data_handler
-        self.categories = categories
         self.classifier = classifier
         self.sample_generator = sample_generator
         self.interface = interface
-        self.parameters = parameters
         self.wandb_run = wandb_run
         self.already_finetuned = already_finetuned
 
@@ -181,7 +186,7 @@ class Experiment:
         """Fine-tune the classifier from scratch"""
         self.interface.train_afresh()
         self.classifier.train_afresh(
-            self.data_handler.tokenized_train,
+            self.dataset_container.tokenized_train,
             iteration,
         )
 
@@ -249,26 +254,25 @@ class Experiment:
         # Set the seed now, because the data handler may do some shuffling
         set_seed(parameters["seed"])
 
-        categories = {0: "Valid sentence", 1: "Invalid sentence"}
-        classifier = DummyClassifier(parameters, wandb_run)
-        data_handler = DummyDataHandler(classifier, parameters, wandb_run)
-        classifier.attach_data_handler(data_handler)
+        dataset_container = DummyDatasetContainer(parameters)
+        classifier = DummyClassifier(parameters, dataset_container, wandb_run)
+        data_handler = DataHandler(parameters, dataset_container, classifier, wandb_run)
         acquisition_function = DummyAF(parameters)
         sample_generator = DummySampleGenerator(
             parameters, acquisition_function=acquisition_function
         )
         if full_loop:
-            interface = CLIInterface(categories, wandb_run)
+            interface = CLIInterface(dataset_container, wandb_run)
         else:
-            interface = CLIBrokenLoopInterface(categories, wandb_run)
+            interface = CLIBrokenLoopInterface(dataset_container, wandb_run)
 
         dummy_args = {
+            "parameters": parameters,
+            "dataset_container": dataset_container,
             "data_handler": data_handler,
-            "categories": categories,
             "classifier": classifier,
             "sample_generator": sample_generator,
             "interface": interface,
-            "parameters": parameters,
             "wandb_run": wandb_run,
         }
 
@@ -277,7 +281,6 @@ class Experiment:
     @classmethod
     def make_experiment(
         cls,
-        dataset_name: str,
         run_id: str,
         is_running_pytests: bool = False,
     ):
@@ -326,25 +329,22 @@ class Experiment:
         # Set the seed now, because the data handler may do some shuffling
         set_seed(parameters["seed"])
 
-        categories = {0: "Negative sentence", 1: "Positive sentence"}
-        classifier = GPT2Classifier(parameters, wandb_run)
-        data_handler = HuggingFaceDataHandler(
-            dataset_name, classifier, parameters, wandb_run
-        )
-        classifier.attach_data_handler(data_handler)
+        dataset_container = RottenTomatoesDatasetHandler(parameters)
+        classifier = GPT2Classifier(parameters, dataset_container, wandb_run)
+        data_handler = DataHandler(parameters, dataset_container, classifier, wandb_run)
         acquisition_function = MaxUncertaintyAF(parameters, classifier)
         sample_generator = PlainGPT2SampleGenerator(
             parameters, acquisition_function=acquisition_function
         )
-        interface = CLIInterface(categories, wandb_run)
+        interface = CLIInterface(dataset_container, wandb_run)
 
         experiment_args = {
+            "parameters": parameters,
+            "dataset_container": dataset_container,
             "data_handler": data_handler,
-            "categories": categories,
             "classifier": classifier,
             "sample_generator": sample_generator,
             "interface": interface,
-            "parameters": parameters,
             "wandb_run": wandb_run,
         }
 
