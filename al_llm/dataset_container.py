@@ -352,8 +352,6 @@ class LocalDatasetContainer(DatasetContainer, ABC):
         self.dataset_validation = dataset_dictionary["validation"]
         self.dataset_test = dataset_dictionary["test"]
 
-        print(self.dataset_train)
-
         # Do any preprocessing on the dataset
         self._preprocess_dataset()
 
