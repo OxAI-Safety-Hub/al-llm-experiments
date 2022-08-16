@@ -80,7 +80,7 @@ class DatasetContainer(ABC):
     ) -> datasets.Dataset:
         """Tokenize a Hugging Face dataset
 
-        Also sets the format to 'torch' and removes unnecessary columns.
+        Also sets the format to 'torch'.
 
         Parameters
         ----------
@@ -104,7 +104,7 @@ class DatasetContainer(ABC):
         # Tokenize the dataset
         tokenized = dataset.map(tokenize_function, batched=batched)
 
-        # Set the format to pytorch, and remove unnecessary columns
+        # Set the format to pytorch
         tokenized.set_format(
             "torch",
             columns=[
@@ -166,9 +166,14 @@ class DatasetContainer(ABC):
 
         # If we're in dev mode, limit the size of the datasets significantly
         if self.parameters["dev_mode"]:
-            self.tokenized_train = self.tokenized_train.select(range(5))
-            self.tokenized_validation = self.tokenized_validation.select(range(100))
-            self.tokenized_test = self.tokenized_test.select(range(100))
+            train_slice_size = min(5, len(self.dataset_train))
+            self.dataset_train = self.dataset_train.select(range(train_slice_size))
+            validation_slice_size = min(5, len(self.dataset_validation))
+            self.dataset_validation = self.dataset_validation.select(
+                range(validation_slice_size)
+            )
+            test_slice_size = min(5, len(self.dataset_test))
+            self.dataset_test = self.dataset_test.select(range(test_slice_size))
 
 
 class DummyDatasetContainer(DatasetContainer):
@@ -406,3 +411,41 @@ class RottenTomatoesDatasetHandler(HuggingFaceDatasetContainer):
         self.dataset_test = self.dataset_test.rename_column(
             "label", config["Data Handling"]["LabelColumnName"]
         )
+
+
+class DummyLocalDatasetContainer(LocalDatasetContainer):
+    """A dataset container for a dummy local dataset
+
+    A dataset container which stores the various dataset splits and their
+    tokenized versions.
+
+    Parameters
+    ----------
+    parameters : Parameters
+        The parameters for the current experiment
+
+    Attributes
+    ----------
+    categories : dict
+        A dictionary of the classes in the data. The keys are the names of the
+        categories as understood by the model, and the values are the
+        human-readable names.
+    dataset_train : datasets.Dataset
+        The raw dataset consisting of labelled sentences used for training, as
+        a Hugging Face Dataset.
+    dataset_validation : datasets.Dataset
+        The raw dataset consisting of labelled sentences used for validation, as
+        a Hugging Face Dataset.
+    dataset_test : datasets.Dataset
+        The raw dataset consisting of labelled sentences used for testing, as
+        a Hugging Face Dataset.
+    tokenized_train : torch.utils.data.Dataset
+        The tokenized dataset for training, as a PyTorch dataset.
+    tokenized_validation : torch.utils.data.Dataset
+        The tokenized dataset for validation, as a PyTorch dataset.
+    tokenized_test : torch.utils.data.Dataset
+        The tokenized dataset for testing, as a PyTorch dataset.
+    """
+
+    DATASET_NAME = "dummy_local_dataset"
+    CATEGORIES = {0: "Negative", 1: "Positive"}
