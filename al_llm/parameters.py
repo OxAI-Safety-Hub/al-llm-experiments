@@ -40,8 +40,6 @@ class Parameters(dict):
             provided by the Hugging Face dataset.
         classifier : str, default="DummyClassifier"
             The name of the classifier to use.
-        data_handler : str, default="DummyDataHandler"
-            The name of the data handler to use.
         acquisition_function : str, default="DummyAF"
             The name of the acquisition function to use.
         sample_generator : str, default="DummySampleGenerator"
@@ -65,7 +63,6 @@ class Parameters(dict):
         "send_alerts": False,
         "validation_proportion": 0.2,
         "classifier": "DummyClassifier",
-        "data_handler": "DummyDataHandler",
         "acquisition_function": "DummyAF",
         "sample_generator": "DummySampleGenerator",
     }

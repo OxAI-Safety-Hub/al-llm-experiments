@@ -14,7 +14,6 @@ from al_llm.dataset_container import (
     DatasetContainer,
     DummyDatasetContainer,
     RottenTomatoesDatasetHandler,
-
 )
 from al_llm.classifier import Classifier, DummyClassifier, GPT2Classifier
 from al_llm.sample_generator import (
@@ -69,22 +68,10 @@ class Experiment:
         (as a `str`)
     """
 
-    # A map from `dataset_name` to `categories`
-    CATEGORIES_MAP = {
-        "dummy": {
-            0: "Valid sentence",
-            1: "Invalid sentence",
-        },
-        "rotten_tomatoes": {
-            0: "Negative sentence",
-            1: "Positive sentence",
-        },
-        "local_datasets/dummy_local_dataset": {
-            0: "Valid sentence",
-            1: "Invalid sentence",
-        },
+    MAP_DATASET_CONTAINER = {
+        "dummy": DummyDatasetContainer,
+        "rotten_tomatoes": RottenTomatoesDatasetHandler,
     }
-
     MAP_CLASSIFIER = {
         "DummyClassifier": DummyClassifier,
         "GPT2Classifier": GPT2Classifier,
@@ -294,20 +281,18 @@ class Experiment:
         # Set the seed now, because the data handler may do some shuffling
         set_seed(parameters["seed"])
 
-        # Set the categories
-        categories = cls.CATEGORIES_MAP[parameters["dataset_name"]]
+        # Set up the dataset_container
+        dc_class = cls.MAP_DATASET_CONTAINER[parameters["dataset_name"]]
+        dataset_container = dc_class(parameters)
 
         # Set up the classifier
         classifier_name = parameters["classifier"]
-        classifier = cls.MAP_CLASSIFIER[classifier_name](parameters, wandb_run)
-
-        # Set up the data handler
-        dh_name = parameters["data_handler"]
-        data_handler = cls.MAP_DATA_HANDLER[dh_name](
-            parameters["dataset_name"], classifier, parameters, wandb_run
+        classifier = cls.MAP_CLASSIFIER[classifier_name](
+            parameters, dataset_container, wandb_run
         )
 
-        classifier.attach_data_handler(data_handler)
+        # Set up the data handler
+        data_handler = DataHandler(parameters, dataset_container, classifier, wandb_run)
 
         # Set up the acquisition function (could be None)
         af_name = parameters["acquisition_function"]
@@ -327,9 +312,9 @@ class Experiment:
 
         # Set up the interface
         if full_loop:
-            interface = CLIInterface(categories, wandb_run)
+            interface = CLIInterface(dataset_container, wandb_run)
         else:
-            interface = CLIBrokenLoopInterface(categories, wandb_run)
+            interface = CLIBrokenLoopInterface(dataset_container, wandb_run)
 
         experiment_args = {
             "parameters": parameters,
