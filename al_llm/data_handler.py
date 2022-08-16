@@ -34,7 +34,7 @@ class DataHandler:
         to know how to tokenize the data.
     wandb_run : wandb.sdk.wandb_run.Run
         The current wandb run
-        
+
     Attributes
     ----------
     classifier : classifier.Classifier
