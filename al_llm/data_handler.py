@@ -19,7 +19,7 @@ config.read("config.ini")
 
 
 class DataHandler:
-    """Base class for loading and processing the data
+    """Data handler for loading and processing the data
 
     The data handler keeps track of both the raw dataset consisting of
     sentences and labels, and the tokenized version.
