@@ -69,8 +69,8 @@ MODEL_TYPES = tuple(conf.model_type for conf in MODEL_CONFIG_CLASSES)
 
 
 # Load the configuration
-config = configparser.ConfigParser()
-config.read("config.ini")
+al_llm_config = configparser.ConfigParser()
+al_llm_config.read("config.ini")
 
 
 @dataclass
@@ -586,14 +586,14 @@ def main():
     with tempfile.TemporaryDirectory() as tmpdirname:
         # store the model in this directory
         file_path = os.path.join(
-            tmpdirname, config["TAPT Generator Loading"]["ModelFileName"]
+            tmpdirname, al_llm_config["TAPT Generator Loading"]["ModelFileName"]
         )
         model.save_pretrained(file_path)
 
         # upload this model to weights and biases as an artifact
         artifact = wandb.Artifact(
             model_args.model_name_or_path+"---"+data_args.dataset_name, 
-            type=config["TAPT Generator Loading"]["TAPTGeneratorType"]
+            type=al_llm_config["TAPT Generator Loading"]["TAPTGeneratorType"]
         )
         artifact.add_dir(tmpdirname)
         run.log_artifact(artifact)
