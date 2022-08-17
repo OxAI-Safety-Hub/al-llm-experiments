@@ -52,7 +52,10 @@ class AcquisitionFunction(ABC):
             num_samples = self.parameters["num_samples"]
 
         if num_samples > len(sample_pool):
-            raise ValueError("Size of `samples` is smaller than `num_samples`")
+            raise ValueError(
+                f"The size of `sample_pool` must be at least that of `num_samples`"
+                f" (currently {num_samples} > {len(sample_pool)}"
+            )
 
         return num_samples
 
