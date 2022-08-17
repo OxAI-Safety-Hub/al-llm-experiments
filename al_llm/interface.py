@@ -361,3 +361,65 @@ class CLIBrokenLoopInterface(CLIInterfaceMixin, BrokenLoopInterface):
     def _output(self, text: str):
         """Output something to the CLI"""
         print(text)
+
+
+class PoolSimulatorInterface(Interface):
+    """Interface for simulating pool-based active learning
+
+    This interface uses the remainder dataset as a pool of labelled samples.
+    To simulate active learning, we pretend that these are unlabelled, select
+    from them, and then simulate labelling them by taking the labels we
+    actually have for them.
+
+    Parameters
+    ----------
+    dataset_container : DatasetContainer
+        The dataset container for this experiment
+    wandb_run : wandb.sdk.wandb_run.Run
+        The current wandb run
+    """
+
+    def __init__(
+        self,
+        dataset_container: DatasetContainer,
+        wandb_run: wandb.sdk.wandb_run.Run,
+    ):
+
+        super().__init__(dataset_container, wandb_run)
+
+    def prompt(self, samples: list) -> list:
+        """Obtain a label for the samples from the dataset
+
+        Parameters
+        ----------
+        samples : list
+            A list of samples to query the human
+
+        Returns
+        -------
+        labels : list
+            A list of labels, one for each element in `samples`
+        """
+
+        # Get remainder dataset in pandas format
+        remainder_pd = self.dataset_container.dataset_remainder.with_format("pandas")[:]
+
+        labels = []
+        for sample in samples:
+
+            # Get the row containing `sample`
+            matching_row = remainder_pd.loc[remainder_pd["text"] == sample]
+
+            # If there is no such thing, something's gone wrong!
+            if len(matching_row) == 0:
+                raise ValueError(f"Sample {sample!r} not found in dataset")
+
+            # If there are two such things, we have duplicates in the dataset
+            # which is also not good
+            if len(matching_row) > 1:
+                raise ValueError(f"Sample {sample!r} found multiple times in dataset")
+
+            # Append this the label to `labels`
+            labels.append(matching_row.iloc[0]["labels"])
+
+        return labels

@@ -13,7 +13,7 @@ from .dataset_container import (
     DummyLocalDatasetContainer,
 )
 from .experiment import Experiment
-from .interface import Interface, CLIInterface
+from .interface import Interface, CLIInterface, PoolSimulatorInterface
 from .acquisition_function import (
     AcquisitionFunction,
     DummyAF,
@@ -24,5 +24,6 @@ from .sample_generator import (
     SampleGenerator,
     DummySampleGenerator,
     PlainGPT2SampleGenerator,
+    PoolSampleGenerator,
 )
 from .parameters import Parameters

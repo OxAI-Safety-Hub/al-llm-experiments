@@ -8,7 +8,6 @@ from transformers import set_seed
 
 import wandb
 
-
 from al_llm.data_handler import DataHandler
 from al_llm.dataset_container import (
     DatasetContainer,
@@ -21,13 +20,19 @@ from al_llm.sample_generator import (
     SampleGenerator,
     DummySampleGenerator,
     TAPTdistilGPT2SampleGenerator,
+    PoolSampleGenerator,
 )
 from al_llm.acquisition_function import (
     DummyAF,
     MaxUncertaintyAF,
     RandomAF,
 )
-from al_llm.interface import CLIBrokenLoopInterface, Interface, CLIInterface
+from al_llm.interface import (
+    CLIBrokenLoopInterface,
+    Interface,
+    CLIInterface,
+    PoolSimulatorInterface,
+)
 from al_llm.parameters import Parameters
 
 
@@ -73,9 +78,11 @@ class Experiment:
         "RandomAF": RandomAF,
         "MaxUncertaintyAF": MaxUncertaintyAF,
     }
+
     MAP_PLAIN_SAMPLE_GENERATOR = {
         "dummy": DummySampleGenerator,
         "gpt2": PlainGPT2SampleGenerator,
+        "pool": PoolSampleGenerator,
     }
     MAP_TAPT_SAMPLE_GENERATOR = {
         "distilgpt2": TAPTdistilGPT2SampleGenerator,
@@ -309,7 +316,11 @@ class Experiment:
 
         # Set up the sample generator
         sg_model_name = parameters["sample_generator_base_model"]
-        if parameters["use_tapted_model"]:
+        if sg_model_name == "pool":
+            sample_generator = cls.MAP_PLAIN_SAMPLE_GENERATOR[sg_model_name](
+                parameters, acquisition_function, dataset_container
+            )
+        elif parameters["use_tapted_model"]:
             sample_generator = cls.MAP_TAPT_SAMPLE_GENERATOR[sg_model_name](
                 parameters, wandb_run, acquisition_function=acquisition_function
             )
@@ -319,7 +330,9 @@ class Experiment:
             )
 
         # Set up the interface
-        if full_loop:
+        if sg_model_name == "pool":
+            interface = PoolSimulatorInterface(dataset_container, wandb_run)
+        elif full_loop:
             interface = CLIInterface(dataset_container, wandb_run)
         else:
             interface = CLIBrokenLoopInterface(dataset_container, wandb_run)

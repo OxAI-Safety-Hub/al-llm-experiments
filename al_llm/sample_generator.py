@@ -13,6 +13,7 @@ import wandb
 from transformers import pipeline, AutoModelForCausalLM
 
 from al_llm.acquisition_function import AcquisitionFunction
+from al_llm.dataset_container import DatasetContainer
 from al_llm.parameters import Parameters
 
 
@@ -28,7 +29,7 @@ class SampleGenerator(ABC):
     ----------
     parameters : Parameters
         The dictionary of parameters for the present experiment
-    acquisition_function : acquisition_function.AcquisitionFunction, optional
+    acquisition_function : AcquisitionFunction, optional
         The acquisition function to use, if any. By default we simply generate
         a number of samples with no selection procedure.
     """
@@ -93,7 +94,7 @@ class DummySampleGenerator(SampleGenerator):
     ----------
     parameters : Parameters
         The dictionary of parameters for the present experiment
-    acquisition_function : acquisition_function.AcquisitionFunction, optional
+    acquisition_function : AcquisitionFunction, optional
         The acquisition function to use, if any. By default we simply generate
         a number of samples with no selection procedure.
     """
@@ -125,7 +126,7 @@ class PlainGPT2SampleGenerator(SampleGenerator):
     ----------
     parameters : Parameters
         The dictionary of parameters for the present experiment
-    acquisition_function : acquisition_function.AcquisitionFunction, optional
+    acquisition_function : AcquisitionFunction, optional
         The acquisition function to use, if any. By default we simply generate
         a number of samples with no selection procedure.
     max_length : int, default=30
@@ -147,7 +148,7 @@ class PlainGPT2SampleGenerator(SampleGenerator):
 
         # Set the device to use
         self.device = (
-            torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+            torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
         )
 
         # Create a pipeline for text generation
@@ -166,6 +167,43 @@ class PlainGPT2SampleGenerator(SampleGenerator):
         sample_pool = [d["generated_text"] for d in sentence_dicts]
 
         return sample_pool
+
+
+class PoolSampleGenerator(SampleGenerator):
+    """Generate samples by sampling from the remainder dataset
+    Parameters
+    ----------
+    parameters : Parameters
+        The dictionary of parameters for the present experiment
+    acquisition_function : AcquisitionFunction
+        The acquisition function to use.
+    dataset_container : DatasetContainer
+        The dataset container for the experiment, which holds the remainder
+        dataset
+    """
+
+    def __init__(
+        self,
+        parameters: Parameters,
+        acquisition_function: AcquisitionFunction,
+        dataset_container: DatasetContainer,
+    ):
+        super().__init__(parameters, acquisition_function)
+
+        # Get the list of sentences in the remainder dataset, as a list
+        remainder_python = dataset_container.dataset_remainder.with_format(None)
+        text_column_name = config["Data Handling"]["TextColumnName"]
+        self.remainder_sentences = remainder_python[text_column_name]
+
+    def generate(self) -> list:
+
+        # Filter the acquisition function through the set of sentences in the
+        # remainder dataset
+        sample_pool = self._generate_sample_pool()
+        return self.acquisition_function.select(sample_pool)
+
+    def _generate_sample_pool(self) -> list:
+        return self.remainder_sentences
 
 
 class TAPTSampleGenerator(SampleGenerator, ABC):
