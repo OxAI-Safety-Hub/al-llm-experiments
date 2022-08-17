@@ -241,7 +241,7 @@ class TAPTSampleGenerator(SampleGenerator, ABC):
 
         # Set the device to use
         self.device = (
-            torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+            torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
         )
 
         # Loads the pretrained model from wandb
