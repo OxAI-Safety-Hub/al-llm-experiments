@@ -42,9 +42,6 @@ class DataHandler:
     ----------
     classifier : classifier.Classifier
         The classifier instance which will be using the data.
-    orig_train_size : int
-        The original size of the train dataset, before new datapoints are
-        added during active learning.
     """
 
     def __init__(
