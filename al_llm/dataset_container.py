@@ -526,6 +526,9 @@ class RottenTomatoesDatasetHandler(HuggingFaceDatasetContainer):
         self.dataset_train = self.dataset_train.rename_column(
             "label", config["Data Handling"]["LabelColumnName"]
         )
+        self.dataset_remainder = self.dataset_remainder.rename_column(
+            "label", config["Data Handling"]["LabelColumnName"]
+        )
         self.dataset_validation = self.dataset_validation.rename_column(
             "label", config["Data Handling"]["LabelColumnName"]
         )
