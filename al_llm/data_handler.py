@@ -24,6 +24,8 @@ class DataHandler:
     The data handler keeps track of both the raw dataset consisting of
     sentences and labels, and the tokenized version.
 
+    The training set is added to as the active learning experiment progresses.
+
     Parameters
     ----------
     parameters : Parameters

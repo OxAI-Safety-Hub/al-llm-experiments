@@ -22,6 +22,8 @@ def _basic_dataset_container_tests(dataset_container, tokenize):
     # Make sure the tokenized datasets have values of the correct type
     for value in dataset_container.tokenized_train[0].values():
         assert isinstance(value, torch.Tensor)
+    for value in dataset_container.tokenized_remainder[0].values():
+        assert isinstance(value, torch.Tensor)
     for value in dataset_container.tokenized_validation[0].values():
         assert isinstance(value, torch.Tensor)
     for value in dataset_container.tokenized_test[0].values():
@@ -76,6 +78,7 @@ def test_dummy_dataset_container():
 
     # Make sure the dataset splits are of the right type
     assert isinstance(dataset_container.dataset_train, datasets.Dataset)
+    assert isinstance(dataset_container.dataset_remainder, datasets.Dataset)
     assert isinstance(dataset_container.dataset_validation, datasets.Dataset)
     assert isinstance(dataset_container.dataset_test, datasets.Dataset)
 
