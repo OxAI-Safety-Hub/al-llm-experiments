@@ -295,7 +295,6 @@ class DummyDatasetContainer(DatasetContainer):
             list(self.categories.keys()), parameters["seed"]
         )
         train_labels = label_generator.generate(self.TRAIN_SIZE)
-        remainder_labels = label_generator.generate(self.REMAINDER_SIZE)
         validation_labels = label_generator.generate(self.VALIDATION_SIZE)
         test_labels = label_generator.generate(self.TEST_SIZE)
 
