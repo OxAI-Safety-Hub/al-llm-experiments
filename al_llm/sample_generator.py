@@ -4,10 +4,11 @@ from abc import ABC, abstractmethod
 from random import randrange
 from typing import Optional
 import configparser
-
-import torch
 import tempfile
 import os
+
+import torch
+
 import wandb
 
 from transformers import pipeline, AutoModelForCausalLM
@@ -170,7 +171,8 @@ class PlainGPT2SampleGenerator(SampleGenerator):
 
 
 class PoolSampleGenerator(SampleGenerator):
-    """Generate samples by sampling from the remainder dataset
+    """Generate samples by sampling from the remainder dataset.
+
     Parameters
     ----------
     parameters : Parameters
@@ -243,7 +245,7 @@ class TAPTSampleGenerator(SampleGenerator, ABC):
         )
 
         # Loads the pretrained model from wandb
-        self.load_tapted_model()
+        self._load_tapted_model()
 
         # Create a pipeline for text generation
         self.generator = pipeline(
@@ -253,7 +255,7 @@ class TAPTSampleGenerator(SampleGenerator, ABC):
             device=self.device,
         )
 
-    def load_tapted_model(self):
+    def _load_tapted_model(self):
         """Loads the pretrained model from wandb
 
         Sets `self.model` to this pretrained model after loading

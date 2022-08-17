@@ -9,4 +9,4 @@ def test_default_parameters_are_dummy():
     # Make sure we use dummy values
     assert "Dummy" in parameters["classifier"]
     assert "Dummy" in parameters["acquisition_function"]
-    assert "dummy" in parameters["sample_generator_base_model"]
+    assert parameters["sample_generator_base_model"] == "dummy"
