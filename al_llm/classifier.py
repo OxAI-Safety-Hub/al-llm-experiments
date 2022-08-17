@@ -290,7 +290,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
 
         # If the model is not already loaded then load it
         if self.model is None:
-            self._load_model()
+            self._load_model_from_wandb()
 
         # create an optimizer for the model
         optimizer = AdamW(self.model.parameters(), lr=self.parameters["learning_rate"])
