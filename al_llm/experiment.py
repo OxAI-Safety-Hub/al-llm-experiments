@@ -19,13 +19,19 @@ from al_llm.sample_generator import (
     PlainGPT2SampleGenerator,
     SampleGenerator,
     DummySampleGenerator,
+    PoolSampleGenerator,
 )
 from al_llm.acquisition_function import (
     DummyAF,
     MaxUncertaintyAF,
     RandomAF,
 )
-from al_llm.interface import CLIBrokenLoopInterface, Interface, CLIInterface
+from al_llm.interface import (
+    CLIBrokenLoopInterface,
+    Interface,
+    CLIInterface,
+    PoolSimulatorInterface,
+)
 from al_llm.parameters import Parameters
 
 
@@ -74,6 +80,7 @@ class Experiment:
     MAP_SAMPLE_GENERATOR = {
         "DummySampleGenerator": DummySampleGenerator,
         "PlainGPT2SampleGenerator": PlainGPT2SampleGenerator,
+        "PoolSampleGenerator": PoolSampleGenerator,
     }
 
     def __init__(
@@ -302,7 +309,9 @@ class Experiment:
         )
 
         # Set up the interface
-        if full_loop:
+        if sg_name == "PoolSampleGenerator":
+            interface = PoolSimulatorInterface(dataset_container, wandb_run)
+        elif full_loop:
             interface = CLIInterface(dataset_container, wandb_run)
         else:
             interface = CLIBrokenLoopInterface(dataset_container, wandb_run)
