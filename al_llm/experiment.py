@@ -20,6 +20,7 @@ from al_llm.sample_generator import (
     PlainGPT2SampleGenerator,
     SampleGenerator,
     DummySampleGenerator,
+    TAPTdistilGPT2SampleGenerator,
 )
 from al_llm.acquisition_function import (
     DummyAF,
@@ -72,9 +73,12 @@ class Experiment:
         "RandomAF": RandomAF,
         "MaxUncertaintyAF": MaxUncertaintyAF,
     }
-    MAP_SAMPLE_GENERATOR = {
+    MAP_PLAIN_SAMPLE_GENERATOR = {
         "dummy": DummySampleGenerator,
         "gpt2": PlainGPT2SampleGenerator,
+    }
+    MAP_TAPT_SAMPLE_GENERATOR = {
+        "distilgpt2": TAPTdistilGPT2SampleGenerator,
     }
 
     def __init__(
@@ -305,9 +309,14 @@ class Experiment:
 
         # Set up the sample generator
         sg_model_name = parameters["sample_generator_base_model"]
-        sample_generator = cls.MAP_SAMPLE_GENERATOR[sg_model_name](
-            parameters, acquisition_function=acquisition_function
-        )
+        if parameters["use_tapted_model"]:
+            sample_generator = cls.MAP_TAPT_SAMPLE_GENERATOR[sg_model_name](
+                parameters, acquisition_function=acquisition_function
+            )
+        else:
+            sample_generator = cls.MAP_PLAIN_SAMPLE_GENERATOR[sg_model_name](
+                parameters, acquisition_function=acquisition_function
+            )
 
         # Set up the interface
         if full_loop:
