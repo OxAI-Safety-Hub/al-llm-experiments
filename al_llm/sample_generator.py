@@ -3,13 +3,20 @@
 from abc import ABC, abstractmethod
 from random import randrange
 from typing import Optional
+import configparser
 
 import torch
 
 from transformers import pipeline
 
 from al_llm.acquisition_function import AcquisitionFunction
+from al_llm.dataset_container import DatasetContainer
 from al_llm.parameters import Parameters
+
+
+# Load the configuration
+config = configparser.ConfigParser()
+config.read("config.ini")
 
 
 class SampleGenerator(ABC):
@@ -19,7 +26,7 @@ class SampleGenerator(ABC):
     ----------
     parameters : Parameters
         The dictionary of parameters for the present experiment
-    acquisition_function : acquisition_function.AcquisitionFunction, optional
+    acquisition_function : AcquisitionFunction, optional
         The acquisition function to use, if any. By default we simply generate
         a number of samples with no selection procedure.
     """
@@ -84,7 +91,7 @@ class DummySampleGenerator(SampleGenerator):
     ----------
     parameters : Parameters
         The dictionary of parameters for the present experiment
-    acquisition_function : acquisition_function.AcquisitionFunction, optional
+    acquisition_function : AcquisitionFunction, optional
         The acquisition function to use, if any. By default we simply generate
         a number of samples with no selection procedure.
     """
@@ -116,7 +123,7 @@ class PlainGPT2SampleGenerator(SampleGenerator):
     ----------
     parameters : Parameters
         The dictionary of parameters for the present experiment
-    acquisition_function : acquisition_function.AcquisitionFunction, optional
+    acquisition_function : AcquisitionFunction, optional
         The acquisition function to use, if any. By default we simply generate
         a number of samples with no selection procedure.
     max_length : int, default=30
@@ -160,6 +167,38 @@ class PlainGPT2SampleGenerator(SampleGenerator):
 
 
 class PoolSampleGenerator(SampleGenerator):
-    """Generate samples by sampling from the unlabelled data"""
+    """Generate samples by sampling from the remainder dataset
 
-    pass
+    Parameters
+    ----------
+    parameters : Parameters
+        The dictionary of parameters for the present experiment
+    acquisition_function : AcquisitionFunction
+        The acquisition function to use.
+    dataset_container : DatasetContainer
+        The dataset container for the experiment, which holds the remainder
+        dataset
+    """
+
+    def __init__(
+        self,
+        parameters: Parameters,
+        acquisition_function: AcquisitionFunction,
+        dataset_container: DatasetContainer,
+    ):
+        super().__init__(parameters, acquisition_function)
+
+        # Get the list of sentences in the remainder dataset, as a list
+        remainder_python = dataset_container.dataset_remainder.with_format(None)
+        text_column_name = config["Data Handling"]["TextColumnName"]
+        self.remainder_sentences = remainder_python[text_column_name]
+
+    def generate(self) -> list:
+
+        # Filter the acquisition function through the set of sentences in the
+        # remainder dataset
+        sample_pool = self._generate_sample_pool()
+        return self.acquisition_function.select(sample_pool)
+
+    def _generate_sample_pool(self) -> list:
+        return self.remainder_sentences

@@ -311,9 +311,14 @@ class Experiment:
 
         # Set up the sample generator
         sg_name = parameters["sample_generator"]
-        sample_generator = cls.MAP_SAMPLE_GENERATOR[sg_name](
-            parameters, acquisition_function=acquisition_function
-        )
+        if sg_name == "PoolSampleGenerator":
+            sample_generator = cls.MAP_SAMPLE_GENERATOR[sg_name](
+                parameters, acquisition_function, dataset_container
+            )
+        else:
+            sample_generator = cls.MAP_SAMPLE_GENERATOR[sg_name](
+                parameters, acquisition_function=acquisition_function
+            )
 
         # Set up the interface
         if sg_name == "PoolSampleGenerator":
