@@ -20,7 +20,7 @@ from al_llm.sample_generator import (
     SampleGenerator,
     DummySampleGenerator,
     TAPTGPT2SampleGenerator,
-    TAPTdistilGPT2SampleGenerator,
+    TAPTDistilGPT2SampleGenerator,
     PoolSampleGenerator,
 )
 from al_llm.acquisition_function import (
@@ -86,7 +86,7 @@ class Experiment:
         "pool": PoolSampleGenerator,
     }
     MAP_TAPT_SAMPLE_GENERATOR = {
-        "distilgpt2": TAPTdistilGPT2SampleGenerator,
+        "distilgpt2": TAPTDistilGPT2SampleGenerator,
         "gpt2": TAPTGPT2SampleGenerator,
     }
 

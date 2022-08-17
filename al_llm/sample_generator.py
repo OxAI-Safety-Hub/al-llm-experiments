@@ -294,7 +294,7 @@ class TAPTSampleGenerator(SampleGenerator, ABC):
         return sample_pool
 
 
-class TAPTdistilGPT2SampleGenerator(TAPTSampleGenerator):
+class TAPTDistilGPT2SampleGenerator(TAPTSampleGenerator):
     """Tapted distilGPT-2 sample generator, which generates real sentences
 
     It generates `parameters["num_samples"]` samples. If an acquisition
