@@ -51,6 +51,8 @@ class Parameters(dict):
             The name of the acquisition function to use.
         sample_generator_base_model : str, default="dummy"
             The name of the base model the sample generator should use.
+        use_tapted_model : Bool, default=False
+            True if a pretrained sample generator be used.
     """
 
     # defined default paramets
@@ -72,6 +74,7 @@ class Parameters(dict):
         "classifier": "DummyClassifier",
         "acquisition_function": "DummyAF",
         "sample_generator_base_model": "dummy",
+        "use_tapted_model": False,
     }
 
     def __init__(self, *args, **kw):
