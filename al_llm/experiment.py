@@ -311,7 +311,7 @@ class Experiment:
         sg_model_name = parameters["sample_generator_base_model"]
         if parameters["use_tapted_model"]:
             sample_generator = cls.MAP_TAPT_SAMPLE_GENERATOR[sg_model_name](
-                parameters, acquisition_function=acquisition_function
+                parameters, wandb_run, acquisition_function=acquisition_function
             )
         else:
             sample_generator = cls.MAP_PLAIN_SAMPLE_GENERATOR[sg_model_name](
