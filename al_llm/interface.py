@@ -369,7 +369,7 @@ class PoolSimulatorInterface(Interface):
 
     This interface uses the remainder dataset as a pool of labelled samples.
     To simulate active learning, we pretend that these are unlabelled, select
-    from them, and then simulate labelling them by taking the labels we 
+    from them, and then simulate labelling them by taking the labels we
     actually have for them.
 
     Parameters
