@@ -73,8 +73,8 @@ class Experiment:
         "MaxUncertaintyAF": MaxUncertaintyAF,
     }
     MAP_SAMPLE_GENERATOR = {
-        "DummySampleGenerator": DummySampleGenerator,
-        "PlainGPT2SampleGenerator": PlainGPT2SampleGenerator,
+        "dummy": DummySampleGenerator,
+        "gpt2": PlainGPT2SampleGenerator,
     }
 
     def __init__(
@@ -304,8 +304,8 @@ class Experiment:
             acquisition_function = af_class(parameters)
 
         # Set up the sample generator
-        sg_name = parameters["sample_generator"]
-        sample_generator = cls.MAP_SAMPLE_GENERATOR[sg_name](
+        sg_model_name = parameters["sample_generator_base_model"]
+        sample_generator = cls.MAP_SAMPLE_GENERATOR[sg_model_name](
             parameters, acquisition_function=acquisition_function
         )
 

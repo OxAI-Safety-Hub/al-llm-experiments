@@ -10,4 +10,4 @@ def test_default_parameters_are_dummy():
     assert parameters["dev_mode"]
     assert "Dummy" in parameters["classifier"]
     assert "Dummy" in parameters["acquisition_function"]
-    assert "Dummy" in parameters["sample_generator"]
+    assert "dummy" in parameters["sample_generator_base_model"]

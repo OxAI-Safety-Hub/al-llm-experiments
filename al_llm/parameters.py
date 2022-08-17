@@ -49,8 +49,8 @@ class Parameters(dict):
             The name of the classifier to use.
         acquisition_function : str, default="DummyAF"
             The name of the acquisition function to use.
-        sample_generator : str, default="DummySampleGenerator"
-            The name of the sample generator to use.
+        sample_generator_base_model : str, default="dummy"
+            The name of the base model the sample generator should use.
     """
 
     # defined default paramets
@@ -71,7 +71,7 @@ class Parameters(dict):
         "validation_proportion": 0.2,
         "classifier": "DummyClassifier",
         "acquisition_function": "DummyAF",
-        "sample_generator": "DummySampleGenerator",
+        "sample_generator_base_model": "dummy",
     }
 
     def __init__(self, *args, **kw):
