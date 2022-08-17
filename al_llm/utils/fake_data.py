@@ -41,13 +41,15 @@ class FakeSentenceGenerator:
         self.sentence_len_mu = sentence_len_mu
         self.sentence_len_sigma = sentence_len_sigma
 
-    def generate(self, num_sentences: int) -> list:
+    def generate(self, num_sentences: int, allow_repeats=False) -> list:
         """Generate a list of fake sentences
 
         Parameters
         ----------
         num_sentences : int
             The number of sentences to generate
+        allow_repeats : bool, default=False
+            Whether to allow repeats of the same sentences
 
         Returns
         -------
@@ -64,13 +66,25 @@ class FakeSentenceGenerator:
                     self.sentence_len_mu, self.sentence_len_sigma
                 )
             )
+            num_words = max(1, num_words)
 
-            # Pick the words from the word list
-            sentence_words = self._number_generator.choices(self.word_list, k=num_words)
+            sentence = None
 
-            # Turn into a capitalised sentence
-            sentence = " ".join(sentence_words)
-            sentence = sentence.capitalize()
+            while sentence is None:
+
+                # Pick the words from the word list
+                sentence_words = self._number_generator.choices(
+                    self.word_list, k=num_words
+                )
+
+                # Turn into a capitalised sentence
+                sentence = " ".join(sentence_words)
+                sentence = sentence.capitalize()
+
+                # If we're not allowing repeats, make sure this sentence hasn't
+                # already appeared
+                if not allow_repeats and sentence in sentences:
+                    sentence = None
 
             sentences.append(sentence)
 
