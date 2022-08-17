@@ -20,6 +20,7 @@ import datasets
 import evaluate
 
 import wandb
+from al_llm import dataset_container
 
 from al_llm.parameters import Parameters
 from al_llm.dataset_container import DatasetContainer
@@ -181,6 +182,8 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
     ----------
     parameters : Parameters
         The dictionary of parameters for the present experiment
+    dataset_container : DatasetContainer
+        The container for the datasets in this experiment
     wandb_run : wandb.sdk.wandb_run.Run
         The current wandb run
     model_name : str
@@ -358,6 +361,9 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
 
     def _load_fresh_model(self):
         """Load the classifier model afresh"""
+
+        # Delete the old model to free up memory
+        del self.model
 
         # load a fresh version of the model
         self.model = AutoModelForSequenceClassification.from_pretrained(
@@ -617,6 +623,8 @@ class GPT2Classifier(HuggingFaceClassifier):
     ----------
     parameters : Parameters
         The dictionary of parameters for the present experiment
+    dataset_container : DatasetContainer
+        The container for the datasets in this experiment
     wandb_run : wandb.sdk.wandb_run.Run
         The current wandb run
 
@@ -640,8 +648,15 @@ class GPT2Classifier(HuggingFaceClassifier):
     MODEL_NAME = "gpt2"
     ARTIFACT_NAME = "gtp2-classifier"
 
-    def __init__(self, parameters: Parameters, wandb_run: wandb.sdk.wandb_run.Run):
-        super().__init__(parameters, wandb_run, model_name=self.MODEL_NAME)
+    def __init__(
+        self,
+        parameters: Parameters,
+        dataset_container: DatasetContainer,
+        wandb_run: wandb.sdk.wandb_run.Run,
+    ):
+        super().__init__(
+            parameters, dataset_container, wandb_run, model_name=self.MODEL_NAME
+        )
 
 
 class DistilGPT2Classifier(HuggingFaceClassifier):
@@ -657,6 +672,8 @@ class DistilGPT2Classifier(HuggingFaceClassifier):
     ----------
     parameters : Parameters
         The dictionary of parameters for the present experiment
+    dataset_container : DatasetContainer
+        The container for the datasets in this experiment
     wandb_run : wandb.sdk.wandb_run.Run
         The current wandb run
 
@@ -681,5 +698,12 @@ class DistilGPT2Classifier(HuggingFaceClassifier):
     MODEL_NAME = "distilgpt2"
     ARTIFACT_NAME = "distilgpt2-classifier"
 
-    def __init__(self, parameters: Parameters, wandb_run: wandb.sdk.wandb_run.Run):
-        super().__init__(parameters, wandb_run, model_name=self.MODEL_NAME)
+    def __init__(
+        self,
+        parameters: Parameters,
+        dataset_container: DatasetContainer,
+        wandb_run: wandb.sdk.wandb_run.Run,
+    ):
+        super().__init__(
+            parameters, dataset_container, wandb_run, model_name=self.MODEL_NAME
+        )
