@@ -368,9 +368,10 @@ class CLIBrokenLoopInterface(CLIInterfaceMixin, BrokenLoopInterface):
 class PoolSimulatorInterface(Interface):
     """Interface for simulating pool-based active learning
 
-    This interface uses a fully labelled dataset to obtain labels for the
-    sample sentences. It assumes that each sample comes from the dataset and
-    yields the associated label.
+    This interface uses the remainder dataset as a pool of labelled samples.
+    To simulate active learning, we pretend that these are unlabelled, select
+    from them, and then simulate labelling them by taking the labels we 
+    actually have for them.
 
     Parameters
     ----------
@@ -384,16 +385,12 @@ class PoolSimulatorInterface(Interface):
         self,
         dataset_container: DatasetContainer,
         wandb_run: wandb.sdk.wandb_run.Run,
-        data_handler: DataHandler,
     ):
 
         super().__init__(dataset_container, wandb_run)
 
-        self.data_handler = data_handler
-
     def prompt(self, samples: list) -> list:
         """Obtain a label for the samples from the dataset
-
 
         Parameters
         ----------
@@ -406,30 +403,23 @@ class PoolSimulatorInterface(Interface):
             A list of labels, one for each element in `samples`
         """
 
-        # Filter for those datapoints corresponding to the samples
-        def filter_function(x, idx):
-            if idx >= self.data_handler.orig_train_size:
-                return False
-            else:
-                return x["text"] in samples
-
-        # Select these datapoints
-        matching_rows_dataset = self.data_handler.dataset_train.filter(
-            filter_function, with_indices=True
-        )
-
-        # Get the matching rows as a Pandas dataframe
-        matching_rows = matching_rows_dataset.with_format("pandas")[:]
+        # Get remainder dataset in pandas format
+        remainder_pd = self.dataset_container.dataset_remainder.with_format("pandas")[:]
 
         labels = []
         for sample in samples:
 
             # Get the row containing `sample`
-            matching_row = matching_rows.loc[matching_rows["text"] == sample]
+            matching_row = remainder_pd.loc[remainder_pd["text"] == sample]
 
             # If there is no such thing, something's gone wrong!
             if len(matching_row) == 0:
                 raise ValueError(f"Sample {sample!r} not found in dataset")
+
+            # If there are two such things, we have duplicates in the dataset
+            # which is also not good
+            if len(matching_row) > 1:
+                raise ValueError(f"Sample {sample!r} multiple times in dataset")
 
             # Append this the label to `labels`
             labels.append(matching_row["labels"])
