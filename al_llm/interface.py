@@ -417,9 +417,9 @@ class PoolSimulatorInterface(Interface):
             # If there are two such things, we have duplicates in the dataset
             # which is also not good
             if len(matching_row) > 1:
-                raise ValueError(f"Sample {sample!r} multiple times in dataset")
+                raise ValueError(f"Sample {sample!r} found multiple times in dataset")
 
             # Append this the label to `labels`
-            labels.append(matching_row["labels"])
+            labels.append(matching_row.iloc[0]["labels"])
 
         return labels
