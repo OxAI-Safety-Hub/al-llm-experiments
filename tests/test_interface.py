@@ -1,4 +1,3 @@
-from al_llm import parameters
 from al_llm.parameters import Parameters
 from al_llm.experiment import Experiment
 
@@ -11,11 +10,11 @@ def test_pool_simulator_interface():
     experiment = Experiment(**args)
 
     # Run it, to make sure there are no errors
-    # experiment.run_full()
+    experiment.run_full()
 
     # Check that the prompt method returns the correct labels
-    # initial_dataset_slice = data_handler.dataset_train[:10]
-    # initial_dataset_slice.set_format("pandas")
-    # samples = list(initial_dataset_slice[:]["text"])
-    # labels = list(initial_dataset_slice[:]["labels"])
-    # assert interface.prompt(samples) == labels
+    dataset_train = args["dataset_container"].dataset_remainder
+    initial_dataset_slice = dataset_train.with_format(None)
+    samples = initial_dataset_slice["text"][:10]
+    labels = initial_dataset_slice["labels"][:10]
+    assert args["interface"].prompt(samples) == labels
