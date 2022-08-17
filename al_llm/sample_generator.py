@@ -315,3 +315,26 @@ class TAPTdistilGPT2SampleGenerator(TAPTSampleGenerator):
     """
 
     MODEL_NAME = "distilgpt2"
+
+
+class TAPTGPT2SampleGenerator(TAPTSampleGenerator):
+    """Tapted GPT-2 sample generator, which generates real sentences
+
+    It generates `parameters["num_samples"]` samples. If an acquisition
+    function is supplied, it first generates `parameters["sample_pool_size"]`
+    then uses the function to select from these.
+
+    Parameters
+    ----------
+    parameters : Parameters
+        The dictionary of parameters for the present experiment
+    wandb_run : wandb.sdk.wandb_run.Run
+        The current wandb run
+    acquisition_function : acquisition_function.AcquisitionFunction, optional
+        The acquisition function to use, if any. By default we simply generate
+        a number of samples with no selection procedure.
+    max_length : int, default=30
+        The maximum length of the sentences generated.
+    """
+
+    MODEL_NAME = "gpt2"
