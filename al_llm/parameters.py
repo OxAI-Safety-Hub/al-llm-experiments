@@ -36,7 +36,8 @@ class Parameters(dict):
         learning_rate : float, default=5e-5
             Initial learning rate for training.
         dev_mode : bool, default=False
-            True if the experiment should only use dummy values.
+            Whether we're doing some development testing. The current effect
+            is to reduce the size of the dataset considerably.
         seed : int, default=459834
             The random seed to use for random number generation. The seed is
             set at the beginning of each AL iteration to `seed+iteration`.
@@ -65,7 +66,7 @@ class Parameters(dict):
         "num_warmup_steps": 0,
         "sample_pool_size": 20,
         "learning_rate": 5e-5,
-        "dev_mode": True,
+        "dev_mode": False,
         "seed": 459834,
         "send_alerts": False,
         "validation_proportion": 0.2,
