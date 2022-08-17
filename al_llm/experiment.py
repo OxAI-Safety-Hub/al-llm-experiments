@@ -1,4 +1,3 @@
-import string
 from typing import Union
 import configparser
 
@@ -9,7 +8,13 @@ from transformers import set_seed
 
 import wandb
 
-from al_llm.data_handler import DataHandler, DummyDataHandler, HuggingFaceDataHandler
+
+from al_llm.data_handler import DataHandler
+from al_llm.dataset_container import (
+    DatasetContainer,
+    DummyDatasetContainer,
+    RottenTomatoesDatasetHandler,
+)
 from al_llm.classifier import Classifier, DummyClassifier, GPT2Classifier
 from al_llm.sample_generator import (
     PlainGPT2SampleGenerator,
@@ -19,6 +24,7 @@ from al_llm.sample_generator import (
 from al_llm.acquisition_function import (
     DummyAF,
     MaxUncertaintyAF,
+    RandomAF,
 )
 from al_llm.interface import CLIBrokenLoopInterface, Interface, CLIInterface
 from al_llm.parameters import Parameters
@@ -34,53 +40,62 @@ class Experiment:
 
     Parameters
     ----------
+    parameters : Parameters
+        A dictionary of parameters to identify this experiment
+    dataset_container : DatasetContainer
+        The dataset container to use
     data_handler : DataHandler
-        The starting dataset of labelled samples
-    categories : dict
-        A dictionary of categories used by the classifier. The keys are the
-        names of the categories as understood by the model, and the values
-        are the human-readable names.
+        The data handler to use
     classifier : Classifier
         The classifier instance to use.
     sample_generator : SampleGenerator
         The generator which produces samples for labelling
     interface : Interface
         The interface instance to use
-    parameters : Parameters
-        A dictionary of parameters to identify this experiment
     wandb_run : wandb.sdk.wandb_run.Run
         The current wandb run
     already_finetuned : bool, default=False
         Is the classifier already fine-tuned on the dataset?
-
-
-    Attributes
-    ----------
-    categories : dict
-        A dictionary containing the categories used in the dataset labels column
-        (as an `int`) which are the keys for the human-readable versions of each
-        (as a `str`)
     """
+
+    MAP_DATASET_CONTAINER = {
+        "dummy": DummyDatasetContainer,
+        "rotten_tomatoes": RottenTomatoesDatasetHandler,
+    }
+    MAP_CLASSIFIER = {
+        "DummyClassifier": DummyClassifier,
+        "GPT2Classifier": GPT2Classifier,
+    }
+    MAP_ACQUISITION_FUNCTION = {
+        "None": None,
+        "DummyAF": DummyAF,
+        "RandomAF": RandomAF,
+        "MaxUncertaintyAF": MaxUncertaintyAF,
+    }
+    MAP_SAMPLE_GENERATOR = {
+        "DummySampleGenerator": DummySampleGenerator,
+        "PlainGPT2SampleGenerator": PlainGPT2SampleGenerator,
+    }
 
     def __init__(
         self,
+        parameters: Parameters,
+        dataset_container: DatasetContainer,
         data_handler: DataHandler,
-        categories: dict,
         classifier: Classifier,
         sample_generator: SampleGenerator,
         interface: Interface,
-        parameters: Parameters,
         wandb_run: wandb.sdk.wandb_run.Run,
         already_finetuned: bool = False,
     ):
 
         # Set the instance attributes
+        self.parameters = parameters
+        self.dataset_container = dataset_container
         self.data_handler = data_handler
-        self.categories = categories
         self.classifier = classifier
         self.sample_generator = sample_generator
         self.interface = interface
-        self.parameters = parameters
         self.wandb_run = wandb_run
         self.already_finetuned = already_finetuned
 
@@ -181,7 +196,7 @@ class Experiment:
         """Fine-tune the classifier from scratch"""
         self.interface.train_afresh()
         self.classifier.train_afresh(
-            self.data_handler.tokenized_train,
+            self.dataset_container.tokenized_train,
             iteration,
         )
 
@@ -203,82 +218,11 @@ class Experiment:
         self.data_handler.save()
 
     @classmethod
-    def make_dummy_experiment(
-        cls,
-        run_id: string,
-        full_loop=True,
-        is_running_pytests: bool = False,
-    ):
-        """Get dummy instances to feed into the constructor
-
-        Parameters
-        ----------
-        run_id : str
-            The ID of the current run
-        full_loop : bool, default=True
-            Design the experiment to run the full loop of active learning
-
-        Returns
-        -------
-        dummy_args : dict
-            A dictionary of the non-optional arguments for `Experiment`,
-            whose values are dummy instances
-
-        Example
-        -------
-        >>> dummy_args = Experiment.make_dummy_experiment()
-        >>> experiment = Experiment(**dummy_args)
-        """
-
-        parameters = Parameters(dev_mode=True)
-
-        # initialise weights and biases
-        #   Set resume to allow which resumes the previous run if there is already
-        #   a run with the id `run_id`.
-        #   Set mode to disabled when running pytests so that a login is not required
-        #   for the program to run.
-        wandb_run = wandb.init(
-            project=config["Wandb"]["Project"],
-            entity=config["Wandb"]["Entity"],
-            resume="allow",
-            id=run_id,
-            mode="disabled" if is_running_pytests else "online",
-            config=parameters,
-        )
-
-        # Set the seed now, because the data handler may do some shuffling
-        set_seed(parameters["seed"])
-
-        categories = {0: "Valid sentence", 1: "Invalid sentence"}
-        classifier = DummyClassifier(parameters, wandb_run)
-        data_handler = DummyDataHandler(classifier, parameters, wandb_run)
-        classifier.attach_data_handler(data_handler)
-        acquisition_function = DummyAF(parameters)
-        sample_generator = DummySampleGenerator(
-            parameters, acquisition_function=acquisition_function
-        )
-        if full_loop:
-            interface = CLIInterface(categories, wandb_run)
-        else:
-            interface = CLIBrokenLoopInterface(categories, wandb_run)
-
-        dummy_args = {
-            "data_handler": data_handler,
-            "categories": categories,
-            "classifier": classifier,
-            "sample_generator": sample_generator,
-            "interface": interface,
-            "parameters": parameters,
-            "wandb_run": wandb_run,
-        }
-
-        return dummy_args
-
-    @classmethod
     def make_experiment(
         cls,
-        dataset_name: str,
+        parameters: Parameters,
         run_id: str,
+        full_loop=True,
         is_running_pytests: bool = False,
     ):
         """Get experiment instances to feed into the constructor
@@ -286,28 +230,38 @@ class Experiment:
         Default setup expects Rotten Tomatoes dataset, and uses a classifier built
         on GPT-2, the HuggingFaceDataHandler, a GPT-2-based sentence generator that
         produces real sentences and filters using a maximum uncertainty acquisition
-        function, and the Command Line Interface. Also sets `dev_mode` parameter to
-        `True`, which reduces size of datasets provided to the classifier.
+        function, and the Command Line Interface.
 
         Parameters
         ----------
-        dataset_name : str
-            The name of the dataset this experiment should use
+        parameters : Parameters
+            The dictionary of parameters for the present experiment
         run_id : str
             The ID of the current run
+        full_loop : bool, default=True
+            Design the experiment to run the full loop of active learning
+        is_running_pytests: bool, default=False
+            If true, wandb will be disabled for the test experiments
 
         Returns
         -------
         experiment_args : dict
             A dictionary of the non-optional arguments for `Experiment`
 
+        Notes
+        -----
+
+        By default all parameters are dummy parameters. This means that calling
+        this method with a plain `Parameters` instance will create a dummy
+        experiment.
+
         Example
         -------
-        >>> experiment_args = Experiment.make_experiment("rotten_tomatoes")
-        >>> experiment = Experiment(**experiment_args)
+        Make a dummy experiment
+        >>> parameters = Parameters()
+        >>> args = Experiment.make_experiment(parameters, "dummy")
+        >>> experiment = Experiment(**args)
         """
-
-        parameters = Parameters(dev_mode=True)
 
         # initialise weights and biases
         #   Set resume to allow which resumes the previous run if there is already
@@ -326,25 +280,48 @@ class Experiment:
         # Set the seed now, because the data handler may do some shuffling
         set_seed(parameters["seed"])
 
-        categories = {0: "Negative sentence", 1: "Positive sentence"}
-        classifier = GPT2Classifier(parameters, wandb_run)
-        data_handler = HuggingFaceDataHandler(
-            dataset_name, classifier, parameters, wandb_run
+        # Set up the dataset_container
+        dc_class = cls.MAP_DATASET_CONTAINER[parameters["dataset_name"]]
+        dataset_container = dc_class(parameters)
+
+        # Set up the classifier
+        classifier_name = parameters["classifier"]
+        classifier = cls.MAP_CLASSIFIER[classifier_name](
+            parameters, dataset_container, wandb_run
         )
-        classifier.attach_data_handler(data_handler)
-        acquisition_function = MaxUncertaintyAF(parameters, classifier)
-        sample_generator = PlainGPT2SampleGenerator(
+
+        # Set up the data handler
+        data_handler = DataHandler(parameters, dataset_container, classifier, wandb_run)
+
+        # Set up the acquisition function (could be None)
+        af_name = parameters["acquisition_function"]
+        af_class = cls.MAP_ACQUISITION_FUNCTION[af_name]
+        if af_class is None:
+            acquisition_function = None
+        elif af_name == "MaxUncertaintyAF":
+            acquisition_function = af_class(parameters, classifier)
+        else:
+            acquisition_function = af_class(parameters)
+
+        # Set up the sample generator
+        sg_name = parameters["sample_generator"]
+        sample_generator = cls.MAP_SAMPLE_GENERATOR[sg_name](
             parameters, acquisition_function=acquisition_function
         )
-        interface = CLIInterface(categories, wandb_run)
+
+        # Set up the interface
+        if full_loop:
+            interface = CLIInterface(dataset_container, wandb_run)
+        else:
+            interface = CLIBrokenLoopInterface(dataset_container, wandb_run)
 
         experiment_args = {
+            "parameters": parameters,
+            "dataset_container": dataset_container,
             "data_handler": data_handler,
-            "categories": categories,
             "classifier": classifier,
             "sample_generator": sample_generator,
             "interface": interface,
-            "parameters": parameters,
             "wandb_run": wandb_run,
         }
 

@@ -22,6 +22,7 @@ import evaluate
 import wandb
 
 from al_llm.parameters import Parameters
+from al_llm.dataset_container import DatasetContainer
 
 
 # Load the configuration
@@ -36,19 +37,21 @@ class Classifier(ABC):
     ----------
     parameters : Parameters
         The dictionary of parameters for the present experiment
+    dataset_container : DatasetContainer
+        The dataset container for the present experiment
     wandb_run : wandb.sdk.wandb_run.Run
         The current wandb run
-
-    Attributes
-    ----------
-    data_handler : DataHandler
-        The DataHandler instance attached to this classifier
     """
 
-    def __init__(self, parameters: Parameters, wandb_run: wandb.sdk.wandb_run.Run):
+    def __init__(
+        self,
+        parameters: Parameters,
+        dataset_container: DatasetContainer,
+        wandb_run: wandb.sdk.wandb_run.Run,
+    ):
         self.parameters = parameters
+        self.dataset_container = dataset_container
         self.wandb_run = wandb_run
-        self.data_handler = None
 
     @abstractmethod
     def train_afresh(
@@ -110,17 +113,6 @@ class Classifier(ABC):
         """Save the classifier, using the wandb_run"""
         pass
 
-    def attach_data_handler(self, data_handler):
-        """Attach an instance of a DataHandler to this classifier, so
-        validation and test datasets are easily accessible
-
-        Parameters
-        ----------
-        data_handler : DataHandler
-            The instance to be attached to this classifier
-        """
-        self.data_handler = data_handler
-
 
 class UncertaintyMixin(ABC):
     """A mixin for classifiers which provide a measure of uncertainty"""
@@ -157,9 +149,9 @@ class DummyClassifier(UncertaintyMixin, Classifier):
 
     def tokenize(self, text: Union[str, list]) -> torch.Tensor:
         if isinstance(text, str):
-            return torch.zeros(1)
+            return {"input_ids": [0], "attention_mask": [0]}
         elif isinstance(text, list):
-            return torch.zeros((1, len(text)))
+            return {"input_ids": [0] * len(text), "attention_mask": [0] * len(text)}
         else:
             raise TypeError(
                 f"Parameter `text` should be string or list, got {type(text)}"
@@ -182,12 +174,8 @@ class DummyClassifier(UncertaintyMixin, Classifier):
             )
 
 
-class GPT2Classifier(UncertaintyMixin, Classifier):
-    """Classifier class based on GPT-2
-
-    A classifier class that uses the GPT-2[1]_ model available on HuggingFace
-    as a foundation for training a classifier; implemented by replacing
-    the head of pretrained GPT-2 with a classifier.
+class HuggingFaceClassifier(UncertaintyMixin, Classifier):
+    """A classifier using a Hugging Face model
 
     Parameters
     ----------
@@ -195,11 +183,11 @@ class GPT2Classifier(UncertaintyMixin, Classifier):
         The dictionary of parameters for the present experiment
     wandb_run : wandb.sdk.wandb_run.Run
         The current wandb run
+    model_name : str
+        The name of the model, as on Hugging Face
 
     Attributes
     ----------
-    data_handler : DataHandler
-        The DataHandler instance attached to this classifier
     tokenizer : transformers.AutoTokenizer
         The HuggingFace tokenizer associated with this classifier
     model : transformers.AutoModelForSequenceClassification
@@ -209,35 +197,33 @@ class GPT2Classifier(UncertaintyMixin, Classifier):
         The torch optimizer used to update the model's parameters when training
     device : torch.device
         Set to either cuda (if GPU available) or CPU
-
-    Notes
-    ----------
-    Temporarily using distilled version of GPT-2 (distilgpt2 on HuggingFace) due
-    to excessive use of GPU RAM during testing; planning on returning to the
-    larger version later.
-
-    References
-    ----------
-    [1] Radford et al., "Language Models are Unsupervised Multitask Learners", 2019
     """
 
-    MODEL_NAME = "distilgpt2"
-    ARTIFACT_NAME = "gpt2-classifier"
+    ARTIFACT_NAME = "classifier"
 
-    def __init__(self, parameters: Parameters, wandb_run: wandb.sdk.wandb_run.Run):
+    def __init__(
+        self,
+        parameters: Parameters,
+        dataset_container: DatasetContainer,
+        wandb_run: wandb.sdk.wandb_run.Run,
+        model_name: str,
+    ):
 
         # initialises the parameters in the same way as the base class
-        super().__init__(parameters, wandb_run)
+        super().__init__(parameters, dataset_container, wandb_run)
+
+        # Set the model name
+        self.model_name = model_name
 
         # loads the tokenizer that the model will use
-        self.tokenizer = AutoTokenizer.from_pretrained(self.MODEL_NAME)
+        self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
         self.tokenizer.pad_token = self.tokenizer.eos_token
 
         # Set up the Hugging Face metric evaluator
         metrics = config["Wandb"]["EvaluateMetrics"].replace(" ", "").split(",")
         self.evaluator = evaluate.combine(metrics)
 
-        # model and optimizer not required until a call to `train_afresh`
+        # model not required until a call to `train_afresh`
         self.model = None
 
         # set device
@@ -261,7 +247,7 @@ class GPT2Classifier(UncertaintyMixin, Classifier):
             tokenized_train, shuffle=True, batch_size=self.parameters["batch_size"]
         )
         eval_dataloader = DataLoader(
-            self.data_handler.tokenized_validation,
+            self.dataset_container.tokenized_validation,
             batch_size=self.parameters["batch_size"],
         )
 
@@ -316,7 +302,7 @@ class GPT2Classifier(UncertaintyMixin, Classifier):
             tokenized_samples, shuffle=True, batch_size=self.parameters["batch_size"]
         )
         eval_dataloader = DataLoader(
-            self.data_handler.tokenized_validation,
+            self.dataset_container.tokenized_validation,
             batch_size=self.parameters["batch_size"],
         )
 
@@ -375,7 +361,7 @@ class GPT2Classifier(UncertaintyMixin, Classifier):
 
         # load a fresh version of the model
         self.model = AutoModelForSequenceClassification.from_pretrained(
-            self.MODEL_NAME, num_labels=2
+            self.model_name, num_labels=2
         )
 
         # Setup the model
@@ -618,3 +604,82 @@ class GPT2Classifier(UncertaintyMixin, Classifier):
             return uncertainties[0]
         else:
             return uncertainties
+
+
+class GPT2Classifier(HuggingFaceClassifier):
+    """Classifier class based on GPT-2
+
+    A classifier class that uses the GPT-2[1]_ model available on HuggingFace
+    as a foundation for training a classifier; implemented by replacing
+    the head of pretrained GPT-2 with a classifier.
+
+    Parameters
+    ----------
+    parameters : Parameters
+        The dictionary of parameters for the present experiment
+    wandb_run : wandb.sdk.wandb_run.Run
+        The current wandb run
+
+    Attributes
+    ----------
+    tokenizer : transformers.AutoTokenizer
+        The HuggingFace tokenizer associated with this classifier
+    model : transformers.AutoModelForSequenceClassification
+        The HuggingFace model for this classifier; reset to a new model every
+        call of `train_afresh`
+    optimizer : torch.optim.AdamW
+        The torch optimizer used to update the model's parameters when training
+    device : torch.device
+        Set to either cuda (if GPU available) or CPU
+
+    References
+    ----------
+    [1] Radford et al., "Language Models are Unsupervised Multitask Learners", 2019
+    """
+
+    MODEL_NAME = "gpt2"
+    ARTIFACT_NAME = "gtp2-classifier"
+
+    def __init__(self, parameters: Parameters, wandb_run: wandb.sdk.wandb_run.Run):
+        super().__init__(parameters, wandb_run, model_name=self.MODEL_NAME)
+
+
+class DistilGPT2Classifier(HuggingFaceClassifier):
+    """Classifier class based on DistilGPT2 by HuggingFace
+
+    A classifier class that uses the DistilGPT2[1]_ model available on
+    HuggingFace as a foundation for training a classifier; implemented by
+    replacing the head of pretrained GPT-2 with a classifier.
+
+    DistilGPT2 is trained under the supervision of the smallest GPT-2 model.
+
+    Parameters
+    ----------
+    parameters : Parameters
+        The dictionary of parameters for the present experiment
+    wandb_run : wandb.sdk.wandb_run.Run
+        The current wandb run
+
+    Attributes
+    ----------
+    tokenizer : transformers.AutoTokenizer
+        The HuggingFace tokenizer associated with this classifier
+    model : transformers.AutoModelForSequenceClassification
+        The HuggingFace model for this classifier; reset to a new model every
+        call of `train_afresh`
+    optimizer : torch.optim.AdamW
+        The torch optimizer used to update the model's parameters when training
+    device : torch.device
+        Set to either cuda (if GPU available) or CPU
+
+    References
+    ----------
+    [1] Victor et al., "DistilBERT, a distilled version of BERT: smaller,
+    faster, cheaper and lighter", NeurIPS EMC^2 Workshop, 2019
+    """
+
+    MODEL_NAME = "distilgpt2"
+    ARTIFACT_NAME = "distilgpt2-classifier"
+
+    def __init__(self, parameters: Parameters, wandb_run: wandb.sdk.wandb_run.Run):
+        super().__init__(parameters, wandb_run, model_name=self.MODEL_NAME)

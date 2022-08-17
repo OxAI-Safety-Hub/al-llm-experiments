@@ -1,9 +1,16 @@
-from .classifier import Classifier, DummyClassifier, GPT2Classifier
-from .data_handler import (
-    DataHandler,
-    DummyDataHandler,
-    HuggingFaceDataHandler,
-    LocalDataHandler,
+from .classifier import (
+    Classifier,
+    DummyClassifier,
+    HuggingFaceClassifier,
+    DistilGPT2Classifier,
+    GPT2Classifier,
+)
+from .data_handler import DataHandler
+from .dataset_container import (
+    DatasetContainer,
+    DummyDatasetContainer,
+    RottenTomatoesDatasetHandler,
+    DummyLocalDatasetContainer,
 )
 from .experiment import Experiment
 from .interface import Interface, CLIInterface
