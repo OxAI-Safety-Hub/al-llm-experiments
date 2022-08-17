@@ -19,6 +19,7 @@ from al_llm.sample_generator import (
     PlainGPT2SampleGenerator,
     SampleGenerator,
     DummySampleGenerator,
+    TAPTGPT2SampleGenerator,
     TAPTdistilGPT2SampleGenerator,
     PoolSampleGenerator,
 )
@@ -86,6 +87,7 @@ class Experiment:
     }
     MAP_TAPT_SAMPLE_GENERATOR = {
         "distilgpt2": TAPTdistilGPT2SampleGenerator,
+        "gpt2": TAPTGPT2SampleGenerator,
     }
 
     def __init__(
