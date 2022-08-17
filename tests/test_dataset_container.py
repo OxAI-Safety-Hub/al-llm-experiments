@@ -73,7 +73,7 @@ def _basic_dataset_container_tests(dataset_container, tokenize):
 def test_dummy_dataset_container():
 
     # Set up the dummy dataset container
-    parameters = Parameters(dev_mode=True)
+    parameters = Parameters()
     dataset_container = DummyDatasetContainer(parameters)
 
     # Make sure the dataset splits are of the right type
@@ -91,7 +91,7 @@ def test_dummy_dataset_container():
 def test_local_dataset_container():
 
     # Set up the dummy dataset container
-    parameters = Parameters(dev_mode=True)
+    parameters = Parameters()
     dataset_container = DummyLocalDatasetContainer(parameters)
 
     # The tokenize function, is the dummy one from DummyClassifier
