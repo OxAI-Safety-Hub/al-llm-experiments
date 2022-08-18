@@ -61,34 +61,51 @@ class Parameters(dict):
             The name of the sample generator to use.
     """
 
-    # defined default paramets
-    default_parameters = {
-        "dataset_name": "dummy",
-        "num_iterations": 5,
-        "refresh_every": 2,
-        "batch_size": 8,
-        "num_epochs_update": 3,
-        "num_epochs_afresh": 3,
-        "num_samples": 5,
-        "num_warmup_steps": 0,
-        "sample_pool_size": 20,
-        "learning_rate": 5e-5,
-        "dev_mode": False,
-        "seed": 459834,
-        "send_alerts": False,
-        "validation_proportion": 0.2,
-        "train_dataset_size": 10,
-        "full_loop": True,
-        "classifier": "DummyClassifier",
-        "acquisition_function": "DummyAF",
-        "sample_generator": "DummySampleGenerator",
-    }
-
-    def __init__(self, *args, **kw):
+    def __init__(
+        self,
+        dataset_name="dummy",
+        num_iterations=5,
+        refresh_every=2,
+        batch_size=8,
+        num_epochs_update=3,
+        num_epochs_afresh=3,
+        num_samples=5,
+        num_warmup_steps=0,
+        sample_pool_size=20,
+        learning_rate=5e-5,
+        dev_mode=False,
+        seed=459834,
+        send_alerts=False,
+        validation_proportion=0.2,
+        train_dataset_size=10,
+        full_loop=True,
+        classifier="DummyClassifier",
+        acquisition_function="DummyAF",
+        sample_generator="DummySampleGenerator",
+        *args,
+        **kwargs
+    ):
         # sets the parameters provided
-        super().__init__(*args, **kw)
-
-        # if any of these are not provided, use the default value
-        for key, value in self.default_parameters.items():
-            if not self.__contains__(key):
-                self[key] = value
+        super().__init__(
+            dataset_name=dataset_name,
+            num_iterations=num_iterations,
+            refresh_every=refresh_every,
+            batch_size=batch_size,
+            num_epochs_update=num_epochs_update,
+            num_epochs_afresh=num_epochs_afresh,
+            num_samples=num_samples,
+            num_warmup_steps=num_warmup_steps,
+            sample_pool_size=sample_pool_size,
+            learning_rate=learning_rate,
+            dev_mode=dev_mode,
+            seed=seed,
+            send_alerts=send_alerts,
+            validation_proportion=validation_proportion,
+            train_dataset_size=train_dataset_size,
+            full_loop=full_loop,
+            classifier=classifier,
+            acquisition_function=acquisition_function,
+            sample_generator=sample_generator,
+            *args,
+            **kwargs
+        )
