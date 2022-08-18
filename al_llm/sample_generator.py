@@ -2,12 +2,16 @@
 # https://docs.python.org/3.10/library/abc.html
 from abc import ABC, abstractmethod
 from random import randrange
-from typing import Optional
+from typing import Optional, Any
 import configparser
+import tempfile
+import os
 
 import torch
 
-from transformers import pipeline
+import wandb
+
+from transformers import pipeline, AutoModelForCausalLM
 
 from al_llm.acquisition_function import AcquisitionFunction
 from al_llm.dataset_container import DatasetContainer
@@ -80,6 +84,61 @@ class SampleGenerator(ABC):
         return []
 
 
+class PipelineGeneratorMixin(ABC):
+    """A mixin for sample generators which use the pipeline() for generation."""
+
+    def _make_pipeline_generator(self, task: str, model: Any, tokenizer: str, **kwargs):
+        """Created the generator using pipeline()
+
+        Parameters
+        ----------
+        task: str
+            The pipeline task (e.g. "text-generation")
+        model: Any
+            The name or reference to the model the pipeline should use.
+        tokenizer: str
+            The name of the tokenizer the pipeline should use.
+        """
+
+        # Set the device to use
+        device = (
+            torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
+        )
+
+        # Create a pipeline for text generation
+        self.generator = pipeline(
+            task=task,
+            model=model,
+            device=device,
+            tokenizer=tokenizer,
+            **kwargs,
+        )
+
+    def _generate_sample_pool(self, pool_size: int) -> list:
+        """Generate a pool of samples, from which to select
+
+        Parameters
+        ----------
+        pool_size: int
+            The number of samples to generate
+
+        Returns
+        -------
+        samples : list
+            A list of samples
+        """
+
+        # Use the pipeline to generate real sentences
+        sentence_dicts = self.generator(
+            "",
+            max_length=self.max_length,
+            num_return_sequences=pool_size,
+        )
+        sample_pool = [d["generated_text"] for d in sentence_dicts]
+
+        return sample_pool
+
+
 class DummySampleGenerator(SampleGenerator):
     """Dummy sample generator, which generates random stuff
 
@@ -112,7 +171,7 @@ class DummySampleGenerator(SampleGenerator):
         return sample_pool
 
 
-class PlainGPT2SampleGenerator(SampleGenerator):
+class PlainGPT2SampleGenerator(PipelineGeneratorMixin, SampleGenerator):
     """Plain GPT-2 sample generator, which just generates real sentences
 
     It generates `parameters["num_samples"]` samples. If an acquisition
@@ -143,31 +202,14 @@ class PlainGPT2SampleGenerator(SampleGenerator):
 
         self.max_length = max_length
 
-        # Set the device to use
-        self.device = (
-            torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
+        # Setup the pipeline generator
+        self._make_pipeline_generator(
+            "text-generation", self.MODEL_NAME, self.MODEL_NAME
         )
-
-        # Create a pipeline for text generation
-        self.generator = pipeline(
-            task="text-generation", model=self.MODEL_NAME, device=self.device
-        )
-
-    def _generate_sample_pool(self, pool_size: int) -> list:
-
-        # Use the pipeline to generate real sentences
-        sentence_dicts = self.generator(
-            "",
-            max_length=self.max_length,
-            num_return_sequences=pool_size,
-        )
-        sample_pool = [d["generated_text"] for d in sentence_dicts]
-
-        return sample_pool
 
 
 class PoolSampleGenerator(SampleGenerator):
-    """Generate samples by sampling from the remainder dataset
+    """Generate samples by sampling from the remainder dataset.
 
     Parameters
     ----------
@@ -202,3 +244,115 @@ class PoolSampleGenerator(SampleGenerator):
 
     def _generate_sample_pool(self) -> list:
         return self.remainder_sentences
+
+
+class TAPTSampleGenerator(PipelineGeneratorMixin, SampleGenerator, ABC):
+    """Base TAPT sample generator
+
+    Parameters
+    ----------
+    parameters : Parameters
+        The dictionary of parameters for the present experiment
+    wandb_run : wandb.sdk.wandb_run.Run
+        The current wandb run
+    acquisition_function : acquisition_function.AcquisitionFunction, optional
+        The acquisition function to use, if any. By default we simply generate
+        a number of samples with no selection procedure.
+    max_length : int, default=30
+        The maximum length of the sentences generated.
+    """
+
+    MODEL_NAME = ""
+
+    def __init__(
+        self,
+        parameters: Parameters,
+        wandb_run: wandb.sdk.wandb_run.Run,
+        acquisition_function: Optional[AcquisitionFunction] = None,
+        max_length: int = 30,
+    ):
+
+        super().__init__(parameters, acquisition_function)
+
+        self.wandb_run = wandb_run
+        self.max_length = max_length
+
+        # Loads the pretrained model from wandb
+        self._load_tapted_model()
+
+        # Setup the pipeline generator
+        self._make_pipeline_generator("text-generation", self.model, self.MODEL_NAME)
+
+    def _load_tapted_model(self):
+        """Loads the pretrained model from wandb
+
+        Sets `self.model` to this pretrained model after loading
+        """
+
+        # use a temporary directory as an inbetween
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            # download the model into this directory from wandb
+            artifact_name = self.MODEL_NAME + "---" + self.parameters["dataset_name"]
+            artifact_path_components = (
+                config["Wandb"]["Entity"],
+                config["Wandb"]["Project"],
+                artifact_name + ":latest",
+            )
+            artifact_path = "/".join(artifact_path_components)
+            artifact = self.wandb_run.use_artifact(
+                artifact_path,
+                type=config["TAPT Generator Loading"]["TAPTGeneratorType"],
+            )
+            artifact.download(tmpdirname)
+
+            # load model from this directory
+            file_path = os.path.join(
+                tmpdirname, config["TAPT Generator Loading"]["ModelFileName"]
+            )
+            self.model = AutoModelForCausalLM.from_pretrained(file_path)
+
+
+class TAPTDistilGPT2SampleGenerator(TAPTSampleGenerator):
+    """Tapted distilGPT-2 sample generator, which generates real sentences
+
+    It generates `parameters["num_samples"]` samples. If an acquisition
+    function is supplied, it first generates `parameters["sample_pool_size"]`
+    then uses the function to select from these.
+
+    Parameters
+    ----------
+    parameters : Parameters
+        The dictionary of parameters for the present experiment
+    wandb_run : wandb.sdk.wandb_run.Run
+        The current wandb run
+    acquisition_function : acquisition_function.AcquisitionFunction, optional
+        The acquisition function to use, if any. By default we simply generate
+        a number of samples with no selection procedure.
+    max_length : int, default=30
+        The maximum length of the sentences generated.
+    """
+
+    MODEL_NAME = "distilgpt2"
+
+
+class TAPTGPT2SampleGenerator(TAPTSampleGenerator):
+    """Tapted GPT-2 sample generator, which generates real sentences
+
+    It generates `parameters["num_samples"]` samples. If an acquisition
+    function is supplied, it first generates `parameters["sample_pool_size"]`
+    then uses the function to select from these.
+
+    Parameters
+    ----------
+    parameters : Parameters
+        The dictionary of parameters for the present experiment
+    wandb_run : wandb.sdk.wandb_run.Run
+        The current wandb run
+    acquisition_function : acquisition_function.AcquisitionFunction, optional
+        The acquisition function to use, if any. By default we simply generate
+        a number of samples with no selection procedure.
+    max_length : int, default=30
+        The maximum length of the sentences generated.
+    """
+
+    MODEL_NAME = "gpt2"

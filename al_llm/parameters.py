@@ -55,12 +55,14 @@ class Parameters(dict):
         used by the pool-based simulator.
     full_loop : bool, default=True
         Run the whole experiment in one go, going through all the AL loops.
-    classifier : str, default="DummyClassifier"
+    classifier : str, default="dummy"
         The name of the classifier to use.
-    acquisition_function : str, default="DummyAF"
+    acquisition_function : str, default="dummy"
         The name of the acquisition function to use.
-    sample_generator : str, default="DummySampleGenerator"
-        The name of the sample generator to use.
+    sample_generator_base_model : str, default="dummy"
+        The name of the base model the sample generator should use.
+    use_tapted_model : Bool, default=False
+        True if a pretrained sample generator be used.
     """
 
     def __init__(
@@ -81,12 +83,14 @@ class Parameters(dict):
         validation_proportion=0.2,
         train_dataset_size=10,
         full_loop=True,
-        classifier="DummyClassifier",
-        acquisition_function="DummyAF",
-        sample_generator="DummySampleGenerator",
+        classifier="dummy",
+        acquisition_function="dummy",
+        sample_generator_base_model="dummy",
+        use_tapted_model=False,
         *args,
-        **kwargs
+        **kwargs,
     ):
+
         # sets the parameters provided
         super().__init__(
             dataset_name=dataset_name,
@@ -107,7 +111,7 @@ class Parameters(dict):
             full_loop=full_loop,
             classifier=classifier,
             acquisition_function=acquisition_function,
-            sample_generator=sample_generator,
-            *args,
-            **kwargs
+            sample_generator_base_model=sample_generator_base_model,
+            use_tapted_model=use_tapted_model * args,
+            **kwargs,
         )

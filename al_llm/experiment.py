@@ -24,6 +24,8 @@ from al_llm.sample_generator import (
     PlainGPT2SampleGenerator,
     SampleGenerator,
     DummySampleGenerator,
+    TAPTGPT2SampleGenerator,
+    TAPTDistilGPT2SampleGenerator,
     PoolSampleGenerator,
 )
 from al_llm.acquisition_function import (
@@ -73,20 +75,25 @@ class Experiment:
         "rotten_tomatoes": RottenTomatoesDatasetHandler,
     }
     MAP_CLASSIFIER = {
-        "DummyClassifier": DummyClassifier,
-        "DistilGPT2Classifier": DistilGPT2Classifier,
-        "GPT2Classifier": GPT2Classifier,
+        "dummy": DummyClassifier,
+        "gpt2": GPT2Classifier,
+        "distilgpt2": DistilGPT2Classifier,
     }
     MAP_ACQUISITION_FUNCTION = {
-        "None": None,
-        "DummyAF": DummyAF,
-        "RandomAF": RandomAF,
-        "MaxUncertaintyAF": MaxUncertaintyAF,
+        "none": None,
+        "dummy": DummyAF,
+        "random": RandomAF,
+        "max_uncertainty": MaxUncertaintyAF,
     }
-    MAP_SAMPLE_GENERATOR = {
-        "DummySampleGenerator": DummySampleGenerator,
-        "PlainGPT2SampleGenerator": PlainGPT2SampleGenerator,
-        "PoolSampleGenerator": PoolSampleGenerator,
+
+    MAP_PLAIN_SAMPLE_GENERATOR = {
+        "dummy": DummySampleGenerator,
+        "gpt2": PlainGPT2SampleGenerator,
+        "pool": PoolSampleGenerator,
+    }
+    MAP_TAPT_SAMPLE_GENERATOR = {
+        "distilgpt2": TAPTDistilGPT2SampleGenerator,
+        "gpt2": TAPTGPT2SampleGenerator,
     }
 
     def __init__(
@@ -307,24 +314,28 @@ class Experiment:
         af_class = cls.MAP_ACQUISITION_FUNCTION[af_name]
         if af_class is None:
             acquisition_function = None
-        elif af_name == "MaxUncertaintyAF":
+        elif af_name == "max_uncertainty":
             acquisition_function = af_class(parameters, classifier)
         else:
             acquisition_function = af_class(parameters)
 
         # Set up the sample generator
-        sg_name = parameters["sample_generator"]
-        if sg_name == "PoolSampleGenerator":
-            sample_generator = cls.MAP_SAMPLE_GENERATOR[sg_name](
+        sg_model_name = parameters["sample_generator_base_model"]
+        if sg_model_name == "pool":
+            sample_generator = cls.MAP_PLAIN_SAMPLE_GENERATOR[sg_model_name](
                 parameters, acquisition_function, dataset_container
             )
+        elif parameters["use_tapted_model"]:
+            sample_generator = cls.MAP_TAPT_SAMPLE_GENERATOR[sg_model_name](
+                parameters, wandb_run, acquisition_function=acquisition_function
+            )
         else:
-            sample_generator = cls.MAP_SAMPLE_GENERATOR[sg_name](
+            sample_generator = cls.MAP_PLAIN_SAMPLE_GENERATOR[sg_model_name](
                 parameters, acquisition_function=acquisition_function
             )
 
         # Set up the interface
-        if sg_name == "PoolSampleGenerator":
+        if sg_model_name == "pool":
             interface = PoolSimulatorInterface(dataset_container, wandb_run)
         elif parameters["full_loop"]:
             interface = CLIInterface(dataset_container, wandb_run)
