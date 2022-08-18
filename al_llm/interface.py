@@ -38,23 +38,27 @@ class Interface(ABC):
         """
         pass
 
-    def train_afresh(self, message: str = None):
+    def train_afresh(self, message: str = None, iteration=None):
         """Tell the human that we're fine-tuning from scratch
 
         Parameters
         ----------
         message : str, optional
             The message to display. Defaults to a generic message.
+        iteration : int, optional
+            The current iteration of the AL loop
         """
         pass
 
-    def train_update(self, message: str = None):
+    def train_update(self, message: str = None, iteration=None):
         """Tell the human that we're fine-tuning with new datapoints
 
         Parameters
         ----------
         message : str, optional
             The message to display. Defaults to a generic message.
+        iteration : int, optional
+            The current iteration of the AL loop
         """
         pass
 
@@ -181,11 +185,14 @@ class SimpleCLIInterfaceMixin(CLIInterfaceMixin, ABC):
         text = self._head_text(text, initial_newline=False)
         self._output(text)
 
-    def train_afresh(self, message: str = None):
+    def train_afresh(self, message: str = None, iteration=None):
 
         # Default message
         if message is None:
             message = "Fine-tuning from scratch..."
+
+        # Prepend the iteration index
+        message = f"[{iteration}] {message}"
 
         # Wrap the message
         text = self._wrap(message)
@@ -194,11 +201,14 @@ class SimpleCLIInterfaceMixin(CLIInterfaceMixin, ABC):
         text = self._head_text(text, initial_newline=False)
         self._output(text)
 
-    def train_update(self, message: str = None):
+    def train_update(self, message: str = None, iteration=None):
 
         # Default message
         if message is None:
             message = "Fine-tuning with new datapoints..."
+
+        # Prepend the iteration index
+        message = f"[{iteration}] {message}"
 
         # Wrap the message
         text = self._wrap(message)
@@ -299,11 +309,14 @@ class CLIInterface(CLIInterfaceMixin, FullLoopInterface):
 
         return labels
 
-    def train_afresh(self, message: str = None):
+    def train_afresh(self, message: str = None, iteration=None):
 
         # Default message
         if message is None:
             message = "Fine-tuning from scratch. This may take a while..."
+
+        # Prepend the iteration index
+        message = f"[{iteration}] {message}"
 
         # Wrap the message
         text = self._wrap(message)
@@ -312,11 +325,14 @@ class CLIInterface(CLIInterfaceMixin, FullLoopInterface):
         text = self._head_text(text)
         self._output(text)
 
-    def train_update(self, message: str = None):
+    def train_update(self, message: str = None, iteration=None):
 
         # Default message
         if message is None:
             message = "Fine-tuning with new datapoints..."
+
+        # Prepend the iteration index
+        message = f"[{iteration}] {message}"
 
         # Wrap the message
         text = self._wrap(message)

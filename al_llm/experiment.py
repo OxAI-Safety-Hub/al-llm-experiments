@@ -213,7 +213,7 @@ class Experiment:
 
     def _train_afresh(self, iteration: int):
         """Fine-tune the classifier from scratch"""
-        self.interface.train_afresh()
+        self.interface.train_afresh(iteration=iteration)
         self.classifier.train_afresh(
             self.dataset_container.tokenized_train,
             iteration,
@@ -225,7 +225,7 @@ class Experiment:
         iteration: int,
     ):
         """Fine-tune the classifier with new datapoints, without resetting"""
-        self.interface.train_update()
+        self.interface.train_update(iteration=iteration)
         self.classifier.train_update(
             dataset_samples,
             iteration,
