@@ -155,8 +155,9 @@ class Experiment:
         # Make a request for labels from the human
         self.data_handler.make_label_request(samples)
 
-        # Save the current version of the classifier and dataset
-        self._save()
+        # Save the current version of the classifier and dataset, including
+        # the new samples awaiting labels from the human
+        self._save(samples)
 
         # Alert the slack channel that the iteration is complete
         if self.parameters["send_alerts"]:
@@ -218,10 +219,10 @@ class Experiment:
             iteration,
         )
 
-    def _save(self):
+    def _save(self, unlabelled_samples: list = []):
         """Save the current classifier and dataset"""
         self.classifier.save()
-        self.data_handler.save()
+        self.data_handler.save(unlabelled_samples)
 
     @classmethod
     def make_experiment(

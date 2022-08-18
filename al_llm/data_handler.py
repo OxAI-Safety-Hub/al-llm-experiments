@@ -2,6 +2,9 @@
 # https://docs.python.org/3.10/library/abc.html
 from typing import Union
 import configparser
+import tempfile
+import os
+import pickle
 
 import torch
 
@@ -43,6 +46,8 @@ class DataHandler:
     classifier : classifier.Classifier
         The classifier instance which will be using the data.
     """
+
+    ARTIFACT_NAME = "added-data"
 
     def __init__(
         self,
@@ -109,6 +114,41 @@ class DataHandler:
         """
         pass
 
-    def save(self):
-        """Save the current dataset"""
-        self.dataset_container.save()
+    def save(self, unlabelled_samples: list):
+        """Save the current dataset
+
+        This saves the raw sentence-label pairs that have been added to the
+        dataset through AL, possibly including any samples that are waiting
+        to be labelled at the start of the next iteration, as a dict in wandb.
+
+        Parameters
+        ----------
+        unlabelled_samples : list
+            A list of any generated samples needing labelling, to be stored
+            until the next iteration alongside the added labelled data
+        """
+
+        # get all datapoints from dataset_train after `train_dataset_size`,
+        # i.e. only data added by AL process
+        added_data = self.dataset_container.dataset_train[
+            self.parameters["train_dataset_size"] :
+        ]
+
+        # add the samples in `unlabelled_samples` (if there are any)
+        added_data[config["Data Handling"]["TextColumnName"]].extend(unlabelled_samples)
+
+        # save this dict to WandB, using a temporary directory as an inbetween
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            # store the dataset in this directory
+            file_path = os.path.join(
+                tmpdirname, config["Data Handling"]["DataFileName"]
+            )
+            with open(file_path, "wb") as file:
+                pickle.dump(added_data, file)
+
+            # upload the dataset to WandB as an artifact
+            artifact = wandb.Artifact(
+                self.ARTIFACT_NAME, type=config["Data Handling"]["DatasetType"]
+            )
+            artifact.add_dir(tmpdirname)
+            self.wandb_run.log_artifact(artifact)
