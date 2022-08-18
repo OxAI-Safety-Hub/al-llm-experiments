@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from typing import Callable, Tuple
 import configparser
 import os
+from collections import OrderedDict
 
 import datasets
 
@@ -29,7 +30,7 @@ class DatasetContainer(ABC):
 
     Attributes
     ----------
-    categories : dict
+    categories : OrderedDict
         A dictionary of the classes in the data. The keys are the names of the
         categories as understood by the model, and the values are the
         human-readable names.
@@ -58,9 +59,11 @@ class DatasetContainer(ABC):
         A tokenized version of `dataset_test`, consisting of PyTorch tensors.
     """
 
+    CATEGORIES = OrderedDict()
+
     def __init__(self, parameters: Parameters):
         self.parameters = parameters
-        self.categories = {}
+        self.categories = self.CATEGORIES
         self.dataset_train = None
         self.dataset_remainder = None
         self.dataset_validation = None
@@ -197,8 +200,11 @@ class DatasetContainer(ABC):
             The tokenizer with which to create the tokenized versions
         """
 
+        # Get the required structure of the datasets as a datasets.Features object
+        features = self._get_dataset_features()
+
         # First make a new dataset from the new items
-        items_dataset = datasets.Dataset.from_dict(items)
+        items_dataset = datasets.Dataset.from_dict(items, features=features)
 
         # Get the tokenized version
         items_tokenized = self._tokenize_dataset(items_dataset, tokenizer)
@@ -230,6 +236,24 @@ class DatasetContainer(ABC):
             test_slice_size = min(5, len(self.dataset_test))
             self.dataset_test = self.dataset_test.select(range(test_slice_size))
 
+    def _get_dataset_features(self) -> datasets.Features:
+        """Get the internal structure of the (non-tokenized) dataset
+
+        Returns
+        -------
+        features : datasets.Features
+            A mapping which specifies the types of the text and label columns
+        """
+        text_type = datasets.Value(dtype="string")
+        label_type = datasets.ClassLabel(names=list(self.categories.keys()))
+        features = datasets.Features(
+            {
+                config["Data Handling"]["TextColumnName"]: text_type,
+                config["Data Handling"]["LabelColumnName"]: label_type,
+            }
+        )
+        return features
+
 
 class DummyDatasetContainer(DatasetContainer):
     """A dummy dataset container
@@ -244,7 +268,7 @@ class DummyDatasetContainer(DatasetContainer):
 
     Attributes
     ----------
-    categories : dict
+    categories : OrderedDict
         A dictionary of the classes in the data. The keys are the names of the
         categories as understood by the model, and the values are the
         human-readable names.
@@ -273,20 +297,20 @@ class DummyDatasetContainer(DatasetContainer):
         A tokenized version of `dataset_test`, consisting of PyTorch tensors.
     """
 
-    TRAIN_SIZE = 100
-    REMAINDER_SIZE = 100
+    CATEGORIES = OrderedDict([("inv", "Invalid"), ("val", "Valid")])
+
+    REMAINDER_SIZE = 10
     VALIDATION_SIZE = 20
     TEST_SIZE = 50
 
     def __init__(self, parameters: Parameters):
         super().__init__(parameters)
 
-        # Set the categories
-        self.categories = {0: "Invalid", 1: "Valid"}
-
         # Generate some training sentences
         sentence_generator = FakeSentenceGenerator(parameters["seed"])
-        train_sentences = sentence_generator.generate(self.TRAIN_SIZE)
+        train_sentences = sentence_generator.generate(
+            parameters["train_dataset_size"] + self.REMAINDER_SIZE
+        )
         validation_sentences = sentence_generator.generate(self.VALIDATION_SIZE)
         test_sentences = sentence_generator.generate(self.TEST_SIZE)
 
@@ -294,28 +318,36 @@ class DummyDatasetContainer(DatasetContainer):
         label_generator = FakeLabelGenerator(
             list(self.categories.keys()), parameters["seed"]
         )
-        train_labels = label_generator.generate(self.TRAIN_SIZE)
+        train_labels = label_generator.generate(
+            parameters["train_dataset_size"] + self.REMAINDER_SIZE
+        )
         validation_labels = label_generator.generate(self.VALIDATION_SIZE)
         test_labels = label_generator.generate(self.TEST_SIZE)
+
+        # Get the required structure of the datasets as a datasets.Features object
+        features = self._get_dataset_features()
 
         # Compose everything to make the datasets
         train_split = datasets.Dataset.from_dict(
             {
                 config["Data Handling"]["TextColumnName"]: train_sentences,
                 config["Data Handling"]["LabelColumnName"]: train_labels,
-            }
+            },
+            features=features,
         )
         self.dataset_validation = datasets.Dataset.from_dict(
             {
                 config["Data Handling"]["TextColumnName"]: validation_sentences,
                 config["Data Handling"]["LabelColumnName"]: validation_labels,
-            }
+            },
+            features=features,
         )
         self.dataset_test = datasets.Dataset.from_dict(
             {
                 config["Data Handling"]["TextColumnName"]: test_sentences,
                 config["Data Handling"]["LabelColumnName"]: test_labels,
-            }
+            },
+            features=features,
         )
 
         # Divide the train split into train and remainder datasets
@@ -366,13 +398,10 @@ class HuggingFaceDatasetContainer(DatasetContainer, ABC):
     """
 
     DATASET_NAME = ""
-    CATEGORIES = {}
+    CATEGORIES = OrderedDict()
 
     def __init__(self, parameters: Parameters):
         super().__init__(parameters)
-
-        # Set the categories for this dataset
-        self.categories = self.CATEGORIES
 
         # Download the datasets
         train_split = datasets.load_dataset(self.DATASET_NAME, split="train")
@@ -406,7 +435,7 @@ class LocalDatasetContainer(DatasetContainer, ABC):
 
     Attributes
     ----------
-    categories : dict
+    categories : OrderedDict
         A dictionary of the classes in the data. The keys are the names of the
         categories as understood by the model, and the values are the
         human-readable names.
@@ -435,14 +464,14 @@ class LocalDatasetContainer(DatasetContainer, ABC):
         A tokenized version of `dataset_test`, consisting of PyTorch tensors.
     """
 
-    CATEGORIES = {}
     DATASET_NAME = ""
+    CATEGORIES = OrderedDict()
 
     def __init__(self, parameters: Parameters):
         super().__init__(parameters)
 
-        # Set the categories for this dataset
-        self.categories = self.CATEGORIES
+        # Get the required structure of the datasets as a datasets.Features object
+        features = self._get_dataset_features()
 
         # load the local dataset, splitting by the data file names
         data_files = {
@@ -453,7 +482,9 @@ class LocalDatasetContainer(DatasetContainer, ABC):
         dataset_path = os.path.join(
             config["Data Handling"]["LocalDatasetDir"], self.DATASET_NAME
         )
-        dataset_dictionary = datasets.load_dataset(dataset_path, data_files=data_files)
+        dataset_dictionary = datasets.load_dataset(
+            dataset_path, data_files=data_files, features=features
+        )
 
         # use this split to get the raw datasets
         train_split = dataset_dictionary["train"]
@@ -485,7 +516,7 @@ class RottenTomatoesDatasetHandler(HuggingFaceDatasetContainer):
 
     Attributes
     ----------
-    categories : dict
+    categories : OrderedDict
         A dictionary of the classes in the data. The keys are the names of the
         categories as understood by the model, and the values are the
         human-readable names.
@@ -515,7 +546,7 @@ class RottenTomatoesDatasetHandler(HuggingFaceDatasetContainer):
     """
 
     DATASET_NAME = "rotten_tomatoes"
-    CATEGORIES = {0: "Negative", 1: "Positive"}
+    CATEGORIES = OrderedDict([("neg", "Negative"), ("pos", "Positive")])
 
     def _preprocess_dataset(self):
 
@@ -550,7 +581,7 @@ class DummyLocalDatasetContainer(LocalDatasetContainer):
 
     Attributes
     ----------
-    categories : dict
+    categories : OrderedDict
         A dictionary of the classes in the data. The keys are the names of the
         categories as understood by the model, and the values are the
         human-readable names.
@@ -580,4 +611,4 @@ class DummyLocalDatasetContainer(LocalDatasetContainer):
     """
 
     DATASET_NAME = "dummy_local_dataset"
-    CATEGORIES = {0: "Negative", 1: "Positive"}
+    CATEGORIES = OrderedDict([("neg", "Negative"), ("pos", "Positive")])
