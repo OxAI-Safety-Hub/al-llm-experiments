@@ -141,7 +141,7 @@ class DataHandler:
         with tempfile.TemporaryDirectory() as tmpdirname:
             # store the dataset in this directory
             file_path = os.path.join(
-                tmpdirname, config["Data Handling"]["DataFileName"]
+                tmpdirname, config["Data Handling"]["DatasetFileName"]
             )
             with open(file_path, "wb") as file:
                 pickle.dump(added_data, file)
@@ -152,3 +152,37 @@ class DataHandler:
             )
             artifact.add_dir(tmpdirname)
             self.wandb_run.log_artifact(artifact)
+
+    def load(self):
+        """Load the data stored on Weights and Biases
+
+        Returns
+        ----------
+        added_data : dict
+            The dictionary of sentences and labels added in earlier iterations
+        """
+
+        # use a temporary directory as an inbetween
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            # download the dataset into this directory from wandb
+            artifact_path_components = (
+                config["Wandb"]["Entity"],
+                config["Wandb"]["Project"],
+                self.ARTIFACT_NAME + ":latest",
+            )
+            artifact_path = "/".join(artifact_path_components)
+            artifact = self.wandb_run.use_artifact(
+                artifact_path,
+                type=config["Data Handling"]["DatasetType"],
+            )
+            artifact.download(tmpdirname)
+
+            # load dataset from this directory
+            file_path = os.path.join(
+                tmpdirname, config["Data Handling"]["DatasetFileName"]
+            )
+
+            with open(file_path, "rb") as file:
+                added_data = pickle.load(file)
+
+            return added_data

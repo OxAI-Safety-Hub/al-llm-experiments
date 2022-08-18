@@ -154,6 +154,11 @@ class Experiment:
         # Start the interface
         self.interface.begin(parameters=self.parameters)
 
+        # If `iteration` != 0, load any data saved on WandB and prompt the
+        # human for labels for generated sentences from the previous iteration
+        if iteration != 0:
+            self._load_and_prompt()
+
         # Perform a single iteration of model update, obtaining new samples
         # to label
         samples = self._train_and_get_samples(iteration)
@@ -171,6 +176,35 @@ class Experiment:
                 title="AL Loop Iteration Complete",
                 text="There is new data to be labelled.",
             )
+
+    def _load_and_prompt(self):
+        """Load dataset from WandB and prompt human for labels
+        
+        Load in the dataset stored on Weights and Biases, prompt the human for
+        labels for any unlabelled sentences generated in the previous iteration,
+        and then add all of the extra data (i.e. data not in the original
+        training dataset) back into the dataset.
+        """
+        # Load the data from WandB
+        added_data = self.data_handler.load()
+
+        # Get the unlabelled sentences saved to WandB by taking the
+        # last `num_samples` items from added_data's 'text' column
+        unlabelled_added = added_data[config["Data Handling"]["TextColumnName"]][
+            -self.parameters["num_samples"] :
+        ]
+
+        # Prompt the human for labels
+        labels = self.interface.prompt(unlabelled_added)
+
+        # Append these labels onto the end of the added_data
+        added_data[config["Data Handling"]["LabelColumnName"]].extend(labels)
+
+        # Finally, add all of the added_data back into the local datasets
+        self.data_handler.new_labelled(
+            added_data[config["Data Handling"]["TextColumnName"]],
+            added_data[config["Data Handling"]["LabelColumnName"]],
+        )
 
     def _train_and_get_samples(self, iteration: int) -> list:
         """Train the classifier with the latest datapoints, and get new samples
