@@ -183,11 +183,6 @@ class CLIInterface(CLIInterfaceMixin, FullLoopInterface):
 
         self.line_width = line_width
 
-        self._categories_list = [
-            (k, v) for k, v in self.dataset_container.categories.items()
-        ]
-        self._num_categories = len(self._categories_list)
-
     def begin(self, message: str = None, parameters: Parameters = None):
 
         # Default message
@@ -223,14 +218,15 @@ class CLIInterface(CLIInterfaceMixin, FullLoopInterface):
             text = "\n"
             text += self._wrap(f"{sample!r}") + "\n"
             text += self._wrap("How would you classify this?") + "\n"
-            for i, (cat_name, cat_human) in enumerate(self._categories_list):
-                text += self._wrap(f"[{i}] {cat_human}") + "\n"
+            categories = self.dataset_container.categories
+            for i, cat_human_readable in enumerate(categories.values()):
+                text += self._wrap(f"[{i}] {cat_human_readable}") + "\n"
 
             # Print the message
             self._output(text)
 
             # Keep asking the user for a label until they give a valid one
-            prompt = self._wrap(f"Enter a number (0-{self._num_categories-1}):")
+            prompt = self._wrap(f"Enter a number (0-{len(categories)-1}):")
             valid_label = False
             while not valid_label:
                 label_str = self._input(prompt)
@@ -238,11 +234,11 @@ class CLIInterface(CLIInterfaceMixin, FullLoopInterface):
                     label = int(label_str)
                 except ValueError:
                     continue
-                if label >= 0 and label < self._num_categories:
+                if label >= 0 and label < len(categories):
                     valid_label = True
 
             # Append this label
-            labels.append(self._categories_list[label][0])
+            labels.append(list(categories.keys())[label])
 
         return labels
 
