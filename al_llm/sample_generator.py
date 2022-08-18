@@ -101,7 +101,7 @@ class PipelineGeneratorMixin(ABC):
             **kwargs,
         )
 
-    def _pipeline_generate_sample_pool(self, pool_size: int) -> list:
+    def _generate_sample_pool(self, pool_size: int) -> list:
 
         # Use the pipeline to generate real sentences
         sentence_dicts = self.generator(
@@ -146,7 +146,7 @@ class DummySampleGenerator(SampleGenerator):
         return sample_pool
 
 
-class PlainGPT2SampleGenerator(SampleGenerator, PipelineGeneratorMixin):
+class PlainGPT2SampleGenerator(PipelineGeneratorMixin, SampleGenerator):
     """Plain GPT-2 sample generator, which just generates real sentences
 
     It generates `parameters["num_samples"]` samples. If an acquisition
@@ -181,9 +181,6 @@ class PlainGPT2SampleGenerator(SampleGenerator, PipelineGeneratorMixin):
         self._make_pipeline_generator(
             "text-generation", self.MODEL_NAME, self.MODEL_NAME
         )
-
-    def _generate_sample_pool(self, pool_size: int) -> list:
-        return self._pipeline_generate_sample_pool(pool_size)
 
 
 class PoolSampleGenerator(SampleGenerator):
@@ -224,7 +221,7 @@ class PoolSampleGenerator(SampleGenerator):
         return self.remainder_sentences
 
 
-class TAPTSampleGenerator(SampleGenerator, PipelineGeneratorMixin, ABC):
+class TAPTSampleGenerator(PipelineGeneratorMixin, SampleGenerator, ABC):
     """Base TAPT sample generator
 
     Parameters
@@ -288,9 +285,6 @@ class TAPTSampleGenerator(SampleGenerator, PipelineGeneratorMixin, ABC):
                 tmpdirname, config["TAPT Generator Loading"]["ModelFileName"]
             )
             self.model = AutoModelForCausalLM.from_pretrained(file_path)
-
-    def _generate_sample_pool(self, pool_size: int) -> list:
-        return self._pipeline_generate_sample_pool(pool_size)
 
 
 class TAPTDistilGPT2SampleGenerator(TAPTSampleGenerator):
