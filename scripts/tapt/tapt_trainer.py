@@ -10,7 +10,7 @@ parser = argparse.ArgumentParser(
 parser.add_argument("--model-name", type=str, help="The hugging face model name.")
 parser.add_argument("--dataset-name", type=str, help="The dataset name or path.")
 parser.add_argument(
-    "--batch-size", type=int, help="The batch size for training.", default=8, nargs="?"
+    "--batch-size", type=int, help="The batch size for training.", default=4, nargs="?"
 )
 parser.add_argument("--seed", type=int, help="The seed.", default=327532, nargs="?")
 parser.add_argument(
@@ -24,7 +24,7 @@ parser.add_argument(
     "--num-epochs",
     type=int,
     help="The number of training epochs",
-    default="3",
+    default=3,
     nargs="?",
 )
 args = parser.parse_args()
