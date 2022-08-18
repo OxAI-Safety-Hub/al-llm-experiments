@@ -1,7 +1,6 @@
 # The python abc module for making abstract base classes
 # https://docs.python.org/3.10/library/abc.html
 from abc import ABC, abstractmethod
-from multiprocessing import pool
 from random import randrange
 from typing import Optional
 import configparser
@@ -86,11 +85,12 @@ class SampleGenerator(ABC):
 
 
 class PipelineGeneratorMixin(ABC):
-
     def _make_pipeline_generator(self, task, model, tokenizer, **kwargs):
 
         # Set the device to use
-        device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
+        device = (
+            torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
+        )
 
         # Create a pipeline for text generation
         self.generator = pipeline(
@@ -100,7 +100,7 @@ class PipelineGeneratorMixin(ABC):
             tokenizer=tokenizer,
             **kwargs,
         )
-            
+
     def _pipeline_generate_sample_pool(self, pool_size: int) -> list:
 
         # Use the pipeline to generate real sentences
@@ -178,8 +178,10 @@ class PlainGPT2SampleGenerator(SampleGenerator, PipelineGeneratorMixin):
         self.max_length = max_length
 
         # Setup the pipeline generator
-        self._make_pipeline_generator("text-generation", self.MODEL_NAME, self.MODEL_NAME)
-    
+        self._make_pipeline_generator(
+            "text-generation", self.MODEL_NAME, self.MODEL_NAME
+        )
+
     def _generate_sample_pool(self, pool_size: int) -> list:
         return self._pipeline_generate_sample_pool(pool_size)
 
@@ -286,7 +288,7 @@ class TAPTSampleGenerator(SampleGenerator, PipelineGeneratorMixin, ABC):
                 tmpdirname, config["TAPT Generator Loading"]["ModelFileName"]
             )
             self.model = AutoModelForCausalLM.from_pretrained(file_path)
-    
+
     def _generate_sample_pool(self, pool_size: int) -> list:
         return self._pipeline_generate_sample_pool(pool_size)
 

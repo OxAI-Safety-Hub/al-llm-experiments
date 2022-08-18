@@ -113,5 +113,5 @@ class Parameters(dict):
             acquisition_function=acquisition_function,
             sample_generator_base_model=sample_generator_base_model,
             use_tapted_model=use_tapted_model * args,
-            **kwargs
+            **kwargs,
         )
