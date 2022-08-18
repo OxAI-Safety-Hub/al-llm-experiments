@@ -2,7 +2,7 @@
 # https://docs.python.org/3.10/library/abc.html
 from abc import ABC, abstractmethod
 from random import randrange
-from typing import Optional
+from typing import Optional, Any
 import configparser
 import tempfile
 import os
@@ -85,7 +85,20 @@ class SampleGenerator(ABC):
 
 
 class PipelineGeneratorMixin(ABC):
-    def _make_pipeline_generator(self, task, model, tokenizer, **kwargs):
+    """A mixin for sample generators which use the pipeline() for generation."""
+
+    def _make_pipeline_generator(self, task: str, model: Any, tokenizer: str, **kwargs):
+        """Created the generator using pipeline()
+
+        Parameters
+        ----------
+        task: str
+            The pipeline task (e.g. "text-generation")
+        model: Any
+            The name or reference to the model the pipeline should use.
+        tokenizer: str
+            The name of the tokenizer the pipeline should use.
+        """
 
         # Set the device to use
         device = (
@@ -102,6 +115,18 @@ class PipelineGeneratorMixin(ABC):
         )
 
     def _generate_sample_pool(self, pool_size: int) -> list:
+        """Generate a pool of samples, from which to select
+
+        Parameters
+        ----------
+        pool_size: int
+            The number of samples to generate
+
+        Returns
+        -------
+        samples : list
+            A list of samples
+        """
 
         # Use the pipeline to generate real sentences
         sentence_dicts = self.generator(
