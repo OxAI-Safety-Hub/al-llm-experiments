@@ -21,6 +21,8 @@ import evaluate
 
 import wandb
 
+from tqdm import tqdm
+
 from al_llm.parameters import Parameters
 from al_llm.dataset_container import DatasetContainer
 
@@ -446,7 +448,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         train_loss = 0
 
         # iterate over all the batches in the dataloader
-        for batch in train_dataloader:
+        for batch in tqdm(train_dataloader):
 
             # move batch data to same device as the model
             batch = {k: v.to(self.device) for k, v in batch.items()}
@@ -514,7 +516,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         eval_loss = 0
 
         # iterate over all the batches in the dataloader
-        for batch in eval_dataloader:
+        for batch in tqdm(eval_dataloader):
 
             # move batch data to same device as the model
             batch = {k: v.to(self.device) for k, v in batch.items()}

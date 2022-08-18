@@ -6,6 +6,7 @@ evaluate
 wheel
 sklearn
 wandb
+tqdm
 
 # Formatting and linting
 black
