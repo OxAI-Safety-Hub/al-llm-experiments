@@ -605,6 +605,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         uncertainties = []
 
         # Print a message to say what we're doing
+        print()
         print("Computing uncertainties...")
 
         # iterate over all the batches in the dataloader

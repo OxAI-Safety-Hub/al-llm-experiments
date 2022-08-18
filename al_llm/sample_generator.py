@@ -53,6 +53,7 @@ class SampleGenerator(ABC):
             as defined in the experiment parameters
         """
 
+        print()
         print("Generating samples...")
 
         if self.acquisition_function is None:
@@ -69,6 +70,7 @@ class SampleGenerator(ABC):
             )
 
             # Then select through the acquisition function
+            print()
             print("Selecting using the acquisition function...")
             filtered = self.acquisition_function.select(sample_pool)
 
@@ -247,6 +249,7 @@ class PoolSampleGenerator(SampleGenerator):
         # Filter the acquisition function through the set of sentences in the
         # remainder dataset
         sample_pool = self._generate_sample_pool()
+        print()
         print("Selecting samples using the acquisition function...")
         return self.acquisition_function.select(sample_pool)
 
