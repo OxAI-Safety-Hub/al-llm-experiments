@@ -14,7 +14,12 @@ from al_llm.dataset_container import (
     DummyDatasetContainer,
     RottenTomatoesDatasetHandler,
 )
-from al_llm.classifier import Classifier, DummyClassifier, GPT2Classifier
+from al_llm.classifier import (
+    Classifier,
+    DummyClassifier,
+    GPT2Classifier,
+    DistilGPT2Classifier,
+)
 from al_llm.sample_generator import (
     PlainGPT2SampleGenerator,
     SampleGenerator,
@@ -69,6 +74,7 @@ class Experiment:
     }
     MAP_CLASSIFIER = {
         "DummyClassifier": DummyClassifier,
+        "DistilGPT2Classifier": DistilGPT2Classifier,
         "GPT2Classifier": GPT2Classifier,
     }
     MAP_ACQUISITION_FUNCTION = {

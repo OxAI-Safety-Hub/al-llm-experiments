@@ -155,6 +155,63 @@ class CLIInterfaceMixin:
         return text
 
 
+class SimpleCLIInterfaceMixin(CLIInterfaceMixin, ABC):
+    """A CLI interface mixin which provides basic CLI outputs"""
+
+    def begin(self, message: str = None, parameters: Parameters = None):
+
+        # Default message
+        if message is None:
+            message = "AL LLM"
+
+        # Wrap the message
+        text = self._wrap(message)
+
+        # Add the parameters
+        if parameters is not None:
+            text += "\n" + self._horizontal_rule()
+            parameter_string = f"Parameters: {parameters}"
+            text += self._wrap(parameter_string)
+
+        text += "\n" + self._horizontal_rule()
+        run_id_string = f"Run ID: {self.wandb_run.id}"
+        text += self._wrap(run_id_string)
+
+        # Print the message
+        text = self._head_text(text, initial_newline=False)
+        self._output(text)
+
+    def train_afresh(self, message: str = None):
+
+        # Default message
+        if message is None:
+            message = "Fine-tuning from scratch..."
+
+        # Wrap the message
+        text = self._wrap(message)
+
+        # Print the message
+        text = self._head_text(text, initial_newline=False)
+        self._output(text)
+
+    def train_update(self, message: str = None):
+
+        # Default message
+        if message is None:
+            message = "Fine-tuning with new datapoints..."
+
+        # Wrap the message
+        text = self._wrap(message)
+
+        # Print the message
+        text = self._head_text(text, initial_newline=False)
+        self._output(text)
+
+    def _output(self, text: str):
+        """Output something to the CLI"""
+        print(text)
+
+
 class CLIInterface(CLIInterfaceMixin, FullLoopInterface):
     """A command line interface for obtaining labels
 
@@ -287,7 +344,7 @@ class CLIInterface(CLIInterfaceMixin, FullLoopInterface):
         self._output(text)
 
 
-class CLIBrokenLoopInterface(CLIInterfaceMixin, BrokenLoopInterface):
+class CLIBrokenLoopInterface(SimpleCLIInterfaceMixin, BrokenLoopInterface):
     """A CLI implementation of an interface for broken loop experiments
 
     Parameters
@@ -296,7 +353,7 @@ class CLIBrokenLoopInterface(CLIInterfaceMixin, BrokenLoopInterface):
         The dataset container for this experiment
     wandb_run : wandb.sdk.wandb_run.Run
         The current wandb run
-    line_width : int
+    line_width : int, default=70
         The width of the lines to wrap the output.
     """
 
@@ -310,56 +367,8 @@ class CLIBrokenLoopInterface(CLIInterfaceMixin, BrokenLoopInterface):
         super().__init__(dataset_container, wandb_run)
         self.line_width = line_width
 
-    def begin(self, message: str = None, parameters: Parameters = None):
 
-        # Default message
-        if message is None:
-            message = "AL LLM"
-
-        # Wrap the message
-        text = self._wrap(message)
-
-        # Add the parameters
-        if parameters is not None:
-            parameter_string = f"Parameters: {parameters}"
-            text += "\n" + self._wrap(parameter_string)
-
-        run_id_string = f"Run ID: {self.wandb_run.id}"
-        text += "\n" + self._wrap(run_id_string)
-
-        # Print the message
-        self._output(text)
-
-    def train_afresh(self, message: str = None):
-
-        # Default message
-        if message is None:
-            message = "Fine-tuning from scratch..."
-
-        # Wrap the message
-        text = self._wrap(message)
-
-        # Print the message
-        self._output(text)
-
-    def train_update(self, message: str = None):
-
-        # Default message
-        if message is None:
-            message = "Fine-tuning with new datapoints..."
-
-        # Wrap the message
-        text = self._wrap(message)
-
-        # Print the message
-        self._output(text)
-
-    def _output(self, text: str):
-        """Output something to the CLI"""
-        print(text)
-
-
-class PoolSimulatorInterface(Interface):
+class PoolSimulatorInterface(SimpleCLIInterfaceMixin, Interface):
     """Interface for simulating pool-based active learning
 
     This interface uses the remainder dataset as a pool of labelled samples.
@@ -373,15 +382,19 @@ class PoolSimulatorInterface(Interface):
         The dataset container for this experiment
     wandb_run : wandb.sdk.wandb_run.Run
         The current wandb run
+    line_width : int, default=70
+        The width of the lines to wrap the output.
     """
 
     def __init__(
         self,
         dataset_container: DatasetContainer,
         wandb_run: wandb.sdk.wandb_run.Run,
+        *,
+        line_width: int = 70,
     ):
-
         super().__init__(dataset_container, wandb_run)
+        self.line_width = line_width
 
     def prompt(self, samples: list) -> list:
         """Obtain a label for the samples from the dataset
