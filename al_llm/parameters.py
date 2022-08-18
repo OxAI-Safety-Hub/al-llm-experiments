@@ -88,7 +88,7 @@ class Parameters(dict):
         sample_generator_base_model="dummy",
         use_tapted_model=False,
         *args,
-        **kwargs
+        **kwargs,
     ):
 
         # sets the parameters provided
