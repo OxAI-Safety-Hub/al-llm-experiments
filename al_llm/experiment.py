@@ -70,14 +70,14 @@ class Experiment:
         "rotten_tomatoes": RottenTomatoesDatasetHandler,
     }
     MAP_CLASSIFIER = {
-        "DummyClassifier": DummyClassifier,
-        "GPT2Classifier": GPT2Classifier,
+        "dummy": DummyClassifier,
+        "gpt2": GPT2Classifier,
     }
     MAP_ACQUISITION_FUNCTION = {
-        "None": None,
-        "DummyAF": DummyAF,
-        "RandomAF": RandomAF,
-        "MaxUncertaintyAF": MaxUncertaintyAF,
+        "none": None,
+        "dummy": DummyAF,
+        "random": RandomAF,
+        "max_uncertainty": MaxUncertaintyAF,
     }
 
     MAP_PLAIN_SAMPLE_GENERATOR = {
@@ -308,7 +308,7 @@ class Experiment:
         af_class = cls.MAP_ACQUISITION_FUNCTION[af_name]
         if af_class is None:
             acquisition_function = None
-        elif af_name == "MaxUncertaintyAF":
+        elif af_name == "max_uncertainty":
             acquisition_function = af_class(parameters, classifier)
         else:
             acquisition_function = af_class(parameters)

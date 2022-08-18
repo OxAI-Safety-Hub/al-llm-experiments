@@ -55,9 +55,9 @@ class Parameters(dict):
         used by the pool-based simulator.
     full_loop : bool, default=True
         Run the whole experiment in one go, going through all the AL loops.
-    classifier : str, default="DummyClassifier"
+    classifier : str, default="dummy"
         The name of the classifier to use.
-    acquisition_function : str, default="DummyAF"
+    acquisition_function : str, default="dummy"
         The name of the acquisition function to use.
     sample_generator_base_model : str, default="dummy"
         The name of the base model the sample generator should use.
@@ -83,8 +83,8 @@ class Parameters(dict):
         validation_proportion=0.2,
         train_dataset_size=10,
         full_loop=True,
-        classifier="DummyClassifier",
-        acquisition_function="DummyAF",
+        classifier="dummy",
+        acquisition_function="dummy",
         sample_generator_base_model="dummy",
         use_tapted_model=False,
         *args,
