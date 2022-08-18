@@ -270,11 +270,22 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         for epoch in range(self.parameters["num_epochs_afresh"]):
 
             # Output the current epoch
-            print(f"Epoch: {epoch+1}")
+            print()
+            print(f"--- Epoch: {epoch+1} ---")
 
             # Run the training and evaluation loops, obtaining the metrics
+            print("- Running train loop")
             train_metrics = self._train_loop(train_dataloader, optimizer, lr_scheduler)
+            print(
+                f"Train loss: {train_metrics['loss']:.8}; "
+                f"train accuracy: {train_metrics['accuracy']:.6%}"
+            )
+            print("- Running eval loop")
             eval_metrics = self._eval_loop(eval_dataloader)
+            print(
+                f"Eval loss: {eval_metrics['loss']:.8}; "
+                f"eval accuracy: {eval_metrics['accuracy']:.6%}"
+            )
 
             # Record the metrics with W&B
             self.wandb_run.log(
@@ -323,13 +334,24 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         for epoch in range(self.parameters["num_epochs_update"]):
 
             # Output the current epoch
-            print(f"Epoch: {epoch+1}")
+            print()
+            print(f"--- Epoch: {epoch+1} ---")
 
             # Run the training and evaluation loops, obtaining the metrics
+            print("- Running train loop")
             train_metrics = self._train_loop(
                 samples_dataloader, optimizer, lr_scheduler
             )
+            print(
+                f"Train loss: {train_metrics['loss']:.8}; "
+                f"train accuracy: {train_metrics['accuracy']:.6%}"
+            )
+            print("- Running eval loop")
             eval_metrics = self._eval_loop(eval_dataloader)
+            print(
+                f"Eval loss: {eval_metrics['loss']:.8}; "
+                f"eval accuracy: {eval_metrics['accuracy']:.6%}"
+            )
 
             # Record the metrics with W&B
             self.wandb_run.log(
