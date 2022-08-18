@@ -1,6 +1,7 @@
 # The python abc module for making abstract base classes
 # https://docs.python.org/3.10/library/abc.html
 from abc import ABC, abstractmethod
+from multiprocessing import pool
 from random import randrange
 from typing import Optional
 import configparser
@@ -84,6 +85,35 @@ class SampleGenerator(ABC):
         return []
 
 
+class PipelineGeneratorMixin(ABC):
+
+    def _make_pipeline_generator(self, task, model, tokenizer, **kwargs):
+
+        # Set the device to use
+        device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
+
+        # Create a pipeline for text generation
+        self.generator = pipeline(
+            task=task,
+            model=model,
+            device=device,
+            tokenizer=tokenizer,
+            **kwargs,
+        )
+            
+    def _pipeline_generate_sample_pool(self, pool_size: int) -> list:
+
+        # Use the pipeline to generate real sentences
+        sentence_dicts = self.generator(
+            "",
+            max_length=self.max_length,
+            num_return_sequences=pool_size,
+        )
+        sample_pool = [d["generated_text"] for d in sentence_dicts]
+
+        return sample_pool
+
+
 class DummySampleGenerator(SampleGenerator):
     """Dummy sample generator, which generates random stuff
 
@@ -116,7 +146,7 @@ class DummySampleGenerator(SampleGenerator):
         return sample_pool
 
 
-class PlainGPT2SampleGenerator(SampleGenerator):
+class PlainGPT2SampleGenerator(SampleGenerator, PipelineGeneratorMixin):
     """Plain GPT-2 sample generator, which just generates real sentences
 
     It generates `parameters["num_samples"]` samples. If an acquisition
@@ -147,27 +177,11 @@ class PlainGPT2SampleGenerator(SampleGenerator):
 
         self.max_length = max_length
 
-        # Set the device to use
-        self.device = (
-            torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
-        )
-
-        # Create a pipeline for text generation
-        self.generator = pipeline(
-            task="text-generation", model=self.MODEL_NAME, device=self.device
-        )
-
+        # Setup the pipeline generator
+        self._make_pipeline_generator("text-generation", self.MODEL_NAME, self.MODEL_NAME)
+    
     def _generate_sample_pool(self, pool_size: int) -> list:
-
-        # Use the pipeline to generate real sentences
-        sentence_dicts = self.generator(
-            "",
-            max_length=self.max_length,
-            num_return_sequences=pool_size,
-        )
-        sample_pool = [d["generated_text"] for d in sentence_dicts]
-
-        return sample_pool
+        return self._pipeline_generate_sample_pool(pool_size)
 
 
 class PoolSampleGenerator(SampleGenerator):
@@ -208,7 +222,7 @@ class PoolSampleGenerator(SampleGenerator):
         return self.remainder_sentences
 
 
-class TAPTSampleGenerator(SampleGenerator, ABC):
+class TAPTSampleGenerator(SampleGenerator, PipelineGeneratorMixin, ABC):
     """Base TAPT sample generator
 
     Parameters
@@ -239,21 +253,11 @@ class TAPTSampleGenerator(SampleGenerator, ABC):
         self.wandb_run = wandb_run
         self.max_length = max_length
 
-        # Set the device to use
-        self.device = (
-            torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
-        )
-
         # Loads the pretrained model from wandb
         self._load_tapted_model()
 
-        # Create a pipeline for text generation
-        self.generator = pipeline(
-            task="text-generation",
-            model=self.model,
-            tokenizer=self.MODEL_NAME,
-            device=self.device,
-        )
+        # Setup the pipeline generator
+        self._make_pipeline_generator("text-generation", self.model, self.MODEL_NAME)
 
     def _load_tapted_model(self):
         """Loads the pretrained model from wandb
@@ -282,18 +286,9 @@ class TAPTSampleGenerator(SampleGenerator, ABC):
                 tmpdirname, config["TAPT Generator Loading"]["ModelFileName"]
             )
             self.model = AutoModelForCausalLM.from_pretrained(file_path)
-
+    
     def _generate_sample_pool(self, pool_size: int) -> list:
-
-        # Use the pipeline to generate real sentences
-        sentence_dicts = self.generator(
-            "",
-            max_length=self.max_length,
-            num_return_sequences=pool_size,
-        )
-        sample_pool = [d["generated_text"] for d in sentence_dicts]
-
-        return sample_pool
+        return self._pipeline_generate_sample_pool(pool_size)
 
 
 class TAPTDistilGPT2SampleGenerator(TAPTSampleGenerator):
