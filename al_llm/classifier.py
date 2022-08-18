@@ -20,7 +20,6 @@ import datasets
 import evaluate
 
 import wandb
-from al_llm import dataset_container
 
 from al_llm.parameters import Parameters
 from al_llm.dataset_container import DatasetContainer

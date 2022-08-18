@@ -32,10 +32,8 @@ class TestFullLoopDummyExperiment:
 
 
 def test_broken_loop_dummy_experiment():
-    parameters = Parameters()
-    dummy_args = Experiment.make_experiment(
-        parameters, "test", full_loop=False, is_running_pytests=True
-    )
+    parameters = Parameters(full_loop=False)
+    dummy_args = Experiment.make_experiment(parameters, "test", is_running_pytests=True)
     experiment = Experiment(**dummy_args)
     for iteration in range(dummy_args["parameters"]["num_iterations"]):
         experiment.run_single_iteration(iteration)
