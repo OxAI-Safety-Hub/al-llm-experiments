@@ -1,0 +1,7 @@
+git+https://github.com/huggingface/transformers#egg=transformers
+
+wheel
+datasets
+wandb
+evaluate
+sklearn
