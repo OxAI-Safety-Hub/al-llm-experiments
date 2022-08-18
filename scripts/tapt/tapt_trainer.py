@@ -2,6 +2,8 @@ import os
 from venv import create
 import argparse
 
+# Parser to allow all training arguments to be passed when running this
+# script straight from the command line.
 parser = argparse.ArgumentParser(
     description="Pretrain the model on the unlabelled data."
 )
@@ -37,6 +39,8 @@ os.system(
     "venv/bin/pip install torch==1.12.1+cu116 --extra-index-url https://download.pytorch.org/whl/cu116"
 )
 
+# Form the command that calls the run_clm.py script with our
+# specified parameters
 command_args = [
     "venv/bin/python run_clm.py",
     f"--model_name_or_path {args.model_name}",
@@ -54,7 +58,7 @@ command_args = [
     "--logging_steps 1",
     f"--num_train_epochs {args.num_epochs}",
 ]
-
 command = " ".join(command_args)
 
+# Run this command (start training)
 os.system(command)
