@@ -29,6 +29,7 @@ from dataclasses import dataclass, field
 from itertools import chain
 from typing import Optional
 import configparser
+import pickle
 
 import datasets
 from datasets import load_dataset
@@ -662,16 +663,30 @@ def main():
     else:
         trainer.create_model_card(**kwargs)
 
-    # Saves the tapted model to wandb
+    # Create a dictionary of the arguments used in this training
+    training_args = {
+        "tapt_seed": training_args.seed,
+        "tapt_batch_size": training_args.batch_size,
+        "tapt_num_epochs": training_args.num_epochs,
+    }
+
+    # Saves the tapted model and training_args to wandb
     #   uses a temporary directory as an inbetween
     with tempfile.TemporaryDirectory() as tmpdirname:
         # store the model in this directory
-        file_path = os.path.join(
+        model_file_path = os.path.join(
             tmpdirname, al_llm_config["TAPT Generator Loading"]["ModelFileName"]
         )
-        model.save_pretrained(file_path)
+        model.save_pretrained(model_file_path)
 
-        # upload this model to weights and biases as an artifact
+        # store the training_args in this directory
+        dict_file_path = os.path.join(
+            tmpdirname, al_llm_config["TAPT Generator Loading"]["ParametersFileName"]
+        )
+        with open(dict_file_path, "wb") as f:
+            pickle.dump(training_args, f)
+
+        # upload this file to weights and biases as an artifact
         artifact = wandb.Artifact(
             model_args.model_name_or_path + "---" + data_args.dataset_name,
             type=al_llm_config["TAPT Generator Loading"]["TAPTGeneratorType"],
