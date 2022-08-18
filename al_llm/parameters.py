@@ -51,6 +51,8 @@ class Parameters(dict):
             classifier. A set of this size is selected from the 'train' split
             of the dataset; the rest are collected as a pool of remainder data,
             used by the pool-based simulator.
+        full_loop : bool, default=True
+            Run the whole experiment in one go, going through all the AL loops.
         classifier : str, default="DummyClassifier"
             The name of the classifier to use.
         acquisition_function : str, default="DummyAF"
@@ -76,6 +78,7 @@ class Parameters(dict):
         "send_alerts": False,
         "validation_proportion": 0.2,
         "train_dataset_size": 10,
+        "full_loop": True,
         "classifier": "DummyClassifier",
         "acquisition_function": "DummyAF",
         "sample_generator": "DummySampleGenerator",

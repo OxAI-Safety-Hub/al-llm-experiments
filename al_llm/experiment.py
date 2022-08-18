@@ -228,7 +228,6 @@ class Experiment:
         cls,
         parameters: Parameters,
         run_id: str,
-        full_loop=True,
         is_running_pytests: bool = False,
     ):
         """Get experiment instances to feed into the constructor
@@ -244,8 +243,6 @@ class Experiment:
             The dictionary of parameters for the present experiment
         run_id : str
             The ID of the current run
-        full_loop : bool, default=True
-            Design the experiment to run the full loop of active learning
         is_running_pytests: bool, default=False
             If true, wandb will be disabled for the test experiments
 
@@ -323,7 +320,7 @@ class Experiment:
         # Set up the interface
         if sg_name == "PoolSampleGenerator":
             interface = PoolSimulatorInterface(dataset_container, wandb_run)
-        elif full_loop:
+        elif parameters["full_loop"]:
             interface = CLIInterface(dataset_container, wandb_run)
         else:
             interface = CLIBrokenLoopInterface(dataset_container, wandb_run)
