@@ -29,7 +29,7 @@ from dataclasses import dataclass, field
 from itertools import chain
 from typing import Optional
 import configparser
-import pickle
+import json
 
 import datasets
 from datasets import load_dataset
@@ -665,9 +665,9 @@ def main():
 
     # Create a dictionary of the arguments used in this training
     training_args = {
-        "tapt_seed": training_args.seed,
-        "tapt_batch_size": training_args.per_device_train_batch_size,
-        "tapt_num_epochs": training_args.num_train_epochs,
+        "seed": training_args.seed,
+        "batch_size": training_args.per_device_train_batch_size,
+        "num_epochs": training_args.num_train_epochs,
     }
 
     # Saves the tapted model and training_args to wandb
@@ -683,8 +683,8 @@ def main():
         dict_file_path = os.path.join(
             tmpdirname, al_llm_config["TAPT Generator Loading"]["ParametersFileName"]
         )
-        with open(dict_file_path, "wb") as f:
-            pickle.dump(training_args, f)
+        with open(dict_file_path, "w") as f:
+            json.dump(training_args, f, indent=4)
 
         # upload this file to weights and biases as an artifact
         artifact = wandb.Artifact(

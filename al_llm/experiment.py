@@ -118,7 +118,13 @@ class Experiment:
         self.wandb_run = wandb_run
         self.already_finetuned = already_finetuned
 
-    def run_full(self):
+    def run(self):
+        if self.parameters["full_loop"]:
+            self._run_full()
+        else:
+            self._run_single_iteration()
+
+    def _run_full(self):
         """Run the whole experiment in one go, through all iterations"""
 
         # Start the interface
@@ -149,17 +155,22 @@ class Experiment:
                 text="The `run_full()` experiment has been completed.",
             )
 
-    def run_single_iteration(self, iteration: int):
-        """Run a single iteration of active learning
+        # End the W&B run
+        self.wandb_run.finish()
 
-        Parameters
-        ----------
-        iteration : int
-            The index of the current iteration number, starting with 0
-        """
+    def _run_single_iteration(self):
+        """Run a single iteration of active learning"""
 
         # Start the interface
         self.interface.begin(parameters=self.parameters)
+
+        # determine the current iteration
+        try:
+            iteration = wandb.run.summary["iteration"] + 1
+        except KeyError:
+            # if no iteration has been logged already this must be 0
+            wandb.log({"iteration": 0})
+            iteration = 0
 
         # If `iteration` != 0, load any data saved on WandB and prompt the
         # human for labels for generated sentences from the previous iteration
@@ -364,6 +375,8 @@ class Experiment:
             sample_generator = cls.MAP_TAPT_SAMPLE_GENERATOR[sg_model_name](
                 parameters, wandb_run, acquisition_function=acquisition_function
             )
+            tapt_parameters = sample_generator.get_training_parameters()
+            wandb.config.update({"tapt_sample_generator": tapt_parameters})
         else:
             sample_generator = cls.MAP_PLAIN_SAMPLE_GENERATOR[sg_model_name](
                 parameters, acquisition_function=acquisition_function
