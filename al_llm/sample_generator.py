@@ -6,7 +6,7 @@ from typing import Optional, Any
 import configparser
 import tempfile
 import os
-import pickle
+import json
 
 import torch
 
@@ -322,7 +322,7 @@ class TAPTSampleGenerator(PipelineGeneratorMixin, SampleGenerator, ABC):
                 tmpdirname, config["TAPT Generator Loading"]["ParametersFileName"]
             )
             with open(dict_file_path, "rb") as f:
-                tapt_parameters_dict = pickle.load(f)
+                tapt_parameters_dict = json.load(f)
                 self.training_parameters = tapt_parameters_dict
 
             # load model from this directory
