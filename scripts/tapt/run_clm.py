@@ -665,9 +665,9 @@ def main():
 
     # Create a dictionary of the arguments used in this training
     training_args = {
-        "tapt_seed": training_args.seed,
-        "tapt_batch_size": training_args.per_device_train_batch_size,
-        "tapt_num_epochs": training_args.num_train_epochs,
+        "seed": training_args.seed,
+        "batch_size": training_args.per_device_train_batch_size,
+        "num_epochs": training_args.num_train_epochs,
     }
 
     # Saves the tapted model and training_args to wandb
