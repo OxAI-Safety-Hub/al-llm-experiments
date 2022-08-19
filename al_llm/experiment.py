@@ -149,17 +149,19 @@ class Experiment:
                 text="The `run_full()` experiment has been completed.",
             )
 
-    def run_single_iteration(self, iteration: int):
-        """Run a single iteration of active learning
-
-        Parameters
-        ----------
-        iteration : int
-            The index of the current iteration number, starting with 0
-        """
+    def run_single_iteration(self):
+        """Run a single iteration of active learning"""
 
         # Start the interface
         self.interface.begin(parameters=self.parameters)
+
+        # determine the current iteration
+        try:
+            iteration = wandb.run.summary["iteration"] + 1
+        except KeyError:
+            # if no iteration has been logged already this must be 0
+            wandb.log({"iteration": 0})
+            iteration = 0
 
         # Perform a single iteration of model update, obtaining new samples
         # to label
