@@ -181,9 +181,6 @@ class Experiment:
         # to label
         samples = self._train_and_get_samples(iteration)
 
-        # Make a request for labels from the human
-        self.data_handler.make_label_request(samples)
-
         # Save the current version of the classifier and dataset, including
         # the new samples awaiting labels from the human
         self._save(samples)

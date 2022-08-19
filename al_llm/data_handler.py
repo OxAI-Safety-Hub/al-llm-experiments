@@ -104,16 +104,6 @@ class DataHandler:
         }
         self.dataset_container.add_items(items, self.classifier.tokenize)
 
-    def make_label_request(self, samples: list):
-        """Make a request for labels for the samples from the human
-
-        Parameters
-        ----------
-        samples : list
-            The sample sentences for which to get the labels
-        """
-        pass
-
     def save(self, unlabelled_samples: list):
         """Save the current dataset
 
