@@ -6,6 +6,7 @@ from typing import Optional, Any
 import configparser
 import tempfile
 import os
+import pickle
 
 import torch
 
@@ -316,11 +317,29 @@ class TAPTSampleGenerator(PipelineGeneratorMixin, SampleGenerator, ABC):
             )
             artifact.download(tmpdirname)
 
+            # load the dictionary containing the parameters
+            dict_file_path = os.path.join(
+                tmpdirname, config["TAPT Generator Loading"]["ParametersFileName"]
+            )
+            with open(dict_file_path, "rb") as f:
+                tapt_parameters_dict = pickle.load(f)
+                self.training_parameters = tapt_parameters_dict
+
             # load model from this directory
-            file_path = os.path.join(
+            model_file_path = os.path.join(
                 tmpdirname, config["TAPT Generator Loading"]["ModelFileName"]
             )
-            self.model = AutoModelForCausalLM.from_pretrained(file_path)
+            self.model = AutoModelForCausalLM.from_pretrained(model_file_path)
+
+    def get_training_parameters(self) -> dict:
+        """Get the parameters used for training this model
+
+        Returns
+        -------
+        self.training_parameters : dict
+            The TAPT training parameters
+        """
+        return self.training_parameters
 
 
 class TAPTDistilGPT2SampleGenerator(TAPTSampleGenerator):

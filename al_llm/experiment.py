@@ -329,6 +329,8 @@ class Experiment:
             sample_generator = cls.MAP_TAPT_SAMPLE_GENERATOR[sg_model_name](
                 parameters, wandb_run, acquisition_function=acquisition_function
             )
+            tapt_parameters = sample_generator.get_training_parameters()
+            wandb.config.update({"tapt_sample_generator": tapt_parameters})
         else:
             sample_generator = cls.MAP_PLAIN_SAMPLE_GENERATOR[sg_model_name](
                 parameters, acquisition_function=acquisition_function
