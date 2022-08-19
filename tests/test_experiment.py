@@ -16,13 +16,13 @@ class TestFullLoopDummyExperiment:
     """Run the full dummy experiment, repeatedly feeding '0' as the input"""
 
     def test_dummy_experiment(self):
-        parameters = Parameters()
+        parameters = Parameters(full_loop=True)
         dummy_args = Experiment.make_experiment(
             parameters, "test", is_running_pytests=True
         )
         experiment = Experiment(**dummy_args)
         sys.stdin = ZeroStringIO()
-        experiment.run_full()
+        experiment.run()
 
     def setup_method(self):
         self.orig_stdin = sys.stdin

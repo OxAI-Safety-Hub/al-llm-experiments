@@ -118,7 +118,13 @@ class Experiment:
         self.wandb_run = wandb_run
         self.already_finetuned = already_finetuned
 
-    def run_full(self):
+    def run(self):
+        if self.parameters["full_loop"]:
+            self._run_full()
+        else:
+            self._run_single_iteration()
+
+    def _run_full(self):
         """Run the whole experiment in one go, through all iterations"""
 
         # Start the interface
@@ -152,7 +158,7 @@ class Experiment:
         # End the W&B run
         self.wandb_run.finish()
 
-    def run_single_iteration(self):
+    def _run_single_iteration(self):
         """Run a single iteration of active learning"""
 
         # Start the interface
