@@ -4,7 +4,7 @@ from typing import Union
 import configparser
 import tempfile
 import os
-import pickle
+import json
 
 import torch
 
@@ -143,8 +143,8 @@ class DataHandler:
             file_path = os.path.join(
                 tmpdirname, config["Data Handling"]["DatasetFileName"]
             )
-            with open(file_path, "wb") as file:
-                pickle.dump(added_data, file)
+            with open(file_path, "w") as file:
+                json.dump(added_data, file)
 
             # upload the dataset to WandB as an artifact
             artifact = wandb.Artifact(
@@ -182,7 +182,7 @@ class DataHandler:
                 tmpdirname, config["Data Handling"]["DatasetFileName"]
             )
 
-            with open(file_path, "rb") as file:
-                added_data = pickle.load(file)
+            with open(file_path, "r") as file:
+                added_data = json.load(file)
 
             return added_data
