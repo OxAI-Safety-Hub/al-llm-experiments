@@ -61,8 +61,10 @@ class Parameters(dict):
         The name of the acquisition function to use.
     sample_generator_base_model : str, default="dummy"
         The name of the base model the sample generator should use.
-    use_tapted_model : Bool, default=False
+    use_tapted_model : bool, default=False
         True if a pretrained sample generator be used.
+    is_running_pytests: bool, default=False
+        If true, wandb will be disabled for the test experiments
     """
 
     def __init__(
@@ -87,6 +89,7 @@ class Parameters(dict):
         acquisition_function="dummy",
         sample_generator_base_model="dummy",
         use_tapted_model=False,
+        is_running_pytests=False,
         *args,
         **kwargs,
     ):
@@ -113,6 +116,7 @@ class Parameters(dict):
             acquisition_function=acquisition_function,
             sample_generator_base_model=sample_generator_base_model,
             use_tapted_model=use_tapted_model,
+            is_running_pytests=is_running_pytests,
             *args,
             **kwargs,
         )

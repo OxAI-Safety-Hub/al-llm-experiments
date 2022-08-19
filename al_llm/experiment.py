@@ -194,7 +194,7 @@ class Experiment:
 
     def _load_and_prompt(self):
         """Load dataset from WandB and prompt human for labels
-        
+
         Load in the dataset stored on Weights and Biases, prompt the human for
         labels for any unlabelled sentences generated in the previous iteration,
         and then add all of the extra data (i.e. data not in the original
@@ -284,7 +284,6 @@ class Experiment:
         cls,
         parameters: Parameters,
         run_id: str,
-        is_running_pytests: bool = False,
     ):
         """Get experiment instances to feed into the constructor
 
@@ -299,8 +298,6 @@ class Experiment:
             The dictionary of parameters for the present experiment
         run_id : str
             The ID of the current run
-        is_running_pytests: bool, default=False
-            If true, wandb will be disabled for the test experiments
 
         Returns
         -------
@@ -332,7 +329,7 @@ class Experiment:
             entity=config["Wandb"]["Entity"],
             resume="allow",
             id=run_id,
-            mode="disabled" if is_running_pytests else "online",
+            mode="disabled" if parameters["is_running_pytests"] else "online",
             config=parameters,
         )
 
