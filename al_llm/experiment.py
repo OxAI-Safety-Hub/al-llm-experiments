@@ -149,6 +149,9 @@ class Experiment:
                 text="The `run_full()` experiment has been completed.",
             )
 
+        # End the W&B run
+        self.wandb_run.finish()
+
     def run_single_iteration(self):
         """Run a single iteration of active learning"""
 
