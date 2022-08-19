@@ -604,8 +604,12 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         # A list of the uncertainties (entropies) for each element of `samples`
         uncertainties = []
 
+        # Print a message to say what we're doing
+        print()
+        print("Computing uncertainties...")
+
         # iterate over all the batches in the dataloader
-        for batch in samples_dataloader:
+        for batch in tqdm(samples_dataloader):
 
             # Move the batch to the appropriate device
             batch = {k: v.to(self.device) for k, v in batch.items()}

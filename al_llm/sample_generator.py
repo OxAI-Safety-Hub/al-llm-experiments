@@ -53,6 +53,9 @@ class SampleGenerator(ABC):
             as defined in the experiment parameters
         """
 
+        print()
+        print("Generating samples...")
+
         if self.acquisition_function is None:
 
             # With no acquisition function, just generate samples without
@@ -61,11 +64,17 @@ class SampleGenerator(ABC):
 
         else:
 
-            # With an acquisition function, generate the samples, then filer
+            # With an acquisition function, first generate the samples
             sample_pool = self._generate_sample_pool(
                 self.parameters["sample_pool_size"]
             )
-            return self.acquisition_function.select(sample_pool)
+
+            # Then select through the acquisition function
+            print()
+            print("Selecting using the acquisition function...")
+            filtered = self.acquisition_function.select(sample_pool)
+
+            return filtered
 
     @abstractmethod
     def _generate_sample_pool(self, pool_size: int) -> list:
@@ -240,6 +249,8 @@ class PoolSampleGenerator(SampleGenerator):
         # Filter the acquisition function through the set of sentences in the
         # remainder dataset
         sample_pool = self._generate_sample_pool()
+        print()
+        print("Selecting samples using the acquisition function...")
         return self.acquisition_function.select(sample_pool)
 
     def _generate_sample_pool(self) -> list:
