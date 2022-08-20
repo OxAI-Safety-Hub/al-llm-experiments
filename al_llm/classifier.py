@@ -598,7 +598,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
             return uncertainties
 
 
-class TAPTClassifier(HuggingFaceClassifier):
+class TAPTClassifier(HuggingFaceClassifier, ABC):
     """Classifier class based on a TAPTed HuggingFace model
 
     Parameters
