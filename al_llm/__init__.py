@@ -2,8 +2,11 @@ from .classifier import (
     Classifier,
     DummyClassifier,
     HuggingFaceClassifier,
-    DistilGPT2Classifier,
-    GPT2Classifier,
+    PlainDistilGPT2Classifier,
+    PlainGPT2Classifier,
+    TAPTClassifier,
+    TAPTDistilGPT2Classifier,
+    TAPTGPT2Classifier,
 )
 from .data_handler import DataHandler
 from .dataset_container import (
