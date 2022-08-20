@@ -601,6 +601,10 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
 class TAPTClassifier(HuggingFaceClassifier):
     """Classifier class based on a TAPTed HuggingFace model"""
 
+    def initialise(self):
+        self._load_fresh_model()
+        wandb.config.update({"tapt_classifier": self.training_parameters})
+
     def _load_fresh_model(self):
         """Load the TAPT classifier model afresh"""
 
