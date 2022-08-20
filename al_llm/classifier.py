@@ -5,6 +5,7 @@ from typing import Union, Any
 import configparser
 import tempfile
 import os
+import json
 
 import torch
 from torch.utils.data import DataLoader
@@ -312,7 +313,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
             artifact_path_components = (
                 config["Wandb"]["Entity"],
                 config["Wandb"]["Project"],
-                self.ArtifactName + ":latest",
+                self.ARTIFACT_NAME + ":latest",
             )
             artifact_path = "/".join(artifact_path_components)
             artifact = self.wandb_run.use_artifact(
@@ -597,7 +598,80 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
             return uncertainties
 
 
-class GPT2Classifier(HuggingFaceClassifier):
+class TAPTClassifier(HuggingFaceClassifier, ABC):
+    """Classifier class based on a TAPTed HuggingFace model
+
+    Parameters
+    ----------
+    parameters : Parameters
+        The dictionary of parameters for the present experiment
+    dataset_container : DatasetContainer
+        The container for the datasets in this experiment
+    wandb_run : wandb.sdk.wandb_run.Run
+        The current wandb run
+    model_name : str
+        The name of the model, as on Hugging Face
+
+    Attributes
+    ----------
+    tokenizer : transformers.AutoTokenizer
+        The HuggingFace tokenizer associated with this classifier
+    model : transformers.AutoModelForSequenceClassification
+        The HuggingFace model for this classifier; reset to a new model every
+        call of `train_afresh`
+    optimizer : torch.optim.AdamW
+        The torch optimizer used to update the model's parameters when training
+    device : torch.device
+        Set to either cuda (if GPU available) or CPU
+    """
+
+    def initialise(self):
+        self._load_fresh_model()
+        wandb.config.update({"tapt_classifier": self.training_parameters})
+
+    def _load_fresh_model(self):
+        """Load the TAPT classifier model afresh"""
+
+        # Delete the old model to free up memory
+        del self.model
+
+        # use a temporary directory as an inbetween
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            # download the model into this directory from wandb
+            artifact_name = self.model_name + "---" + self.parameters["dataset_name"]
+            artifact_path_components = (
+                config["Wandb"]["Entity"],
+                config["Wandb"]["Project"],
+                artifact_name + ":latest",
+            )
+            artifact_path = "/".join(artifact_path_components)
+            artifact = self.wandb_run.use_artifact(
+                artifact_path,
+                type=config["TAPT Model Loading"]["TAPTModelType"],
+            )
+            artifact.download(tmpdirname)
+
+            # load the dictionary containing the parameters
+            dict_file_path = os.path.join(
+                tmpdirname, config["TAPT Model Loading"]["ParametersFileName"]
+            )
+            with open(dict_file_path, "rb") as f:
+                tapt_parameters_dict = json.load(f)
+                self.training_parameters = tapt_parameters_dict
+
+            # load model from this directory
+            model_file_path = os.path.join(
+                tmpdirname, config["TAPT Model Loading"]["ModelFileName"]
+            )
+            self.model = AutoModelForSequenceClassification.from_pretrained(
+                model_file_path, num_labels=2
+            )
+
+        # Setup the model
+        self._setup_model()
+
+
+class PlainGPT2Classifier(HuggingFaceClassifier):
     """Classifier class based on GPT-2
 
     A classifier class that uses the GPT-2[1]_ model available on HuggingFace
@@ -644,7 +718,7 @@ class GPT2Classifier(HuggingFaceClassifier):
         )
 
 
-class DistilGPT2Classifier(HuggingFaceClassifier):
+class PlainDistilGPT2Classifier(HuggingFaceClassifier):
     """Classifier class based on DistilGPT2 by HuggingFace
 
     A classifier class that uses the DistilGPT2[1]_ model available on
@@ -678,6 +752,98 @@ class DistilGPT2Classifier(HuggingFaceClassifier):
     ----------
     [1] Victor et al., "DistilBERT, a distilled version of BERT: smaller,
     faster, cheaper and lighter", NeurIPS EMC^2 Workshop, 2019
+    """
+
+    MODEL_NAME = "distilgpt2"
+    ARTIFACT_NAME = "distilgpt2-classifier"
+
+    def __init__(
+        self,
+        parameters: Parameters,
+        dataset_container: DatasetContainer,
+        wandb_run: wandb.sdk.wandb_run.Run,
+    ):
+        super().__init__(
+            parameters, dataset_container, wandb_run, model_name=self.MODEL_NAME
+        )
+
+
+class TAPTGPT2Classifier(TAPTClassifier):
+    """Classifier class based on a TAPTed GPT-2 model
+
+    A classifier class that uses the GPT-2[1]_ model available on HuggingFace
+    as a foundation for training a classifier; implemented by replacing
+    the head of pretrained GPT-2 with a classifier.
+
+    Parameters
+    ----------
+    parameters : Parameters
+        The dictionary of parameters for the present experiment
+    dataset_container : DatasetContainer
+        The container for the datasets in this experiment
+    wandb_run : wandb.sdk.wandb_run.Run
+        The current wandb run
+
+    Attributes
+    ----------
+    tokenizer : transformers.AutoTokenizer
+        The HuggingFace tokenizer associated with this classifier
+    model : transformers.AutoModelForSequenceClassification
+        The HuggingFace model for this classifier; reset to a new model every
+        call of `train_afresh`
+    optimizer : torch.optim.AdamW
+        The torch optimizer used to update the model's parameters when training
+    device : torch.device
+        Set to either cuda (if GPU available) or CPU
+
+    References
+    ----------
+    [1] Radford et al., "Language Models are Unsupervised Multitask Learners", 2019
+    """
+
+    MODEL_NAME = "gpt2"
+    ARTIFACT_NAME = "gtp2-classifier"
+
+    def __init__(
+        self,
+        parameters: Parameters,
+        dataset_container: DatasetContainer,
+        wandb_run: wandb.sdk.wandb_run.Run,
+    ):
+        super().__init__(
+            parameters, dataset_container, wandb_run, model_name=self.MODEL_NAME
+        )
+
+
+class TAPTDistilGPT2Classifier(TAPTClassifier):
+    """Classifier class based on a TAPTed DistilGPT2
+
+    A classifier class that uses the DistilGPT2[1]_ model available on
+    HuggingFace as a foundation for training a classifier; implemented by
+    replacing the head of pretrained GPT-2 with a classifier.
+
+    DistilGPT2 is trained under the supervision of the smallest GPT-2 model.
+
+    Parameters
+    ----------
+    parameters : Parameters
+        The dictionary of parameters for the present experiment
+    dataset_container : DatasetContainer
+        The container for the datasets in this experiment
+    wandb_run : wandb.sdk.wandb_run.Run
+        The current wandb run
+
+    Attributes
+    ----------
+    tokenizer : transformers.AutoTokenizer
+        The HuggingFace tokenizer associated with this classifier
+    model : transformers.AutoModelForSequenceClassification
+        The HuggingFace model for this classifier; reset to a new model every
+        call of `train_afresh`
+    optimizer : torch.optim.AdamW
+        The torch optimizer used to update the model's parameters when training
+    device : torch.device
+        Set to either cuda (if GPU available) or CPU
     """
 
     MODEL_NAME = "distilgpt2"

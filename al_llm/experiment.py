@@ -17,8 +17,10 @@ from al_llm.dataset_container import (
 from al_llm.classifier import (
     Classifier,
     DummyClassifier,
-    GPT2Classifier,
-    DistilGPT2Classifier,
+    PlainGPT2Classifier,
+    PlainDistilGPT2Classifier,
+    TAPTGPT2Classifier,
+    TAPTDistilGPT2Classifier,
 )
 from al_llm.sample_generator import (
     PlainGPT2SampleGenerator,
@@ -74,10 +76,14 @@ class Experiment:
         "dummy": DummyDatasetContainer,
         "rotten_tomatoes": RottenTomatoesDatasetHandler,
     }
-    MAP_CLASSIFIER = {
+    MAP_PLAIN_CLASSIFIER = {
         "dummy": DummyClassifier,
-        "gpt2": GPT2Classifier,
-        "distilgpt2": DistilGPT2Classifier,
+        "gpt2": PlainGPT2Classifier,
+        "distilgpt2": PlainDistilGPT2Classifier,
+    }
+    MAP_TAPT_CLASSIFIER = {
+        "gpt2": TAPTGPT2Classifier,
+        "distilgpt2": TAPTDistilGPT2Classifier,
     }
     MAP_ACQUISITION_FUNCTION = {
         "none": None,
@@ -312,10 +318,15 @@ class Experiment:
         dataset_container = dc_class(parameters)
 
         # Set up the classifier
-        classifier_name = parameters["classifier"]
-        classifier = cls.MAP_CLASSIFIER[classifier_name](
-            parameters, dataset_container, wandb_run
-        )
+        classifier_model_name = parameters["classifier_base_model"]
+        if parameters["use_tapted_classifier"]:
+            classifier = cls.MAP_TAPT_CLASSIFIER[classifier_model_name](
+                parameters, dataset_container, wandb_run
+            )
+        else:
+            classifier = cls.MAP_PLAIN_CLASSIFIER[classifier_model_name](
+                parameters, dataset_container, wandb_run
+            )
 
         # Set up the data handler
         data_handler = DataHandler(parameters, dataset_container, classifier, wandb_run)
@@ -336,7 +347,7 @@ class Experiment:
             sample_generator = cls.MAP_PLAIN_SAMPLE_GENERATOR[sg_model_name](
                 parameters, acquisition_function, dataset_container
             )
-        elif parameters["use_tapted_model"]:
+        elif parameters["use_tapted_sample_generator"]:
             sample_generator = cls.MAP_TAPT_SAMPLE_GENERATOR[sg_model_name](
                 parameters, wandb_run, acquisition_function=acquisition_function
             )

@@ -675,13 +675,13 @@ def main():
     with tempfile.TemporaryDirectory() as tmpdirname:
         # store the model in this directory
         model_file_path = os.path.join(
-            tmpdirname, al_llm_config["TAPT Generator Loading"]["ModelFileName"]
+            tmpdirname, al_llm_config["TAPT Model Loading"]["ModelFileName"]
         )
         model.save_pretrained(model_file_path)
 
         # store the training_args in this directory
         dict_file_path = os.path.join(
-            tmpdirname, al_llm_config["TAPT Generator Loading"]["ParametersFileName"]
+            tmpdirname, al_llm_config["TAPT Model Loading"]["ParametersFileName"]
         )
         with open(dict_file_path, "w") as f:
             json.dump(training_args, f, indent=4)
@@ -689,7 +689,7 @@ def main():
         # upload this file to weights and biases as an artifact
         artifact = wandb.Artifact(
             model_args.model_name_or_path + "---" + data_args.dataset_name,
-            type=al_llm_config["TAPT Generator Loading"]["TAPTGeneratorType"],
+            type=al_llm_config["TAPT Model Loading"]["TAPTModelType"],
         )
         artifact.add_dir(tmpdirname)
         run.log_artifact(artifact)
