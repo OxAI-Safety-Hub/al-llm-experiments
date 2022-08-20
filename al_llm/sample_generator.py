@@ -313,13 +313,13 @@ class TAPTSampleGenerator(PipelineGeneratorMixin, SampleGenerator, ABC):
             artifact_path = "/".join(artifact_path_components)
             artifact = self.wandb_run.use_artifact(
                 artifact_path,
-                type=config["TAPT Generator Loading"]["TAPTGeneratorType"],
+                type=config["TAPT Model Loading"]["TAPTModelType"],
             )
             artifact.download(tmpdirname)
 
             # load the dictionary containing the parameters
             dict_file_path = os.path.join(
-                tmpdirname, config["TAPT Generator Loading"]["ParametersFileName"]
+                tmpdirname, config["TAPT Model Loading"]["ParametersFileName"]
             )
             with open(dict_file_path, "rb") as f:
                 tapt_parameters_dict = json.load(f)
@@ -327,7 +327,7 @@ class TAPTSampleGenerator(PipelineGeneratorMixin, SampleGenerator, ABC):
 
             # load model from this directory
             model_file_path = os.path.join(
-                tmpdirname, config["TAPT Generator Loading"]["ModelFileName"]
+                tmpdirname, config["TAPT Model Loading"]["ModelFileName"]
             )
             self.model = AutoModelForCausalLM.from_pretrained(model_file_path)
 
