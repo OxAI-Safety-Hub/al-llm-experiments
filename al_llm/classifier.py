@@ -599,7 +599,31 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
 
 
 class TAPTClassifier(HuggingFaceClassifier):
-    """Classifier class based on a TAPTed HuggingFace model"""
+    """Classifier class based on a TAPTed HuggingFace model
+
+    Parameters
+    ----------
+    parameters : Parameters
+        The dictionary of parameters for the present experiment
+    dataset_container : DatasetContainer
+        The container for the datasets in this experiment
+    wandb_run : wandb.sdk.wandb_run.Run
+        The current wandb run
+    model_name : str
+        The name of the model, as on Hugging Face
+
+    Attributes
+    ----------
+    tokenizer : transformers.AutoTokenizer
+        The HuggingFace tokenizer associated with this classifier
+    model : transformers.AutoModelForSequenceClassification
+        The HuggingFace model for this classifier; reset to a new model every
+        call of `train_afresh`
+    optimizer : torch.optim.AdamW
+        The torch optimizer used to update the model's parameters when training
+    device : torch.device
+        Set to either cuda (if GPU available) or CPU
+    """
 
     def initialise(self):
         self._load_fresh_model()
