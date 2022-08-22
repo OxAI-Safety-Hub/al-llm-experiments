@@ -181,7 +181,13 @@ class Experiment:
         # If `iteration` != 0, load any data saved on WandB and prompt the
         # human for labels for generated sentences from the previous iteration
         if iteration != 0:
-            self._load_and_prompt()
+            added_data = self._load_and_prompt()
+
+            # add the additional data into the local training datasets
+            self.data_handler.new_labelled(
+                added_data[config["Data Handling"]["TextColumnName"]],
+                added_data[config["Data Handling"]["LabelColumnName"]],
+            )
 
         # Perform a single iteration of model update, obtaining new samples
         # to label
@@ -203,8 +209,13 @@ class Experiment:
 
         Load in the dataset stored on Weights and Biases, prompt the human for
         labels for any unlabelled sentences generated in the previous iteration,
-        and then add all of the extra data (i.e. data not in the original
-        training dataset) back into the dataset.
+        and then return the dictionary containing all extra data.
+
+        Returns
+        ----------
+        added_data : dict
+            Dictionary containing sentences and labels not in the original
+            dataset (i.e. added by Active Learning loop)
         """
         # Load the data from WandB
         added_data = self.data_handler.load()
@@ -221,11 +232,8 @@ class Experiment:
         # Append these labels onto the end of the added_data
         added_data[config["Data Handling"]["LabelColumnName"]].extend(labels)
 
-        # Finally, add all of the added_data back into the local datasets
-        self.data_handler.new_labelled(
-            added_data[config["Data Handling"]["TextColumnName"]],
-            added_data[config["Data Handling"]["LabelColumnName"]],
-        )
+        # Return the added_data dataset
+        return added_data
 
     def _train_and_get_samples(self, iteration: int) -> list:
         """Train the classifier with the latest datapoints, and get new samples
