@@ -429,6 +429,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         train_loss = 0
 
         # iterate over all the batches in the dataloader
+        batch_index = 0
         for batch in tqdm(train_dataloader):
 
             # move batch data to same device as the model
@@ -454,13 +455,25 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
             # Add it to the accumulated loss
             train_loss += loss.item() * len(batch)
 
-            # Perform back-propagation
+            # Compute and store gradients after normalising the loss to account
+            #   for gradient accumulation.
+            loss = loss / self.parameters["accum_iter"]
             loss.backward()
 
-            # run and optimisation step and move the lr scheduler forward
-            optimizer.step()
-            lr_scheduler.step()
-            optimizer.zero_grad()
+            # If `accum_iter` batches have passed since last updating network weights
+            #   or if this is the last batch, network weights need to be updated.
+            if ((batch_index + 1) % self.parameters["accum_iter"] == 0) or (
+                batch_index + 1 == len(train_dataloader)
+            ):
+                # run an optimisation step and move the lr scheduler forward
+                optimizer.step()
+                lr_scheduler.step()
+
+                # wipe the gradient memory to start afresh next batch
+                optimizer.zero_grad()
+
+            # increment batch index
+            batch_index += 1
 
         # Compute all the metrics for this epoch
         train_metrics = self.evaluator.compute()
