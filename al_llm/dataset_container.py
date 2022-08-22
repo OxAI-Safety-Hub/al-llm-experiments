@@ -201,7 +201,7 @@ class DatasetContainer(ABC):
         """
 
         # Get the required structure of the datasets as a datasets.Features object
-        features = self._get_dataset_features()
+        features = self._get_ambiguous_dataset_features()
 
         # First make a new dataset from the new items
         items_dataset = datasets.Dataset.from_dict(items, features=features)
@@ -257,6 +257,26 @@ class DatasetContainer(ABC):
             {
                 config["Data Handling"]["TextColumnName"]: text_type,
                 config["Data Handling"]["LabelColumnName"]: label_type,
+            }
+        )
+        return features
+
+    def _get_ambiguous_dataset_features(self) -> datasets.Features:
+        """Get the internal structure of the (non-tokenized) dataset
+
+        Returns
+        -------
+        features : datasets.Features
+            A mapping which specifies the types of the text and label columns
+        """
+        text_type = datasets.Value(dtype="string")
+        label_type = datasets.ClassLabel(names=list(self.categories.keys()))
+        ambiguity_type = datasets.Value(dtype="int64")
+        features = datasets.Features(
+            {
+                config["Data Handling"]["TextColumnName"]: text_type,
+                config["Data Handling"]["LabelColumnName"]: label_type,
+                config["Data Handling"]["AmbiguitiesColumnName"]: ambiguity_type,
             }
         )
         return features
@@ -360,6 +380,13 @@ class DummyDatasetContainer(DatasetContainer):
         # Divide the train split into train and remainder datasets
         self.dataset_train, self.dataset_remainder = self._train_remainder_split(
             train_split
+        )
+
+        # Add an ambiguities column to the train dataset
+        #   All of this data will not be ambiguous
+        self.dataset_train = self.dataset_train.add_column(
+            config["Data Handling"]["AmbiguitiesColumnName"],
+            [0] * len(self.dataset_train),
         )
 
     def save(self):

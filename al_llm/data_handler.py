@@ -81,7 +81,7 @@ class DataHandler:
         tokenized_samples.set_format("torch")
         return tokenized_samples
 
-    def new_labelled(self, samples: list, labels: list):
+    def new_labelled(self, samples: list, labels: list, ambiguities: list):
         """Add new labelled samples to the dataset
 
         Parameters
@@ -90,12 +90,15 @@ class DataHandler:
             The list of sample strings
         labels : list
             Labels for the samples
+        ambiguities : list
+            Ambiguities for the samples
         """
 
         # Add the items using the dataset container
         items = {
             config["Data Handling"]["TextColumnName"]: samples,
             config["Data Handling"]["LabelColumnName"]: labels,
+            config["Data Handling"]["AmbiguitiesColumnName"]: ambiguities,
         }
         self.dataset_container.add_items(items, self.classifier.tokenize)
 

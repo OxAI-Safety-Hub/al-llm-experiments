@@ -42,7 +42,7 @@ def _basic_dataset_container_tests(dataset_container, tokenize):
     train_length = len(dataset_container.dataset_train)
 
     # Add an item
-    item = {"text": "This is a test sentence", "labels": 0}
+    item = {"text": "This is a test sentence", "labels": 0, "ambiguities": 0}
     dataset_container.add_item(item, tokenize)
 
     # Check that it's been added
@@ -55,6 +55,7 @@ def _basic_dataset_container_tests(dataset_container, tokenize):
     items = {
         "text": ["This is another test sentence", "As it this one"],
         config["Data Handling"]["LabelColumnName"]: [0, 0],
+        config["Data Handling"]["AmbiguitiesColumnName"]: [0, 0],
     }
     items_len = len(items["text"])
     dataset_container.add_items(items, tokenize)

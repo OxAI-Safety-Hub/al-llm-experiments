@@ -146,7 +146,7 @@ class Experiment:
             labels, ambiguities = self.interface.prompt(samples)
 
             # Add these samples to the dataset
-            self.data_handler.new_labelled(samples, labels)
+            self.data_handler.new_labelled(samples, labels, ambiguities)
 
             # Save the current version of the classifier and dataset
             self._save()
