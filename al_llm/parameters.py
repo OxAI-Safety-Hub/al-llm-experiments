@@ -20,6 +20,8 @@ class Parameters(dict):
         How often to retrain the classifier from scratch.
     batch_size : int, default=8
         Batch size of the dataloaders which the classifier trains from.
+    accum_iter : int, defauly=1
+        After how many batches we should update the network weights
     num_epochs_update : int, default=3
         The number of epochs to train for when updating the classifier
         model with new datapoints
@@ -73,6 +75,7 @@ class Parameters(dict):
         num_iterations=5,
         refresh_every=2,
         batch_size=8,
+        accum_iter=1,
         num_epochs_update=3,
         num_epochs_afresh=3,
         num_samples=5,
@@ -100,6 +103,7 @@ class Parameters(dict):
             num_iterations=num_iterations,
             refresh_every=refresh_every,
             batch_size=batch_size,
+            accum_iter=accum_iter,
             num_epochs_update=num_epochs_update,
             num_epochs_afresh=num_epochs_afresh,
             num_samples=num_samples,
