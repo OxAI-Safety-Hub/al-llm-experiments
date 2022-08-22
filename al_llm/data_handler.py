@@ -125,6 +125,8 @@ class DataHandler:
         ]
 
         # add the samples in `unlabelled_samples` (if there are any)
+        # the other column of the dictionary remains a shorter list to be extended
+        # in the next iteration when labels are provided by a human
         added_data[config["Data Handling"]["TextColumnName"]].extend(unlabelled_samples)
 
         # save this dict to WandB, using a temporary directory as an inbetween
