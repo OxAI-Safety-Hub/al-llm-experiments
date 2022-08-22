@@ -134,7 +134,7 @@ class Experiment:
         """Run the whole experiment in one go, through all iterations"""
 
         # Start the interface
-        self.interface.begin(parameters=self.parameters)
+        self.interface.begin()
 
         for iteration in range(self.parameters["num_iterations"]):
 
@@ -168,7 +168,7 @@ class Experiment:
         """Run a single iteration of active learning"""
 
         # Start the interface
-        self.interface.begin(parameters=self.parameters)
+        self.interface.begin()
 
         # determine the current iteration
         try:
@@ -360,11 +360,11 @@ class Experiment:
 
         # Set up the interface
         if sg_model_name == "pool":
-            interface = PoolSimulatorInterface(dataset_container, wandb_run)
+            interface = PoolSimulatorInterface(parameters, dataset_container, wandb_run)
         elif parameters["full_loop"]:
-            interface = CLIInterface(dataset_container, wandb_run)
+            interface = CLIInterface(parameters, dataset_container, wandb_run)
         else:
-            interface = CLIBrokenLoopInterface(dataset_container, wandb_run)
+            interface = CLIBrokenLoopInterface(parameters, dataset_container, wandb_run)
 
         experiment_args = {
             "parameters": parameters,

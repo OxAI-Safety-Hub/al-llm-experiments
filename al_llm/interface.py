@@ -14,6 +14,8 @@ class Interface(ABC):
 
     Parameters
     ----------
+    parameters : Parameters
+        The dictionary of parameters for the present experiment
     dataset_container : DatasetContainer
         The dataset container for this experiment
     wandb_run : wandb.sdk.wandb_run.Run
@@ -21,20 +23,22 @@ class Interface(ABC):
     """
 
     def __init__(
-        self, dataset_container: DatasetContainer, wandb_run: wandb.sdk.wandb_run.Run
+        self,
+        parameters: Parameters,
+        dataset_container: DatasetContainer,
+        wandb_run: wandb.sdk.wandb_run.Run,
     ):
+        self.parameters = parameters
         self.dataset_container = dataset_container
         self.wandb_run = wandb_run
 
-    def begin(self, message: str = None, parameters: Parameters = None):
+    def begin(self, message: str = None):
         """Initialise the interface, displaying a welcome message
 
         Parameters
         ----------
         message : str, optional
             The welcome message to display. Defaults to a generic message.
-        parameters : Parameters, optional
-            The parameters used in this experiment
         """
         pass
 
@@ -164,7 +168,7 @@ class CLIInterfaceMixin:
 class SimpleCLIInterfaceMixin(CLIInterfaceMixin, ABC):
     """A CLI interface mixin which provides basic CLI outputs"""
 
-    def begin(self, message: str = None, parameters: Parameters = None):
+    def begin(self, message: str = None):
 
         # Default message
         if message is None:
@@ -174,9 +178,9 @@ class SimpleCLIInterfaceMixin(CLIInterfaceMixin, ABC):
         text = self._wrap(message)
 
         # Add the parameters
-        if parameters is not None:
+        if self.parameters is not None:
             text += "\n" + self._horizontal_rule()
-            parameter_string = f"Parameters: {parameters}"
+            parameter_string = f"Parameters: {self.parameters}"
             text += self._wrap(parameter_string)
 
         text += "\n" + self._horizontal_rule()
@@ -232,6 +236,8 @@ class CLIInterface(CLIInterfaceMixin, FullLoopInterface):
 
     Parameters
     ----------
+    parameters : Parameters
+        The dictionary of parameters for the present experiment
     dataset_container : DatasetContainer
         The dataset container for this experiment
     wandb_run : wandb.sdk.wandb_run.Run
@@ -242,17 +248,18 @@ class CLIInterface(CLIInterfaceMixin, FullLoopInterface):
 
     def __init__(
         self,
+        parameters: Parameters,
         dataset_container: DatasetContainer,
         wandb_run: wandb.sdk.wandb_run.Run,
         *,
         line_width: int = 70,
     ):
 
-        super().__init__(dataset_container, wandb_run)
+        super().__init__(parameters, dataset_container, wandb_run)
 
         self.line_width = line_width
 
-    def begin(self, message: str = None, parameters: Parameters = None):
+    def begin(self, message: str = None):
 
         # Default message
         if message is None:
@@ -265,9 +272,9 @@ class CLIInterface(CLIInterfaceMixin, FullLoopInterface):
         text = self._wrap(message)
 
         # Add the parameters
-        if parameters is not None:
+        if self.parameters is not None:
             text += "\n" + self._horizontal_rule()
-            parameter_string = f"Parameters: {parameters}"
+            parameter_string = f"Parameters: {self.parameters}"
             text += self._wrap(parameter_string)
 
         # Print the message
@@ -381,6 +388,8 @@ class CLIBrokenLoopInterface(SimpleCLIInterfaceMixin, BrokenLoopInterface):
 
     Parameters
     ----------
+    parameters : Parameters
+        The dictionary of parameters for the present experiment
     dataset_container : DatasetContainer
         The dataset container for this experiment
     wandb_run : wandb.sdk.wandb_run.Run
@@ -391,12 +400,13 @@ class CLIBrokenLoopInterface(SimpleCLIInterfaceMixin, BrokenLoopInterface):
 
     def __init__(
         self,
+        parameters: Parameters,
         dataset_container: DatasetContainer,
         wandb_run: wandb.sdk.wandb_run.Run,
         *,
         line_width: int = 70,
     ):
-        super().__init__(dataset_container, wandb_run)
+        super().__init__(parameters, dataset_container, wandb_run)
         self.line_width = line_width
 
 
@@ -410,6 +420,8 @@ class PoolSimulatorInterface(SimpleCLIInterfaceMixin, Interface):
 
     Parameters
     ----------
+    parameters : Parameters
+        The dictionary of parameters for the present experiment
     dataset_container : DatasetContainer
         The dataset container for this experiment
     wandb_run : wandb.sdk.wandb_run.Run
@@ -420,12 +432,13 @@ class PoolSimulatorInterface(SimpleCLIInterfaceMixin, Interface):
 
     def __init__(
         self,
+        parameters: Parameters,
         dataset_container: DatasetContainer,
         wandb_run: wandb.sdk.wandb_run.Run,
         *,
         line_width: int = 70,
     ):
-        super().__init__(dataset_container, wandb_run)
+        super().__init__(parameters, dataset_container, wandb_run)
         self.line_width = line_width
 
     def prompt(self, samples: list) -> Tuple[list, list]:
