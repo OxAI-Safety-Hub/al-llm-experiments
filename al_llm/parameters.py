@@ -68,7 +68,8 @@ class Parameters(dict):
     ambiguity_mode : str, default="only_mark"
         How the experiment treat ambiguous data. Default is "only_mark" which
         allows the human to mark data as ambiguous but the experiment will
-        run as if it isn't.
+        run as if it isn't. "none" means the user does not have the choice of
+        marking it as ambiguous.
     """
 
     def __init__(
