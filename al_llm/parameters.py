@@ -55,14 +55,16 @@ class Parameters(dict):
         used by the pool-based simulator.
     full_loop : bool, default=True
         Run the whole experiment in one go, going through all the AL loops.
-    classifier : str, default="dummy"
-        The name of the classifier to use.
+    classifier_base_model : str, default="dummy"
+        The name of the base model the classifier should use.
     acquisition_function : str, default="dummy"
         The name of the acquisition function to use.
     sample_generator_base_model : str, default="dummy"
         The name of the base model the sample generator should use.
-    use_tapted_model : bool, default=False
-        True if a pretrained sample generator be used.
+    use_tapted_sample_generator : bool, default=False
+        True if a pretrained sample generator should be used.
+    use_tapted_classifier : bool, default=False
+        True if a pretrained classifier should be used.
     is_running_pytests: bool, default=False
         If true, wandb will be disabled for the test experiments
     """
@@ -85,10 +87,11 @@ class Parameters(dict):
         validation_proportion=0.2,
         train_dataset_size=10,
         full_loop=True,
-        classifier="dummy",
+        classifier_base_model="dummy",
         acquisition_function="dummy",
         sample_generator_base_model="dummy",
-        use_tapted_model=False,
+        use_tapted_sample_generator=False,
+        use_tapted_classifier=False,
         is_running_pytests=False,
         *args,
         **kwargs,
@@ -112,10 +115,11 @@ class Parameters(dict):
             validation_proportion=validation_proportion,
             train_dataset_size=train_dataset_size,
             full_loop=full_loop,
-            classifier=classifier,
+            classifier_base_model=classifier_base_model,
             acquisition_function=acquisition_function,
             sample_generator_base_model=sample_generator_base_model,
-            use_tapted_model=use_tapted_model,
+            use_tapted_sample_generator=use_tapted_sample_generator,
+            use_tapted_classifier=use_tapted_classifier,
             is_running_pytests=is_running_pytests,
             *args,
             **kwargs,
