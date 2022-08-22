@@ -143,7 +143,7 @@ class Experiment:
             samples = self._train_and_get_samples(iteration)
 
             # Get the labels from the human
-            labels = self.interface.prompt(samples)
+            labels, ambiguities = self.interface.prompt(samples)
 
             # Add these samples to the dataset
             self.data_handler.new_labelled(samples, labels)

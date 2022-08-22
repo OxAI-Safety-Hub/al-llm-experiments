@@ -1,7 +1,7 @@
 # The python abc module for making abstract base classes
 # https://docs.python.org/3.10/library/abc.html
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, Tuple
 
 import textwrap
 import wandb
@@ -87,8 +87,8 @@ class FullLoopInterface(Interface, ABC):
     """
 
     @abstractmethod
-    def prompt(self, samples: list) -> list:
-        """Prompt the human for labels for the samples
+    def prompt(self, samples: list) -> Tuple[list, list]:
+        """Prompt the human for labels and ambiguities for the samples
 
         Parameters
         ----------
@@ -99,9 +99,11 @@ class FullLoopInterface(Interface, ABC):
         -------
         labels : list
             A list of labels, one for each element in `samples`
+        ambiguities : list
+            A list of ambiguities, one for each element in `samples`
         """
 
-        return []
+        return [], []
 
 
 class BrokenLoopInterface(Interface, ABC):
@@ -272,11 +274,26 @@ class CLIInterface(CLIInterfaceMixin, FullLoopInterface):
         text = self._head_text(text, initial_newline=False)
         self._output(text)
 
-    def prompt(self, samples: list) -> list:
+    def prompt(self, samples: list) -> Tuple[list, list]:
+        """Prompt the human for labels and ambiguities for the samples
+
+        Parameters
+        ----------
+        samples : list
+            A list of samples to query the human
+
+        Returns
+        -------
+        labels : list
+            A list of labels, one for each element in `samples`
+        ambiguities : list
+            A list of ambiguities, one for each element in `samples`
+        """
 
         super().prompt(samples)
 
         labels = []
+        ambiguities = []
 
         # Loop over all the samples for which we need a label
         for sample in samples:
@@ -304,10 +321,11 @@ class CLIInterface(CLIInterfaceMixin, FullLoopInterface):
                 if label >= 0 and label < len(categories):
                     valid_label = True
 
-            # Append this label
+            # Append this label with no ambiguity
             labels.append(list(categories.keys())[label])
+            ambiguities.append(0)
 
-        return labels
+        return labels, ambiguities
 
     def train_afresh(self, message: str = None, iteration=None):
 
@@ -412,8 +430,8 @@ class PoolSimulatorInterface(SimpleCLIInterfaceMixin, Interface):
         super().__init__(dataset_container, wandb_run)
         self.line_width = line_width
 
-    def prompt(self, samples: list) -> list:
-        """Obtain a label for the samples from the dataset
+    def prompt(self, samples: list) -> Tuple[list, list]:
+        """Prompt the human for labels and ambiguities for the samples
 
         Parameters
         ----------
@@ -424,12 +442,16 @@ class PoolSimulatorInterface(SimpleCLIInterfaceMixin, Interface):
         -------
         labels : list
             A list of labels, one for each element in `samples`
+        ambiguities : list
+            A list of ambiguities, one for each element in `samples`
         """
 
         # Get remainder dataset in pandas format
         remainder_pd = self.dataset_container.dataset_remainder.with_format("pandas")[:]
 
         labels = []
+        ambiguities = []
+
         for sample in samples:
 
             # Get the row containing `sample`
@@ -444,7 +466,8 @@ class PoolSimulatorInterface(SimpleCLIInterfaceMixin, Interface):
             if len(matching_row) > 1:
                 raise ValueError(f"Sample {sample!r} found multiple times in dataset")
 
-            # Append this the label to `labels`
+            # Append this the label to `labels` with no ambiguity
             labels.append(matching_row.iloc[0]["labels"])
+            ambiguities.append(0)
 
-        return labels
+        return labels, ambiguities
