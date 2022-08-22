@@ -65,6 +65,10 @@ class Parameters(dict):
         True if a pretrained sample generator should be used.
     use_tapted_classifier : Bool, default=False
         True if a pretrained classifier should be used.
+    ambiguity_mode : str, default="only_mark"
+        How the experiment treat ambiguous data. Default is "only_mark" which
+        allows the human to mark data as ambiguous but the experiment will 
+        run as if it isn't.
     """
 
     def __init__(
@@ -90,6 +94,7 @@ class Parameters(dict):
         sample_generator_base_model="dummy",
         use_tapted_sample_generator=False,
         use_tapted_classifier=False,
+        ambiguity_mode="only_mark",
         *args,
         **kwargs,
     ):
@@ -117,6 +122,7 @@ class Parameters(dict):
             sample_generator_base_model=sample_generator_base_model,
             use_tapted_sample_generator=use_tapted_sample_generator,
             use_tapted_classifier=use_tapted_classifier,
+            ambiguity_mode=ambiguity_mode,
             *args,
             **kwargs,
         )
