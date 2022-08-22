@@ -310,12 +310,25 @@ class CLIInterface(CLIInterfaceMixin, FullLoopInterface):
             categories = self.dataset_container.categories
             for i, cat_human_readable in enumerate(categories.values()):
                 text += self._wrap(f"[{i}] {cat_human_readable}") + "\n"
+            # If also checking for ambiguity, add these options
+            if self.parameters["ambiguity_mode"] != "none":
+                for i, cat_human_readable in enumerate(categories.values()):
+                    text += (
+                        self._wrap(
+                            f"[{i+len(categories)}] {cat_human_readable} (ambiguous)"
+                        )
+                        + "\n"
+                    )
 
             # Print the message
             self._output(text)
 
             # Keep asking the user for a label until they give a valid one
-            prompt = self._wrap(f"Enter a number (0-{len(categories)-1}):")
+            if self.parameters["ambiguity_mode"] == "none":
+                max_valid_label = len(categories) - 1
+            else:
+                max_valid_label = 2 * len(categories) - 1
+            prompt = self._wrap(f"Enter a number (0-{max_valid_label}):")
             valid_label = False
             while not valid_label:
                 label_str = self._input(prompt)
@@ -323,12 +336,12 @@ class CLIInterface(CLIInterfaceMixin, FullLoopInterface):
                     label = int(label_str)
                 except ValueError:
                     continue
-                if label >= 0 and label < len(categories):
+                if label >= 0 and label <= max_valid_label:
                     valid_label = True
 
-            # Append this label with no ambiguity
-            labels.append(list(categories.keys())[label])
-            ambiguities.append(0)
+            # Append this label with the ambiguity assigned
+            labels.append(list(categories.keys())[label % len(categories)])
+            ambiguities.append(label // len(categories))
 
         return labels, ambiguities
 
