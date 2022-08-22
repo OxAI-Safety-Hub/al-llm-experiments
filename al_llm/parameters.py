@@ -67,7 +67,7 @@ class Parameters(dict):
         True if a pretrained classifier should be used.
     ambiguity_mode : str, default="only_mark"
         How the experiment treat ambiguous data. Default is "only_mark" which
-        allows the human to mark data as ambiguous but the experiment will 
+        allows the human to mark data as ambiguous but the experiment will
         run as if it isn't.
     """
 
