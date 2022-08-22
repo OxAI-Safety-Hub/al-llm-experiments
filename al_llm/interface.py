@@ -290,8 +290,6 @@ class CLIInterface(CLIInterfaceMixin, FullLoopInterface):
             A list of ambiguities, one for each element in `samples`
         """
 
-        super().prompt(samples)
-
         labels = []
         ambiguities = []
 
