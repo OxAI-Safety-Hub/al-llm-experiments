@@ -612,3 +612,79 @@ class DummyLocalDatasetContainer(LocalDatasetContainer):
 
     DATASET_NAME = "dummy_local_dataset"
     CATEGORIES = OrderedDict([("neg", "Negative"), ("pos", "Positive")])
+
+
+class WikiToxicDatasetContainer(LocalDatasetContainer):
+    """A container Jigsaw Toxic Comment Challenge dataset
+
+    This dataset was the basis of a Kaggle competition run by Jigsaw. [1]_
+
+    The dataset has been modified in the following ways.
+    - The comment texts have been cleaned, removing user signatures timestamps,
+    IP addresses, pieces of code and stray quotation marks.
+    - The six toxicity classifications have been combined into a single binary
+    classification.
+
+    Parameters
+    ----------
+    parameters : Parameters
+        The parameters for the current experiment
+
+    Attributes
+    ----------
+    categories : OrderedDict
+        A dictionary of the classes in the data. The keys are the names of the
+        categories as understood by the model, and the values are the
+        human-readable names.
+    dataset_train : datasets.Dataset
+        The raw dataset consisting of labelled sentences used for training, as
+        a Hugging Face Dataset. This is separated from the 'train' split of
+        the dataset by selecting `parameters["train_dataset_size"]` datapoints.
+    dataset_remainder : datasets.Dataset
+        The remainder of the 'train' split after `dataset_train` has been
+        selected. Used by the pool-based simulator.
+    dataset_validation : datasets.Dataset
+        The raw dataset consisting of labelled sentences used for validation, as
+        a Hugging Face Dataset.
+    dataset_test : datasets.Dataset
+        The raw dataset consisting of labelled sentences used for testing, as
+        a Hugging Face Dataset.
+    tokenized_train : datasets.Dataset
+        A tokenized version of `dataset_train`, consisting of PyTorch tensors.
+    tokenized_remainder : datasets.Dataset
+        A tokenized version of `dataset_remainder`, consisting of PyTorch
+        tensors.
+    tokenized_validation : datasets.Dataset
+        A tokenized version of `dataset_validation`, consisting of PyTorch
+        tensors.
+    tokenized_test : datasets.Dataset
+        A tokenized version of `dataset_test`, consisting of PyTorch tensors.
+
+    References
+    ----------
+    [1] Victor et al., "Toxic Comment Classification Challenge", Kaggle Competition
+    https://www.kaggle.com/competitions/jigsaw-toxic-comment-classification-challenge/data,
+    2019
+    """
+
+    DATASET_NAME = "wiki_toxic"
+    CATEGORIES = OrderedDict([("non", "Non-toxic"), ("tox", "Toxic")])
+
+    def _preprocess_dataset(self):
+
+        # Do any preprocessing defined by the base class
+        super()._preprocess_dataset()
+
+        # Rename the 'label' column
+        self.dataset_train = self.dataset_train.rename_column(
+            "label", config["Data Handling"]["LabelColumnName"]
+        )
+        self.dataset_remainder = self.dataset_remainder.rename_column(
+            "label", config["Data Handling"]["LabelColumnName"]
+        )
+        self.dataset_validation = self.dataset_validation.rename_column(
+            "label", config["Data Handling"]["LabelColumnName"]
+        )
+        self.dataset_test = self.dataset_test.rename_column(
+            "label", config["Data Handling"]["LabelColumnName"]
+        )
