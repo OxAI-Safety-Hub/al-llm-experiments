@@ -4,6 +4,8 @@ import tempfile
 import wandb
 import configparser
 import json
+import textwrap
+from collections import OrderedDict
 
 # Parser to pass the run id through to the program
 parser = argparse.ArgumentParser(
@@ -24,8 +26,13 @@ config.read("config.ini")
 run = wandb.init(
     project=config["Wandb"]["Project"],
     entity=config["Wandb"]["Entity"],
-    name="dual_labelling_access_run",
+    id=args.run_id,
+    resume=True,
 )
+
+# Get the parameters which this experiment used
+parameters = run.config
+categories = OrderedDict([(0, "Negative"), (1, "Positive")])
 
 # Download this data from wandb
 #   use a temporary directory as an inbetween
@@ -61,6 +68,59 @@ print("You must do this in one sitting. Are you happy to continue?")
 decision = input("Answer (y/n): ")
 print("------------------------------------------------------")
 
+
+def _wrap(text: str) -> str:
+    """Wrap some text to the line width"""
+    return textwrap.fill(text, width=70)
+
+
 # If the user chooses 'y' then, the rest of the program will run
-if (decision.lower() == "y"):
-    print("happy to continue")
+if decision.lower() == "y":
+
+    # list to store labelled values
+    new_labels = []
+    new_ambiguities = []
+
+    # for each sentence that needs labelling
+    for i in range(num_labels):
+        sentence = data_dict["text"][i]
+
+        # Build the message with the sample plus the category selection
+        text = "\n"
+        text += _wrap(f"{sentence!r}") + "\n"
+        text += _wrap("How would you classify this?") + "\n"
+        for j, cat_human_readable in enumerate(categories.values()):
+            text += _wrap(f"[{j}] {cat_human_readable}") + "\n"
+        # If also checking for ambiguity, add these options
+        if parameters["ambiguity_mode"] != "none":
+            for j, cat_human_readable in enumerate(categories.values()):
+                text += (
+                    _wrap(f"[{j+len(categories)}] {cat_human_readable} (ambiguous)")
+                    + "\n"
+                )
+
+        # Print the message
+        print(text)
+
+        # Keep asking the user for a label until they give a valid one
+        if parameters["ambiguity_mode"] == "none":
+            max_valid_label = len(categories) - 1
+        else:
+            max_valid_label = 2 * len(categories) - 1
+        prompt = _wrap(f"Enter a number (0-{max_valid_label}):")
+        valid_label = False
+        while not valid_label:
+            label_str = input(prompt)
+            try:
+                label = int(label_str)
+            except ValueError:
+                continue
+            if label >= 0 and label <= max_valid_label:
+                valid_label = True
+
+        # Append this label with the ambiguity assigned
+        new_labels.append(list(categories.keys())[label % len(categories)])
+        new_ambiguities.append(label // len(categories))
+
+    print(new_labels)
+    print(data_dict["labels"])
