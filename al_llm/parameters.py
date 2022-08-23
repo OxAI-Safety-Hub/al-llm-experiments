@@ -61,15 +61,17 @@ class Parameters(dict):
         The name of the acquisition function to use.
     sample_generator_base_model : str, default="dummy"
         The name of the base model the sample generator should use.
-    use_tapted_sample_generator : Bool, default=False
+    use_tapted_sample_generator : bool, default=False
         True if a pretrained sample generator should be used.
-    use_tapted_classifier : Bool, default=False
+    use_tapted_classifier : bool, default=False
         True if a pretrained classifier should be used.
     ambiguity_mode : str, default="only_mark"
         How the experiment treat ambiguous data. Default is "only_mark" which
         allows the human to mark data as ambiguous but the experiment will
         run as if it isn't. "none" means the user does not have the choice of
         marking it as ambiguous.
+    is_running_pytests: bool, default=False
+        If true, wandb will be disabled for the test experiments
     """
 
     def __init__(
@@ -96,6 +98,7 @@ class Parameters(dict):
         use_tapted_sample_generator=False,
         use_tapted_classifier=False,
         ambiguity_mode="only_mark",
+        is_running_pytests=False,
         *args,
         **kwargs,
     ):
@@ -124,6 +127,7 @@ class Parameters(dict):
             use_tapted_sample_generator=use_tapted_sample_generator,
             use_tapted_classifier=use_tapted_classifier,
             ambiguity_mode=ambiguity_mode,
+            is_running_pytests=is_running_pytests,
             *args,
             **kwargs,
         )

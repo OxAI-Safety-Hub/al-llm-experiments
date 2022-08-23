@@ -2,6 +2,9 @@
 # https://docs.python.org/3.10/library/abc.html
 from typing import Union
 import configparser
+import tempfile
+import os
+import json
 
 import torch
 
@@ -43,6 +46,8 @@ class DataHandler:
     classifier : classifier.Classifier
         The classifier instance which will be using the data.
     """
+
+    ARTIFACT_NAME = "added-data"
 
     def __init__(
         self,
@@ -102,16 +107,77 @@ class DataHandler:
         }
         self.dataset_container.add_items(items, self.classifier.tokenize)
 
-    def make_label_request(self, samples: list):
-        """Make a request for labels for the samples from the human
+    def save(self, unlabelled_samples: list):
+        """Save the current dataset
+
+        This saves the raw sentence-label pairs that have been added to the
+        dataset through AL, possibly including any samples that are waiting
+        to be labelled at the start of the next iteration, as a dict in wandb.
 
         Parameters
         ----------
-        samples : list
-            The sample sentences for which to get the labels
+        unlabelled_samples : list
+            A list of any generated samples needing labelling, to be stored
+            until the next iteration alongside the added labelled data
         """
-        pass
 
-    def save(self):
-        """Save the current dataset"""
-        self.dataset_container.save()
+        # get all datapoints from dataset_train after `train_dataset_size`,
+        # i.e. only data added by AL process
+        added_data = self.dataset_container.dataset_train[
+            self.parameters["train_dataset_size"] :
+        ]
+
+        # add the samples in `unlabelled_samples` (if there are any)
+        # the other column of the dictionary remains a shorter list to be extended
+        # in the next iteration when labels are provided by a human
+        added_data[config["Data Handling"]["TextColumnName"]].extend(unlabelled_samples)
+
+        # save this dict to WandB, using a temporary directory as an inbetween
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            # store the dataset in this directory
+            file_path = os.path.join(
+                tmpdirname, config["Data Handling"]["DatasetFileName"]
+            )
+            with open(file_path, "w") as file:
+                json.dump(added_data, file)
+
+            # upload the dataset to WandB as an artifact
+            artifact = wandb.Artifact(
+                self.ARTIFACT_NAME, type=config["Data Handling"]["DatasetType"]
+            )
+            artifact.add_dir(tmpdirname)
+            self.wandb_run.log_artifact(artifact)
+
+    def load(self):
+        """Load the data stored on Weights and Biases
+
+        Returns
+        ----------
+        added_data : dict
+            The dictionary of sentences and labels added in earlier iterations
+        """
+
+        # use a temporary directory as an inbetween
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            # download the dataset into this directory from wandb
+            artifact_path_components = (
+                config["Wandb"]["Entity"],
+                config["Wandb"]["Project"],
+                self.ARTIFACT_NAME + ":latest",
+            )
+            artifact_path = "/".join(artifact_path_components)
+            artifact = self.wandb_run.use_artifact(
+                artifact_path,
+                type=config["Data Handling"]["DatasetType"],
+            )
+            artifact.download(tmpdirname)
+
+            # load dataset from this directory
+            file_path = os.path.join(
+                tmpdirname, config["Data Handling"]["DatasetFileName"]
+            )
+
+            with open(file_path, "r") as file:
+                added_data = json.load(file)
+
+            return added_data

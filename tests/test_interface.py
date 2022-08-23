@@ -5,8 +5,10 @@ from al_llm.experiment import Experiment
 def test_pool_simulator_interface():
 
     # Make a dummy experiment using PoolSimulatorInterface
-    parameters = Parameters(sample_generator_base_model="pool", full_loop=True)
-    args = Experiment.make_experiment(parameters, "test", is_running_pytests=True)
+    parameters = Parameters(
+        sample_generator_base_model="pool", full_loop=True, is_running_pytests=True
+    )
+    args = Experiment.make_experiment(parameters, "test")
     experiment = Experiment(**args)
 
     # Run it, to make sure there are no errors
