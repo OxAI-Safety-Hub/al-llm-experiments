@@ -143,7 +143,7 @@ class DataHandler:
 
             # upload the dataset to WandB as an artifact
             artifact = wandb.Artifact(
-                self.ARTIFACT_NAME, type=config["Data Handling"]["DatasetType"]
+                self.wandb_run.name, type=config["Data Handling"]["DatasetType"]
             )
             artifact.add_dir(tmpdirname)
             self.wandb_run.log_artifact(artifact)
@@ -163,7 +163,7 @@ class DataHandler:
             artifact_path_components = (
                 config["Wandb"]["Entity"],
                 config["Wandb"]["Project"],
-                self.ARTIFACT_NAME + ":latest",
+                self.wandb_run.name + ":latest",
             )
             artifact_path = "/".join(artifact_path_components)
             artifact = self.wandb_run.use_artifact(
