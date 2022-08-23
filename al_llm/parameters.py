@@ -65,6 +65,11 @@ class Parameters(dict):
         True if a pretrained sample generator should be used.
     use_tapted_classifier : bool, default=False
         True if a pretrained classifier should be used.
+    ambiguity_mode : str, default="only_mark"
+        How the experiment treat ambiguous data. Default is "only_mark" which
+        allows the human to mark data as ambiguous but the experiment will
+        run as if it isn't. "none" means the user does not have the choice of
+        marking it as ambiguous.
     is_running_pytests: bool, default=False
         If true, wandb will be disabled for the test experiments
     """
@@ -92,6 +97,7 @@ class Parameters(dict):
         sample_generator_base_model="dummy",
         use_tapted_sample_generator=False,
         use_tapted_classifier=False,
+        ambiguity_mode="only_mark",
         is_running_pytests=False,
         *args,
         **kwargs,
@@ -120,6 +126,7 @@ class Parameters(dict):
             sample_generator_base_model=sample_generator_base_model,
             use_tapted_sample_generator=use_tapted_sample_generator,
             use_tapted_classifier=use_tapted_classifier,
+            ambiguity_mode=ambiguity_mode,
             is_running_pytests=is_running_pytests,
             *args,
             **kwargs,

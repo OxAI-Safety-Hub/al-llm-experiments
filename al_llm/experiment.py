@@ -134,7 +134,7 @@ class Experiment:
         """Run the whole experiment in one go, through all iterations"""
 
         # Start the interface
-        self.interface.begin(parameters=self.parameters)
+        self.interface.begin()
 
         for iteration in range(self.parameters["num_iterations"]):
 
@@ -143,10 +143,10 @@ class Experiment:
             samples = self._train_and_get_samples(iteration)
 
             # Get the labels from the human
-            labels = self.interface.prompt(samples)
+            labels, ambiguities = self.interface.prompt(samples)
 
             # Add these samples to the dataset
-            self.data_handler.new_labelled(samples, labels)
+            self.data_handler.new_labelled(samples, labels, ambiguities)
 
             # Save the current version of the classifier and dataset
             self._save()
@@ -168,7 +168,7 @@ class Experiment:
         """Run a single iteration of active learning"""
 
         # Start the interface
-        self.interface.begin(parameters=self.parameters)
+        self.interface.begin()
 
         # determine the current iteration
         try:
@@ -187,6 +187,7 @@ class Experiment:
             self.data_handler.new_labelled(
                 added_data[config["Data Handling"]["TextColumnName"]],
                 added_data[config["Data Handling"]["LabelColumnName"]],
+                added_data[config["Data Handling"]["AmbiguitiesColumnName"]],
             )
 
         # Perform a single iteration of model update, obtaining new samples
@@ -227,10 +228,11 @@ class Experiment:
         ]
 
         # Prompt the human for labels
-        labels = self.interface.prompt(unlabelled_added)
+        labels, ambiguities = self.interface.prompt(unlabelled_added)
 
         # Append these labels onto the end of the added_data
         added_data[config["Data Handling"]["LabelColumnName"]].extend(labels)
+        added_data[config["Data Handling"]["AmbiguitiesColumnName"]].extend(ambiguities)
 
         # Return the added_data dataset
         return added_data
@@ -397,11 +399,11 @@ class Experiment:
 
         # Set up the interface
         if sg_model_name == "pool":
-            interface = PoolSimulatorInterface(dataset_container, wandb_run)
+            interface = PoolSimulatorInterface(parameters, dataset_container, wandb_run)
         elif parameters["full_loop"]:
-            interface = CLIInterface(dataset_container, wandb_run)
+            interface = CLIInterface(parameters, dataset_container, wandb_run)
         else:
-            interface = CLIBrokenLoopInterface(dataset_container, wandb_run)
+            interface = CLIBrokenLoopInterface(parameters, dataset_container, wandb_run)
 
         experiment_args = {
             "parameters": parameters,

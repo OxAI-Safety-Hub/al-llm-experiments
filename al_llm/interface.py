@@ -1,7 +1,7 @@
 # The python abc module for making abstract base classes
 # https://docs.python.org/3.10/library/abc.html
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, Tuple
 
 import textwrap
 import wandb
@@ -14,6 +14,8 @@ class Interface(ABC):
 
     Parameters
     ----------
+    parameters : Parameters
+        The dictionary of parameters for the present experiment
     dataset_container : DatasetContainer
         The dataset container for this experiment
     wandb_run : wandb.sdk.wandb_run.Run
@@ -21,20 +23,22 @@ class Interface(ABC):
     """
 
     def __init__(
-        self, dataset_container: DatasetContainer, wandb_run: wandb.sdk.wandb_run.Run
+        self,
+        parameters: Parameters,
+        dataset_container: DatasetContainer,
+        wandb_run: wandb.sdk.wandb_run.Run,
     ):
+        self.parameters = parameters
         self.dataset_container = dataset_container
         self.wandb_run = wandb_run
 
-    def begin(self, message: str = None, parameters: Parameters = None):
+    def begin(self, message: str = None):
         """Initialise the interface, displaying a welcome message
 
         Parameters
         ----------
         message : str, optional
             The welcome message to display. Defaults to a generic message.
-        parameters : Parameters, optional
-            The parameters used in this experiment
         """
         pass
 
@@ -87,8 +91,8 @@ class FullLoopInterface(Interface, ABC):
     """
 
     @abstractmethod
-    def prompt(self, samples: list) -> list:
-        """Prompt the human for labels for the samples
+    def prompt(self, samples: list) -> Tuple[list, list]:
+        """Prompt the human for labels and ambiguities for the samples
 
         Parameters
         ----------
@@ -99,9 +103,11 @@ class FullLoopInterface(Interface, ABC):
         -------
         labels : list
             A list of labels, one for each element in `samples`
+        ambiguities : list
+            A list of ambiguities, one for each element in `samples`
         """
 
-        return []
+        return [], []
 
 
 class BrokenLoopInterface(Interface, ABC):
@@ -162,7 +168,7 @@ class CLIInterfaceMixin:
 class SimpleCLIInterfaceMixin(CLIInterfaceMixin, ABC):
     """A CLI interface mixin which provides basic CLI outputs"""
 
-    def begin(self, message: str = None, parameters: Parameters = None):
+    def begin(self, message: str = None):
 
         # Default message
         if message is None:
@@ -172,9 +178,9 @@ class SimpleCLIInterfaceMixin(CLIInterfaceMixin, ABC):
         text = self._wrap(message)
 
         # Add the parameters
-        if parameters is not None:
+        if self.parameters is not None:
             text += "\n" + self._horizontal_rule()
-            parameter_string = f"Parameters: {parameters}"
+            parameter_string = f"Parameters: {self.parameters}"
             text += self._wrap(parameter_string)
 
         text += "\n" + self._horizontal_rule()
@@ -230,6 +236,8 @@ class CLIInterface(CLIInterfaceMixin, FullLoopInterface):
 
     Parameters
     ----------
+    parameters : Parameters
+        The dictionary of parameters for the present experiment
     dataset_container : DatasetContainer
         The dataset container for this experiment
     wandb_run : wandb.sdk.wandb_run.Run
@@ -240,17 +248,18 @@ class CLIInterface(CLIInterfaceMixin, FullLoopInterface):
 
     def __init__(
         self,
+        parameters: Parameters,
         dataset_container: DatasetContainer,
         wandb_run: wandb.sdk.wandb_run.Run,
         *,
         line_width: int = 70,
     ):
 
-        super().__init__(dataset_container, wandb_run)
+        super().__init__(parameters, dataset_container, wandb_run)
 
         self.line_width = line_width
 
-    def begin(self, message: str = None, parameters: Parameters = None):
+    def begin(self, message: str = None):
 
         # Default message
         if message is None:
@@ -263,20 +272,33 @@ class CLIInterface(CLIInterfaceMixin, FullLoopInterface):
         text = self._wrap(message)
 
         # Add the parameters
-        if parameters is not None:
+        if self.parameters is not None:
             text += "\n" + self._horizontal_rule()
-            parameter_string = f"Parameters: {parameters}"
+            parameter_string = f"Parameters: {self.parameters}"
             text += self._wrap(parameter_string)
 
         # Print the message
         text = self._head_text(text, initial_newline=False)
         self._output(text)
 
-    def prompt(self, samples: list) -> list:
+    def prompt(self, samples: list) -> Tuple[list, list]:
+        """Prompt the human for labels and ambiguities for the samples
 
-        super().prompt(samples)
+        Parameters
+        ----------
+        samples : list
+            A list of samples to query the human
+
+        Returns
+        -------
+        labels : list
+            A list of labels, one for each element in `samples`
+        ambiguities : list
+            A list of ambiguities, one for each element in `samples`
+        """
 
         labels = []
+        ambiguities = []
 
         # Loop over all the samples for which we need a label
         for sample in samples:
@@ -288,12 +310,25 @@ class CLIInterface(CLIInterfaceMixin, FullLoopInterface):
             categories = self.dataset_container.categories
             for i, cat_human_readable in enumerate(categories.values()):
                 text += self._wrap(f"[{i}] {cat_human_readable}") + "\n"
+            # If also checking for ambiguity, add these options
+            if self.parameters["ambiguity_mode"] != "none":
+                for i, cat_human_readable in enumerate(categories.values()):
+                    text += (
+                        self._wrap(
+                            f"[{i+len(categories)}] {cat_human_readable} (ambiguous)"
+                        )
+                        + "\n"
+                    )
 
             # Print the message
             self._output(text)
 
             # Keep asking the user for a label until they give a valid one
-            prompt = self._wrap(f"Enter a number (0-{len(categories)-1}):")
+            if self.parameters["ambiguity_mode"] == "none":
+                max_valid_label = len(categories) - 1
+            else:
+                max_valid_label = 2 * len(categories) - 1
+            prompt = self._wrap(f"Enter a number (0-{max_valid_label}):")
             valid_label = False
             while not valid_label:
                 label_str = self._input(prompt)
@@ -301,13 +336,14 @@ class CLIInterface(CLIInterfaceMixin, FullLoopInterface):
                     label = int(label_str)
                 except ValueError:
                     continue
-                if label >= 0 and label < len(categories):
+                if label >= 0 and label <= max_valid_label:
                     valid_label = True
 
-            # Append this label
-            labels.append(list(categories.keys())[label])
+            # Append this label with the ambiguity assigned
+            labels.append(list(categories.keys())[label % len(categories)])
+            ambiguities.append(label // len(categories))
 
-        return labels
+        return labels, ambiguities
 
     def train_afresh(self, message: str = None, iteration=None):
 
@@ -365,6 +401,8 @@ class CLIBrokenLoopInterface(SimpleCLIInterfaceMixin, BrokenLoopInterface):
 
     Parameters
     ----------
+    parameters : Parameters
+        The dictionary of parameters for the present experiment
     dataset_container : DatasetContainer
         The dataset container for this experiment
     wandb_run : wandb.sdk.wandb_run.Run
@@ -375,12 +413,13 @@ class CLIBrokenLoopInterface(SimpleCLIInterfaceMixin, BrokenLoopInterface):
 
     def __init__(
         self,
+        parameters: Parameters,
         dataset_container: DatasetContainer,
         wandb_run: wandb.sdk.wandb_run.Run,
         *,
         line_width: int = 70,
     ):
-        super().__init__(dataset_container, wandb_run)
+        super().__init__(parameters, dataset_container, wandb_run)
         self.line_width = line_width
 
 
@@ -394,6 +433,8 @@ class PoolSimulatorInterface(SimpleCLIInterfaceMixin, Interface):
 
     Parameters
     ----------
+    parameters : Parameters
+        The dictionary of parameters for the present experiment
     dataset_container : DatasetContainer
         The dataset container for this experiment
     wandb_run : wandb.sdk.wandb_run.Run
@@ -404,16 +445,17 @@ class PoolSimulatorInterface(SimpleCLIInterfaceMixin, Interface):
 
     def __init__(
         self,
+        parameters: Parameters,
         dataset_container: DatasetContainer,
         wandb_run: wandb.sdk.wandb_run.Run,
         *,
         line_width: int = 70,
     ):
-        super().__init__(dataset_container, wandb_run)
+        super().__init__(parameters, dataset_container, wandb_run)
         self.line_width = line_width
 
-    def prompt(self, samples: list) -> list:
-        """Obtain a label for the samples from the dataset
+    def prompt(self, samples: list) -> Tuple[list, list]:
+        """Prompt the human for labels and ambiguities for the samples
 
         Parameters
         ----------
@@ -424,12 +466,17 @@ class PoolSimulatorInterface(SimpleCLIInterfaceMixin, Interface):
         -------
         labels : list
             A list of labels, one for each element in `samples`
+        ambiguities : list
+            A list of ambiguities, one for each element in `samples`
+            stored as integers (0=non-ambiguous, 1=ambiguous).
         """
 
         # Get remainder dataset in pandas format
         remainder_pd = self.dataset_container.dataset_remainder.with_format("pandas")[:]
 
         labels = []
+        ambiguities = []
+
         for sample in samples:
 
             # Get the row containing `sample`
@@ -444,7 +491,8 @@ class PoolSimulatorInterface(SimpleCLIInterfaceMixin, Interface):
             if len(matching_row) > 1:
                 raise ValueError(f"Sample {sample!r} found multiple times in dataset")
 
-            # Append this the label to `labels`
+            # Append this the label to `labels` with no ambiguity
             labels.append(matching_row.iloc[0]["labels"])
+            ambiguities.append(0)
 
-        return labels
+        return labels, ambiguities
