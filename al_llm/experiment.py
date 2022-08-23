@@ -178,15 +178,24 @@ class Experiment:
             wandb.log({"iteration": 0})
             iteration = 0
 
+        # If `iteration` != 0, load any data saved on WandB and prompt the
+        # human for labels for generated sentences from the previous iteration
+        if iteration != 0:
+            added_data = self._load_and_prompt()
+
+            # add the additional data into the local training datasets
+            self.data_handler.new_labelled(
+                added_data[config["Data Handling"]["TextColumnName"]],
+                added_data[config["Data Handling"]["LabelColumnName"]],
+            )
+
         # Perform a single iteration of model update, obtaining new samples
         # to label
         samples = self._train_and_get_samples(iteration)
 
-        # Make a request for labels from the human
-        self.data_handler.make_label_request(samples)
-
-        # Save the current version of the classifier and dataset
-        self._save()
+        # Save the current version of the classifier and dataset, including
+        # the new samples awaiting labels from the human
+        self._save(samples)
 
         # Alert the slack channel that the iteration is complete
         if self.parameters["send_alerts"]:
@@ -194,6 +203,37 @@ class Experiment:
                 title="AL Loop Iteration Complete",
                 text="There is new data to be labelled.",
             )
+
+    def _load_and_prompt(self):
+        """Load dataset from WandB and prompt human for labels
+
+        Load in the dataset stored on Weights and Biases, prompt the human for
+        labels for any unlabelled sentences generated in the previous iteration,
+        and then return the dictionary containing all extra data.
+
+        Returns
+        ----------
+        added_data : dict
+            Dictionary containing sentences and labels not in the original
+            dataset (i.e. added by Active Learning loop)
+        """
+        # Load the data from WandB
+        added_data = self.data_handler.load()
+
+        # Get the unlabelled sentences saved to WandB by taking the
+        # last `num_samples` items from added_data's 'text' column
+        unlabelled_added = added_data[config["Data Handling"]["TextColumnName"]][
+            -self.parameters["num_samples"] :
+        ]
+
+        # Prompt the human for labels
+        labels = self.interface.prompt(unlabelled_added)
+
+        # Append these labels onto the end of the added_data
+        added_data[config["Data Handling"]["LabelColumnName"]].extend(labels)
+
+        # Return the added_data dataset
+        return added_data
 
     def _train_and_get_samples(self, iteration: int) -> list:
         """Train the classifier with the latest datapoints, and get new samples
@@ -248,17 +288,16 @@ class Experiment:
             iteration,
         )
 
-    def _save(self):
+    def _save(self, unlabelled_samples: list = []):
         """Save the current classifier and dataset"""
         self.classifier.save()
-        self.data_handler.save()
+        self.data_handler.save(unlabelled_samples)
 
     @classmethod
     def make_experiment(
         cls,
         parameters: Parameters,
         run_id: str,
-        is_running_pytests: bool = False,
     ):
         """Get experiment instances to feed into the constructor
 
@@ -273,8 +312,6 @@ class Experiment:
             The dictionary of parameters for the present experiment
         run_id : str
             The ID of the current run
-        is_running_pytests: bool, default=False
-            If true, wandb will be disabled for the test experiments
 
         Returns
         -------
@@ -306,7 +343,7 @@ class Experiment:
             entity=config["Wandb"]["Entity"],
             resume="allow",
             id=run_id,
-            mode="disabled" if is_running_pytests else "online",
+            mode="disabled" if parameters["is_running_pytests"] else "online",
             config=parameters,
         )
 
