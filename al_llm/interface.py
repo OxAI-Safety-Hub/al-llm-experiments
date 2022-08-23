@@ -468,6 +468,7 @@ class PoolSimulatorInterface(SimpleCLIInterfaceMixin, Interface):
             A list of labels, one for each element in `samples`
         ambiguities : list
             A list of ambiguities, one for each element in `samples`
+            stored as integers (0=non-ambiguous, 1=ambiguous).
         """
 
         # Get remainder dataset in pandas format

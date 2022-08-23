@@ -96,7 +96,7 @@ class DataHandler:
         labels : list
             Labels for the samples
         ambiguities : list
-            Ambiguities for the samples
+            List of ambiguities (0=non-ambiguous, 1=ambiguous) for samples
         """
 
         # Add the items using the dataset container
