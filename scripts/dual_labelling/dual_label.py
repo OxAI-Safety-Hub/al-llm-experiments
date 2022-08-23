@@ -1,4 +1,5 @@
 import argparse
+from ast import Num
 import os
 import tempfile
 import wandb
@@ -126,6 +127,39 @@ def prompt(sentence: str) -> Tuple[int, int]:
     return new_label, new_ambiguity
 
 
+def calculate_consistency(new_labels: list, new_ambiguities: list) -> float:
+    """Calculates the consistency (%) of the two human labellers
+
+    Parameters
+    ----------
+    new_labels : list
+        A list of the new labels
+    new_ambiguities : list
+        A list of the new ambiguities
+
+    Returns
+    ----------
+    consistency : float
+        The percentage of sentences which both humans labelled the same
+    """
+
+    # keep track of the total number of consistent labels
+    num_consistent_labels = 0
+
+    for i in range(num_labels):
+        # if the labels and ambiguities are consistent
+        if (
+            new_labels[i] == data_dict["labels"][i]
+            and new_ambiguities[i] == data_dict["ambiguities"][i]
+        ):
+            # increment the tally
+            num_consistent_labels += 1
+
+    # calculate and return the consistency
+    consistency = (num_consistent_labels / num_labels) * 100
+    return consistency
+
+
 # If the user chooses 'y' then, the rest of the program will run
 if decision.lower() == "y":
 
@@ -144,5 +178,8 @@ if decision.lower() == "y":
         new_labels.append(l)
         new_ambiguities.append(a)
 
-    print(new_labels)
-    print(data_dict["labels"])
+    # calculate and display labelling consistency
+    labelling_consistency = calculate_consistency(new_labels, new_ambiguities)
+    print("------------------------------------------------------")
+    print(f"Labelling consistency: {labelling_consistency}%")
+    print("------------------------------------------------------")
