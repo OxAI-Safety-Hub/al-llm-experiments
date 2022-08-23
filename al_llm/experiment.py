@@ -187,6 +187,7 @@ class Experiment:
             self.data_handler.new_labelled(
                 added_data[config["Data Handling"]["TextColumnName"]],
                 added_data[config["Data Handling"]["LabelColumnName"]],
+                added_data[config["Data Handling"]["AmbiguitiesColumnName"]],
             )
 
         # Perform a single iteration of model update, obtaining new samples
@@ -227,10 +228,11 @@ class Experiment:
         ]
 
         # Prompt the human for labels
-        labels = self.interface.prompt(unlabelled_added)
+        labels, ambiguities = self.interface.prompt(unlabelled_added)
 
         # Append these labels onto the end of the added_data
         added_data[config["Data Handling"]["LabelColumnName"]].extend(labels)
+        added_data[config["Data Handling"]["AmbiguitiesColumnName"]].extend(ambiguities)
 
         # Return the added_data dataset
         return added_data
