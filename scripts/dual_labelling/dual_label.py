@@ -6,6 +6,7 @@ import configparser
 import json
 import textwrap
 from collections import OrderedDict
+from typing import Tuple
 
 # Parser to pass the run id through to the program
 parser = argparse.ArgumentParser(
@@ -69,9 +70,60 @@ decision = input("Answer (y/n): ")
 print("------------------------------------------------------")
 
 
-def _wrap(text: str) -> str:
+def wrap(text: str) -> str:
     """Wrap some text to the line width"""
     return textwrap.fill(text, width=70)
+
+
+def prompt(sentence: str) -> Tuple[int, int]:
+    """Prompts the user for the label and ambiguity of a sentence
+
+    Parameters
+    ----------
+    sentence : str
+        The sentence to label.
+
+    Returns
+    ----------
+    new_label, new_ambiguity : int, int
+        A tuple of the label and ambiguity defined by the user.
+    """
+
+    # Build the message with the sample plus the category selection
+    text = "\n"
+    text += wrap(f"{sentence!r}") + "\n"
+    text += wrap("How would you classify this?") + "\n"
+    for j, cat_human_readable in enumerate(categories.values()):
+        text += wrap(f"[{j}] {cat_human_readable}") + "\n"
+    # If also checking for ambiguity, add these options
+    if parameters["ambiguity_mode"] != "none":
+        for j, cat_human_readable in enumerate(categories.values()):
+            text += (
+                wrap(f"[{j+len(categories)}] {cat_human_readable} (ambiguous)") + "\n"
+            )
+
+    # Print the message
+    print(text)
+
+    # Keep asking the user for a label until they give a valid one
+    if parameters["ambiguity_mode"] == "none":
+        max_valid_label = len(categories) - 1
+    else:
+        max_valid_label = 2 * len(categories) - 1
+    prompt = wrap(f"Enter a number (0-{max_valid_label}):")
+    valid_label = False
+    while not valid_label:
+        label_str = input(prompt)
+        try:
+            label = int(label_str)
+        except ValueError:
+            continue
+        if label >= 0 and label <= max_valid_label:
+            valid_label = True
+
+    new_label = list(categories.keys())[label % len(categories)]
+    new_ambiguity = label // len(categories)
+    return new_label, new_ambiguity
 
 
 # If the user chooses 'y' then, the rest of the program will run
@@ -85,42 +137,12 @@ if decision.lower() == "y":
     for i in range(num_labels):
         sentence = data_dict["text"][i]
 
-        # Build the message with the sample plus the category selection
-        text = "\n"
-        text += _wrap(f"{sentence!r}") + "\n"
-        text += _wrap("How would you classify this?") + "\n"
-        for j, cat_human_readable in enumerate(categories.values()):
-            text += _wrap(f"[{j}] {cat_human_readable}") + "\n"
-        # If also checking for ambiguity, add these options
-        if parameters["ambiguity_mode"] != "none":
-            for j, cat_human_readable in enumerate(categories.values()):
-                text += (
-                    _wrap(f"[{j+len(categories)}] {cat_human_readable} (ambiguous)")
-                    + "\n"
-                )
+        # prompt for label and ambiguity
+        l, a = prompt(data_dict["text"][i])
 
-        # Print the message
-        print(text)
-
-        # Keep asking the user for a label until they give a valid one
-        if parameters["ambiguity_mode"] == "none":
-            max_valid_label = len(categories) - 1
-        else:
-            max_valid_label = 2 * len(categories) - 1
-        prompt = _wrap(f"Enter a number (0-{max_valid_label}):")
-        valid_label = False
-        while not valid_label:
-            label_str = input(prompt)
-            try:
-                label = int(label_str)
-            except ValueError:
-                continue
-            if label >= 0 and label <= max_valid_label:
-                valid_label = True
-
-        # Append this label with the ambiguity assigned
-        new_labels.append(list(categories.keys())[label % len(categories)])
-        new_ambiguities.append(label // len(categories))
+        # record these values
+        new_labels.append(l)
+        new_ambiguities.append(a)
 
     print(new_labels)
     print(data_dict["labels"])
