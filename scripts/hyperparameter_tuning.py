@@ -8,17 +8,16 @@ from al_llm import Experiment, Parameters
 # The different hyperparameters to test
 param_grid = {
     "dataset_name": ["rotten_tomatoes"],
-    "num_iterations": list(range(1, 10)),
-    "refresh_every": list(range(1, 3)),
+    "num_iterations": [1,5,10],
+    "refresh_every": [1,3,10],
     "batch_size": [4],
-    "num_epochs_update": list(range(1, 3)),
-    "num_epochs_afresh": list(range(1, 3)),
-    "num_samples": list(range(1, 10)),
-    "sample_pool_size": list(range(10, 50, 10)),
-    "learning_rate": list(numpy.logspace(-3, -5, 5, endpoint=False)),
-    "train_dataset_size": list(range(10, 50, 10)),
+    "num_epochs_update": [1,3,10],
+    "num_epochs_afresh": [1,3,10],
+    "num_samples": [50],
+    "sample_pool_size": list(numpy.logspace(1,3,3)),
+    "train_dataset_size": list(numpy.logspace(1,3,3)),
     "classifier_base_model": ["gpt2"],
-    "acquisition_function": ["random", "max_uncertainty"],
+    "acquisition_function": ["max_uncertainty"],
     "sample_generator_base_model": ["pool"],
 }
 
