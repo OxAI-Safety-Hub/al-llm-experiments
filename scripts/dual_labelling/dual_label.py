@@ -33,7 +33,7 @@ run = wandb.init(
 
 # Get the parameters which this experiment used
 parameters = run.config
-categories = OrderedDict([(0, "Negative"), (1, "Positive")])
+categories = parameters["categories"]
 
 # Download this data from wandb
 #   use a temporary directory as an inbetween
@@ -123,7 +123,7 @@ def prompt(sentence: str) -> Tuple[int, int]:
         if label >= 0 and label <= max_valid_label:
             valid_label = True
 
-    new_label = list(categories.keys())[label % len(categories)]
+    new_label = label % len(categories)
     new_ambiguity = label // len(categories)
     return new_label, new_ambiguity
 
