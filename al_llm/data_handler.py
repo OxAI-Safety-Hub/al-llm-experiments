@@ -14,6 +14,7 @@ import wandb
 from al_llm.classifier import Classifier
 from al_llm.parameters import Parameters
 from al_llm.dataset_container import DatasetContainer
+from al_llm.utils.artifact_manager import ArtifactManager
 
 
 # Load the configuration
@@ -132,21 +133,8 @@ class DataHandler:
         # in the next iteration when labels are provided by a human
         added_data[config["Data Handling"]["TextColumnName"]].extend(unlabelled_samples)
 
-        # save this dict to WandB, using a temporary directory as an inbetween
-        with tempfile.TemporaryDirectory() as tmpdirname:
-            # store the dataset in this directory
-            file_path = os.path.join(
-                tmpdirname, config["Data Handling"]["DatasetFileName"]
-            )
-            with open(file_path, "w") as file:
-                json.dump(added_data, file)
-
-            # upload the dataset to WandB as an artifact
-            artifact = wandb.Artifact(
-                self.ARTIFACT_NAME, type=config["Data Handling"]["DatasetType"]
-            )
-            artifact.add_dir(tmpdirname)
-            self.wandb_run.log_artifact(artifact)
+        # save this dict to WandB, using the ArtifactManager
+        ArtifactManager.save_dataset_extension(self.wandb_run, added_data)
 
     def load(self):
         """Load the data stored on Weights and Biases
@@ -168,13 +156,13 @@ class DataHandler:
             artifact_path = "/".join(artifact_path_components)
             artifact = self.wandb_run.use_artifact(
                 artifact_path,
-                type=config["Data Handling"]["DatasetType"],
+                type=config["Added Data Loading"]["DatasetType"],
             )
             artifact.download(tmpdirname)
 
             # load dataset from this directory
             file_path = os.path.join(
-                tmpdirname, config["Data Handling"]["DatasetFileName"]
+                tmpdirname, config["Added Data Loading"]["DatasetFileName"]
             )
 
             with open(file_path, "r") as file:
