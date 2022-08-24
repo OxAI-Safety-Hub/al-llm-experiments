@@ -2,9 +2,6 @@
 # https://docs.python.org/3.10/library/abc.html
 from typing import Union
 import configparser
-import tempfile
-import os
-import json
 
 import torch
 
@@ -145,27 +142,5 @@ class DataHandler:
             The dictionary of sentences and labels added in earlier iterations
         """
 
-        # use a temporary directory as an inbetween
-        with tempfile.TemporaryDirectory() as tmpdirname:
-            # download the dataset into this directory from wandb
-            artifact_path_components = (
-                config["Wandb"]["Entity"],
-                config["Wandb"]["Project"],
-                self.ARTIFACT_NAME + ":latest",
-            )
-            artifact_path = "/".join(artifact_path_components)
-            artifact = self.wandb_run.use_artifact(
-                artifact_path,
-                type=config["Added Data Loading"]["DatasetType"],
-            )
-            artifact.download(tmpdirname)
-
-            # load dataset from this directory
-            file_path = os.path.join(
-                tmpdirname, config["Added Data Loading"]["DatasetFileName"]
-            )
-
-            with open(file_path, "r") as file:
-                added_data = json.load(file)
-
-            return added_data
+        added_data = ArtifactManager.load_dataset_extension(self.wandb_run)
+        return added_data
