@@ -1,4 +1,5 @@
 import argparse
+from ast import arg
 import os
 import tempfile
 import wandb
@@ -16,6 +17,12 @@ parser.add_argument(
     "--run-id",
     type=str,
     help="The run id of the experiment whos added data we should dual label.",
+)
+parser.add_argument(
+    "--score-ambiguities",
+    type=bool,
+    help="Should the ambiguities of labels have to match?",
+    default=True,
 )
 args = parser.parse_args()
 
@@ -148,16 +155,20 @@ def calculate_consistency(new_labels: list, new_ambiguities: list) -> float:
     num_consistent_labels = 0
 
     for i in range(num_labels):
-        # if the labels and ambiguities are consistent
-        if (
-            new_labels[i] == data_dict["labels"][i]
-            and new_ambiguities[i] == data_dict["ambiguities"][i]
-        ):
+
+        labels_match = new_labels[i] == data_dict["labels"][i]
+
+        if args.score_ambiguities:
+            ambiguities_match = new_ambiguities[i] == data_dict["ambiguities"][i]
+            labels_match = labels_match and ambiguities_match
+
+        # if the labels are consistent
+        if labels_match:
             # increment the tally
             num_consistent_labels += 1
 
     # calculate and return the consistency
-    consistency = (num_consistent_labels / num_labels)
+    consistency = num_consistent_labels / num_labels
     return consistency
 
 
@@ -189,7 +200,11 @@ def save_results(new_labels: list, new_ambiguities: list, consistency: float):
         results_file_path = os.path.join(
             tmpdirname, config["Dual Labelling Loading"]["ResultsFileName"]
         )
-        results = {"num_labels": num_labels, "labelling_consistency": consistency}
+        results = {
+            "num_labels": num_labels,
+            "score_ambiguities": args.score_ambiguities,
+            "labelling_consistency": consistency,
+        }
         with open(results_file_path, "w") as file:
             json.dump(results, file, indent=4)
 
@@ -222,7 +237,7 @@ if decision.lower() == "y":
     # calculate and display labelling consistency
     labelling_consistency = calculate_consistency(new_labels, new_ambiguities)
     print("------------------------------------------------------")
-    print(f"Labelling consistency: {labelling_consistency}%")
+    print(f"Labelling consistency: {labelling_consistency}")
     print("------------------------------------------------------")
 
     # save the results to wandb

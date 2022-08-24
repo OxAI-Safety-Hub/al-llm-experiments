@@ -6,12 +6,18 @@ One measure we want for our experiments is how agreeable the labelling of that e
 How to run
 -------------
 
-All you need to run this script is the weights and biases `run_id` of the experiment you wish to dual label. This gets passed to the this script using an argument parser when the script is ran. For example:
+To run the script, you must pass the following parameters:
+
+- `--run-id` : The run id of the experiment you wish to dual label.
+
+- `--score-ambiguities` : Should the ambiguities have to match for the labels to be considered consistent? ***Default = True***
+
+You can then call the script from the console. For example, this will dual label the data from the experiment with run id "make_example_dataset".
 
 ```
-python scripts/dual_labelling/dual_label.py --run-id make_example_dataset
+python scripts/dual_labelling/dual_label.py --run-id make_example_dataset --score-ambiguities True
 ```
-This will dual label the data from the experiment with run id "make_example_dataset".
+
 
 The results
 ---------------------------
