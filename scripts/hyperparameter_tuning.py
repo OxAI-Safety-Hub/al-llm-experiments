@@ -33,6 +33,9 @@ combinations = random.sample(list(param_iter), num_trials)
 # Use a counter to differentiate between trials in WandB
 counter = 0
 
+# Also define a horizontal line for neater printing
+horizontal = "=" * 70 + "\n"
+
 # Run the experiment for each sampled combination of parameters
 for combination in combinations:
 
@@ -40,24 +43,15 @@ for combination in combinations:
     run_id = f"hparams_tuning_trial_{counter}"
 
     # Print the run_id and the Parameters
-    print(f"Run ID: {run_id}\nParameters: {combination}\n\n")
+    text = "\n"
+    text += horizontal
+    text += f"Run ID: {run_id}\n\n"
+    text += f"Parameters: {combination}\n"
+    text += horizontal
+    print(text)
 
     # Set up the parameters for the experiment
-    parameters = Parameters(
-        dataset_name=combination["dataset_name"],
-        num_iterations=combination["num_iterations"],
-        refresh_every=combination["refresh_every"],
-        batch_size=combination["batch_size"],
-        num_epochs_update=combination["num_epochs_update"],
-        num_epochs_afresh=combination["num_epochs_afresh"],
-        num_samples=combination["num_samples"],
-        sample_pool_size=combination["sample_pool_size"],
-        learning_rate=combination["learning_rate"],
-        train_dataset_size=combination["train_dataset_size"],
-        classifier_base_model=combination["classifier_base_model"],
-        acquisition_function=combination["acquisition_function"],
-        sample_generator_base_model=combination["sample_generator_base_model"],
-    )
+    parameters = Parameters(**combination)
 
     # Make the experiment and run it
     args = Experiment.make_experiment(parameters=parameters, run_id=run_id)
