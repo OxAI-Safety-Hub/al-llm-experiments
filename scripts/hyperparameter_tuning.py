@@ -24,10 +24,6 @@ param_grid = {
 # An interator over the configurations of hyperparameters
 param_iter = ParameterGrid(param_grid)
 
-# The best set of hyperparameters
-best_params = {}
-best_eval_loss = 1
-
 # Set the number of trials to run
 num_trials = 10
 
