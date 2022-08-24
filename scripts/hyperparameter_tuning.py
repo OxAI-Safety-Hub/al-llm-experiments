@@ -8,15 +8,15 @@ from al_llm import Experiment, Parameters
 # The different hyperparameters to test
 param_grid = {
     "dataset_name": ["rotten_tomatoes"],
-    "num_iterations": list(range(1,10)),
-    "refresh_every": list(range(1,3)),
+    "num_iterations": list(range(1, 10)),
+    "refresh_every": list(range(1, 3)),
     "batch_size": [4],
-    "num_epochs_update": list(range(1,3)),
-    "num_epochs_afresh": list(range(1,3)),
-    "num_samples": list(range(1,10)),
-    "sample_pool_size": list(range(10,50,10)),
-    "learning_rate": list(numpy.logspace(-3,-5, 5, endpoint=False)),
-    "train_dataset_size": list(range(10,50,10)),
+    "num_epochs_update": list(range(1, 3)),
+    "num_epochs_afresh": list(range(1, 3)),
+    "num_samples": list(range(1, 10)),
+    "sample_pool_size": list(range(10, 50, 10)),
+    "learning_rate": list(numpy.logspace(-3, -5, 5, endpoint=False)),
+    "train_dataset_size": list(range(10, 50, 10)),
     "classifier_base_model": ["gpt2"],
     "acquisition_function": ["random", "max_uncertainty"],
     "sample_generator_base_model": ["pool"],
@@ -43,7 +43,7 @@ for combination in combinations:
 
     # Create a unique run_id for this trial
     run_id = f"hparams_tuning_trial_{counter}"
-    
+
     # Print the run_id and the Parameters
     print(f"Run ID: {run_id}\nParameters: {combination}\n\n")
 
