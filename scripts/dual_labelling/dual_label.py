@@ -20,9 +20,8 @@ parser.add_argument(
 )
 parser.add_argument(
     "--score-ambiguities",
-    type=bool,
-    help="Should the ambiguities of labels have to match?",
-    default=True,
+    help="If flagged, the ambiguities of labels have to match",
+    action="store_true",
 )
 args = parser.parse_args()
 

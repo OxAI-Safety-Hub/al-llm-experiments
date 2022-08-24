@@ -10,12 +10,12 @@ To run the script, you must pass the following parameters:
 
 - `--run-id` : The run id of the experiment you wish to dual label.
 
-- `--score-ambiguities` : Should the ambiguities have to match for the labels to be considered consistent? ***Default = True***
+- `--score-ambiguities` : Call this flag if the ambiguities should have to match for the labels to be considered consistent.
 
-You can then call the script from the console. For example, this will dual label the data from the experiment with run id "make_example_dataset".
+You can then call the script from the console. For example, this will dual label the data from the experiment with run id "make_example_dataset", and the ambiguities matter.
 
 ```
-python scripts/dual_labelling/dual_label.py --run-id make_example_dataset --score-ambiguities True
+python scripts/dual_labelling/dual_label.py --run-id make_example_dataset --score-ambiguities
 ```
 
 
