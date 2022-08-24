@@ -59,9 +59,9 @@ for combination in combinations:
         sample_pool_size=combination["sample_pool_size"],
         learning_rate=combination["learning_rate"],
         train_dataset_size=combination["train_dataset_size"],
-        classifier=combination["classifier"],
+        classifier_base_model=combination["classifier_base_model"],
         acquisition_function=combination["acquisition_function"],
-        sample_generator=combination["sample_generator"],
+        sample_generator_base_model=combination["sample_generator_base_model"],
     )
 
     # Make the experiment and run it
