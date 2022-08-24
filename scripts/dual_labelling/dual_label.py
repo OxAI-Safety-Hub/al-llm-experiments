@@ -129,7 +129,7 @@ def prompt(sentence: str) -> Tuple[int, int]:
 
 
 def calculate_consistency(new_labels: list, new_ambiguities: list) -> float:
-    """Calculates the consistency (%) of the two human labellers
+    """Calculates the consistency of the two human labellers
 
     Parameters
     ----------
@@ -141,7 +141,7 @@ def calculate_consistency(new_labels: list, new_ambiguities: list) -> float:
     Returns
     ----------
     consistency : float
-        The percentage of sentences which both humans labelled the same
+        The proportion of sentences which both humans labelled the same
     """
 
     # keep track of the total number of consistent labels
@@ -157,12 +157,12 @@ def calculate_consistency(new_labels: list, new_ambiguities: list) -> float:
             num_consistent_labels += 1
 
     # calculate and return the consistency
-    consistency = (num_consistent_labels / num_labels) * 100
+    consistency = (num_consistent_labels / num_labels)
     return consistency
 
 
 def save_results(new_labels: list, new_ambiguities: list, consistency: float):
-    """Calculates the consistency (%) of the two human labellers
+    """Calculates the consistency of the two human labellers
 
     Parameters
     ----------
@@ -171,7 +171,7 @@ def save_results(new_labels: list, new_ambiguities: list, consistency: float):
     new_ambiguities : list
         A list of the new ambiguities
     consistency : float
-        The percentage of sentences which both humans labelled the same
+        The proportion of sentences which both humans labelled the same
     """
 
     # save the results to WandB, using a temporary directory as an inbetween
