@@ -48,17 +48,17 @@ class ArtifactManager:
     def load_dataset_extension(
         wandb_run: wandb.sdk.wandb_run.Run,
     ) -> datasets.Dataset:
-        """Save a dataset extention to wandb as an artifact
+        """Load a dataset extention from wandb
 
         Parameters
         ----------
         wandb_run : wandb.sdk.wandb_run.Run
-            The run that this dataset extension should be saved to.
+            The run where this dataset extension is saved.
 
         Returns
         ----------
         added_data : datasets.Dataset
-            The dataset extension to save to wandb.
+            The dataset extension.
         """
 
         # use a temporary directory as an inbetween
