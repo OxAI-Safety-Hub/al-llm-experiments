@@ -136,14 +136,14 @@ class DataHandler:
         with tempfile.TemporaryDirectory() as tmpdirname:
             # store the dataset in this directory
             file_path = os.path.join(
-                tmpdirname, config["Data Handling"]["DatasetFileName"]
+                tmpdirname, config["Added Data Loading"]["DatasetFileName"]
             )
             with open(file_path, "w") as file:
                 json.dump(added_data, file)
 
             # upload the dataset to WandB as an artifact
             artifact = wandb.Artifact(
-                self.wandb_run.name, type=config["Data Handling"]["DatasetType"]
+                self.wandb_run.name, type=config["Added Data Loading"]["DatasetType"]
             )
             artifact.add_dir(tmpdirname)
             self.wandb_run.log_artifact(artifact)
@@ -168,13 +168,13 @@ class DataHandler:
             artifact_path = "/".join(artifact_path_components)
             artifact = self.wandb_run.use_artifact(
                 artifact_path,
-                type=config["Data Handling"]["DatasetType"],
+                type=config["Added Data Loading"]["DatasetType"],
             )
             artifact.download(tmpdirname)
 
             # load dataset from this directory
             file_path = os.path.join(
-                tmpdirname, config["Data Handling"]["DatasetFileName"]
+                tmpdirname, config["Added Data Loading"]["DatasetFileName"]
             )
 
             with open(file_path, "r") as file:

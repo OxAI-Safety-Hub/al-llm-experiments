@@ -48,12 +48,14 @@ with tempfile.TemporaryDirectory() as tmpdirname:
     artifact_path = "/".join(artifact_path_components)
     artifact = run.use_artifact(
         artifact_path,
-        type=config["Data Handling"]["DatasetType"],
+        type=config["Added Data Loading"]["DatasetType"],
     )
     artifact.download(tmpdirname)
 
     # load dataset from this directory
-    file_path = os.path.join(tmpdirname, config["Data Handling"]["DatasetFileName"])
+    file_path = os.path.join(
+        tmpdirname, config["Added Data Loading"]["DatasetFileName"]
+    )
 
     with open(file_path, "r") as file:
         data_dict = json.load(file)
@@ -160,6 +162,46 @@ def calculate_consistency(new_labels: list, new_ambiguities: list) -> float:
     return consistency
 
 
+def save_results(new_labels: list, new_ambiguities: list, consistency: float):
+    """Calculates the consistency (%) of the two human labellers
+
+    Parameters
+    ----------
+    new_labels : list
+        A list of the new labels
+    new_ambiguities : list
+        A list of the new ambiguities
+    consistency : float
+        The percentage of sentences which both humans labelled the same
+    """
+
+    # save the results to WandB, using a temporary directory as an inbetween
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        # store the labels in this directory
+        labels_file_path = os.path.join(
+            tmpdirname, config["Dual Labelling Loading"]["LabelsFileName"]
+        )
+        data_dict["new_labels"] = new_labels
+        data_dict["new_ambiguities"] = new_ambiguities
+        with open(labels_file_path, "w") as file:
+            json.dump(data_dict, file)
+
+        # store the results in this directory
+        results_file_path = os.path.join(
+            tmpdirname, config["Dual Labelling Loading"]["ResultsFileName"]
+        )
+        results = {"num_labels": num_labels, "labelling_consistency": consistency}
+        with open(results_file_path, "w") as file:
+            json.dump(results, file, indent=4)
+
+        # upload the dataset to WandB as an artifact
+        artifact = wandb.Artifact(
+            run.name + "_dl", type=config["Dual Labelling Loading"]["ArtifactType"]
+        )
+        artifact.add_dir(tmpdirname)
+        run.log_artifact(artifact)
+
+
 # If the user chooses 'y' then, the rest of the program will run
 if decision.lower() == "y":
 
@@ -182,4 +224,12 @@ if decision.lower() == "y":
     labelling_consistency = calculate_consistency(new_labels, new_ambiguities)
     print("------------------------------------------------------")
     print(f"Labelling consistency: {labelling_consistency}%")
+    print("------------------------------------------------------")
+
+    # save the results to wandb
+    save_results(new_labels, new_ambiguities, labelling_consistency)
+
+    # end the program
+    print("------------------------------------------------------")
+    print("Thank you for using the dual labelling program!")
     print("------------------------------------------------------")
