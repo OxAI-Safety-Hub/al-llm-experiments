@@ -7,15 +7,15 @@ from al_llm import Experiment, Parameters
 
 # The different hyperparameters to test
 param_grid = {
-    "dataset_name": ["rotten_tomatoes"],
-    "num_iterations": [1,5,10],
-    "refresh_every": [1,3,10],
+    "dataset_name": ["wiki_toxic"],
+    "num_iterations": [1, 5, 10],
+    "refresh_every": [1, 3, 10],
     "batch_size": [4],
-    "num_epochs_update": [1,3,10],
-    "num_epochs_afresh": [1,3,10],
+    "num_epochs_update": [1, 3, 10],
+    "num_epochs_afresh": [1, 3, 10],
     "num_samples": [50],
-    "sample_pool_size": list(numpy.logspace(1,3,3)),
-    "train_dataset_size": list(numpy.logspace(1,3,3)),
+    "sample_pool_size": list(numpy.logspace(1, 3, 3)),
+    "train_dataset_size": list(numpy.logspace(1, 3, 3)),
     "classifier_base_model": ["gpt2"],
     "acquisition_function": ["max_uncertainty"],
     "sample_generator_base_model": ["pool"],
