@@ -28,7 +28,7 @@ run = wandb.init(
     project=config["Wandb"]["Project"],
     entity=config["Wandb"]["Entity"],
     id=args.run_id,
-    resume=True,
+    resume="must",
 )
 
 # Get the parameters which this experiment used
