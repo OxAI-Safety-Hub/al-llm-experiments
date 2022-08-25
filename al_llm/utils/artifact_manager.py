@@ -182,6 +182,7 @@ class ArtifactManager:
             The dataset extension to save to wandb.
         """
 
+        # use a temporary directory as an inbetween
         with tempfile.TemporaryDirectory() as tmp:
 
             SaveLoadHelper.save_json(
@@ -309,7 +310,7 @@ class ArtifactManager:
             The results of the dual labelling process to save
         """
 
-        # save the results to WandB, using a temporary directory as an inbetween
+        # use a temporary directory as an inbetween
         with tempfile.TemporaryDirectory() as tmp:
 
             SaveLoadHelper.save_json(
