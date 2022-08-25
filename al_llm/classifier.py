@@ -3,9 +3,6 @@
 from abc import ABC, abstractmethod
 from typing import Union, Any
 import configparser
-import tempfile
-import os
-import json
 
 import torch
 from torch.utils.data import DataLoader
@@ -26,6 +23,7 @@ from tqdm import tqdm
 
 from al_llm.parameters import Parameters
 from al_llm.dataset_container import DatasetContainer
+from al_llm.utils.artifact_manager import ArtifactManager
 
 
 # Load the configuration
@@ -275,20 +273,9 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         self._load_fresh_model()
 
     def save(self):
-        # use a temporary directory as an inbetween
-        with tempfile.TemporaryDirectory() as tmpdirname:
-            # store the model in this directory
-            file_path = os.path.join(
-                tmpdirname, config["Classifier Loading"]["ModelFileName"]
-            )
-            self.model.save_pretrained(file_path)
-
-            # upload this model to weights and biases as an artifact
-            artifact = wandb.Artifact(
-                self.ARTIFACT_NAME, type=config["Classifier Loading"]["ClassifierType"]
-            )
-            artifact.add_dir(tmpdirname)
-            self.wandb_run.log_artifact(artifact)
+        ArtifactManager.save_classifier_model(
+            self.wandb_run, self.model, self.ARTIFACT_NAME
+        )
 
     def _load_fresh_model(self):
         """Load the classifier model afresh"""
@@ -307,28 +294,10 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
     def _load_model_from_wandb(self):
         """Load the classifier using the wandb_run"""
 
-        # use a temporary directory as an inbetween
-        with tempfile.TemporaryDirectory() as tmpdirname:
-            # download the model into this directory from wandb
-            artifact_path_components = (
-                config["Wandb"]["Entity"],
-                config["Wandb"]["Project"],
-                self.ARTIFACT_NAME + ":latest",
-            )
-            artifact_path = "/".join(artifact_path_components)
-            artifact = self.wandb_run.use_artifact(
-                artifact_path,
-                type=config["Classifier Loading"]["ClassifierType"],
-            )
-            artifact.download(tmpdirname)
-
-            # load model from this directory
-            file_path = os.path.join(
-                tmpdirname, config["Classifier Loading"]["ModelFileName"]
-            )
-            self.model = AutoModelForSequenceClassification.from_pretrained(file_path)
-
-        # Setup the model
+        # load and setup the model
+        self.model = ArtifactManager.load_classifier_model(
+            self.wandb_run, self.ARTIFACT_NAME
+        )
         self._setup_model()
 
     def _setup_model(self):
@@ -635,37 +604,15 @@ class TAPTClassifier(HuggingFaceClassifier, ABC):
         # Delete the old model to free up memory
         del self.model
 
-        # use a temporary directory as an inbetween
-        with tempfile.TemporaryDirectory() as tmpdirname:
-            # download the model into this directory from wandb
-            artifact_name = self.model_name + "---" + self.parameters["dataset_name"]
-            artifact_path_components = (
-                config["Wandb"]["Entity"],
-                config["Wandb"]["Project"],
-                artifact_name + ":latest",
-            )
-            artifact_path = "/".join(artifact_path_components)
-            artifact = self.wandb_run.use_artifact(
-                artifact_path,
-                type=config["TAPT Model Loading"]["TAPTModelType"],
-            )
-            artifact.download(tmpdirname)
-
-            # load the dictionary containing the parameters
-            dict_file_path = os.path.join(
-                tmpdirname, config["TAPT Model Loading"]["ParametersFileName"]
-            )
-            with open(dict_file_path, "rb") as f:
-                tapt_parameters_dict = json.load(f)
-                self.training_parameters = tapt_parameters_dict
-
-            # load model from this directory
-            model_file_path = os.path.join(
-                tmpdirname, config["TAPT Model Loading"]["ModelFileName"]
-            )
-            self.model = AutoModelForSequenceClassification.from_pretrained(
-                model_file_path, num_labels=2
-            )
+        # load model and training args from wandb
+        model, training_args = ArtifactManager.load_tapted_model(
+            self.wandb_run,
+            self.model_name,
+            self.parameters["dataset_name"],
+            "classifier",
+        )
+        self.model = model
+        self.training_parameters = training_args
 
         # Setup the model
         self._setup_model()
