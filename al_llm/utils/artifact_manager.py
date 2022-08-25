@@ -162,3 +162,44 @@ class ArtifactManager:
             )
             model = AutoModelForSequenceClassification.from_pretrained(file_path)
             return model
+
+    @staticmethod
+    def save_dual_label_results(
+        wandb_run: wandb.sdk.wandb_run.Run,
+        data_dict: dict,
+        results_dict: dict,
+    ):
+        """Save the results of a dual labelling process
+
+        Parameters
+        ----------
+        wandb_run : wandb.sdk.wandb_run.Run
+            The run that this dataset extension should be saved to.
+        data_dict : dict
+            The dataset with both sets of labels and ambiguities to save
+        results_dict : dict
+            The results of the dual labelling process to save
+        """
+
+        # save the results to WandB, using a temporary directory as an inbetween
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            # store the labels in this directory
+            labels_file_path = os.path.join(
+                tmpdirname, config["Dual Labelling Loading"]["LabelsFileName"]
+            )
+            with open(labels_file_path, "w") as file:
+                json.dump(data_dict, file)
+
+            # store the results in this directory
+            results_file_path = os.path.join(
+                tmpdirname, config["Dual Labelling Loading"]["ResultsFileName"]
+            )
+            with open(results_file_path, "w") as file:
+                json.dump(results_dict, file, indent=4)
+
+            # upload the dataset to WandB as an artifact
+            artifact = wandb.Artifact(
+                wandb_run.name + "_dl", type=config["Dual Labelling Loading"]["ArtifactType"]
+            )
+            artifact.add_dir(tmpdirname)
+            wandb_run.log_artifact(artifact)

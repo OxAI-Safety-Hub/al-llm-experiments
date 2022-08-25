@@ -163,36 +163,19 @@ def save_results(new_labels: list, new_ambiguities: list, consistency: float):
         The proportion of sentences which both humans labelled the same
     """
 
-    # save the results to WandB, using a temporary directory as an inbetween
-    with tempfile.TemporaryDirectory() as tmpdirname:
-        # store the labels in this directory
-        labels_file_path = os.path.join(
-            tmpdirname, config["Dual Labelling Loading"]["LabelsFileName"]
-        )
-        data_dict["new_labels"] = new_labels
-        data_dict["new_ambiguities"] = new_ambiguities
-        with open(labels_file_path, "w") as file:
-            json.dump(data_dict, file)
+    # Prepare data_dict for saving
+    data_dict["new_labels"] = new_labels
+    data_dict["new_ambiguities"] = new_ambiguities
 
-        # store the results in this directory
-        results_file_path = os.path.join(
-            tmpdirname, config["Dual Labelling Loading"]["ResultsFileName"]
-        )
-        results = {
-            "num_labels": num_labels,
-            "score_ambiguities": args.score_ambiguities,
-            "labelling_consistency": consistency,
-        }
-        with open(results_file_path, "w") as file:
-            json.dump(results, file, indent=4)
+    # Prepare results for saving
+    results = {
+        "num_labels": num_labels,
+        "score_ambiguities": args.score_ambiguities,
+        "labelling_consistency": consistency,
+    }
 
-        # upload the dataset to WandB as an artifact
-        artifact = wandb.Artifact(
-            run.name + "_dl", type=config["Dual Labelling Loading"]["ArtifactType"]
-        )
-        artifact.add_dir(tmpdirname)
-        run.log_artifact(artifact)
-
+    # Save the results to wandb as an artifact
+    ArtifactManager.save_dual_label_results(run, data_dict, results)
 
 # If the user chooses 'y' then, the rest of the program will run
 if decision.lower() == "y":
