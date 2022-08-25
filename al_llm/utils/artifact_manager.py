@@ -54,6 +54,23 @@ class SaveLoadHelper:
             return json.load(file)
 
     @staticmethod
+    def save_model(model: Any, tmp: str, file_name: str):
+        """Save a model in a temporary directory
+
+        Parameters
+        ----------
+        model : Any
+            The model to save to the temporaty directory.
+        tmp : str
+            The temporary directory to use as an in between.
+        file_name : str
+            The file name to save the model into.
+        """
+
+        file_path = os.path.join(tmp, file_name)
+        model.save_pretrained(file_path)
+
+    @staticmethod
     def upload_artifact(
         wandb_run: wandb.sdk.wandb_run.Run,
         artifact_name: str,
@@ -197,9 +214,10 @@ class ArtifactManager:
 
         # use a temporary directory as an inbetween
         with tempfile.TemporaryDirectory() as tmp:
-            # store the model in this directory
-            file_path = os.path.join(tmp, config["Classifier Loading"]["ModelFileName"])
-            model.save_pretrained(file_path)
+
+            SaveLoadHelper.save_model(
+                model, tmp, config["Classifier Loading"]["ModelFileName"]
+            )
 
             SaveLoadHelper.upload_artifact(
                 wandb_run=wandb_run,
@@ -302,12 +320,10 @@ class ArtifactManager:
 
         # use a temporary directory as an inbetween
         with tempfile.TemporaryDirectory() as tmp:
-            # store the model in this directory
-            model_file_path = os.path.join(
-                tmp, config["TAPT Model Loading"]["ModelFileName"]
-            )
-            model.save_pretrained(model_file_path)
 
+            SaveLoadHelper.save_model(
+                model, tmp, config["TAPT Model Loading"]["ModelFileName"]
+            )
             SaveLoadHelper.save_json(
                 training_args, tmp, config["TAPT Model Loading"]["ParametersFileName"]
             )
