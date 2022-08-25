@@ -68,7 +68,7 @@ class ArtifactManager:
             # download the dataset into this directory from wandb
             artifact_path_components = (
                 config["Wandb"]["Entity"],
-                config["Wandb"]["Project"],
+                wandb_run.project,
                 wandb_run.name + ":latest",
             )
             artifact_path = "/".join(artifact_path_components)
@@ -146,7 +146,7 @@ class ArtifactManager:
             # download the model into this directory from wandb
             artifact_path_components = (
                 config["Wandb"]["Entity"],
-                config["Wandb"]["Project"],
+                wandb_run.project,
                 artifact_name + ":latest",
             )
             artifact_path = "/".join(artifact_path_components)
