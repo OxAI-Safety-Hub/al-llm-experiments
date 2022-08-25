@@ -6,7 +6,7 @@ from al_llm import Experiment, Parameters
 
 # The different hyperparameters to test
 param_grid = {
-    "dataset_name": ["wiki_toxic"],
+    "dataset_name": ["rotten_tomatoes"],
     "num_iterations": [1, 5, 10],
     "refresh_every": [1, 3, 10],
     "batch_size": [4],
