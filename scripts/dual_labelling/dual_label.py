@@ -37,7 +37,7 @@ run = wandb.init(
 parameters = run.config
 categories = parameters["categories"]
 
-# Get the dataset extension form wandb
+# Get the dataset extension from wandb
 data_dict = ArtifactManager.load_dataset_extension(run)
 num_labels = len(data_dict["labels"])
 
