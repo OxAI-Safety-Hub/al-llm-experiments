@@ -14,6 +14,8 @@ config.read("config.ini")
 
 
 class SaveLoadHelper:
+    """A static class to aid the ArtifactManager"""
+
     @staticmethod
     def save_json(data: Any, tmp: str, file_name: str):
         """Save data into a json file in a temporary directory
