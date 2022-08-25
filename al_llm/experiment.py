@@ -14,6 +14,7 @@ from al_llm.dataset_container import (
     DatasetContainer,
     DummyDatasetContainer,
     RottenTomatoesDatasetHandler,
+    WikiToxicDatasetContainer,
 )
 from al_llm.classifier import (
     Classifier,
@@ -82,6 +83,7 @@ class Experiment:
     MAP_DATASET_CONTAINER = {
         "dummy": DummyDatasetContainer,
         "rotten_tomatoes": RottenTomatoesDatasetHandler,
+        "wiki_toxic": WikiToxicDatasetContainer,
     }
     MAP_PLAIN_CLASSIFIER = {
         "dummy": DummyClassifier,
