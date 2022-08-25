@@ -13,6 +13,20 @@ config = configparser.ConfigParser()
 config.read("config.ini")
 
 
+class SaveLoadHelper:
+    @staticmethod
+    def save_json(data: Any, tmp: str, file_name: str):
+        file_path = os.path.join(tmp, file_name)
+        with open(file_path, "w") as file:
+            json.dump(data, file, indent=4)
+
+    @staticmethod
+    def load_json(tmp: str, file_name: str) -> Any:
+        file_path = os.path.join(tmp, file_name)
+        with open(file_path, "r") as file:
+            return json.load(file)
+
+
 class ArtifactManager:
     """A static class to handle all artifact saving and loading"""
 
@@ -31,20 +45,18 @@ class ArtifactManager:
             The dataset extension to save to wandb.
         """
 
-        with tempfile.TemporaryDirectory() as tmpdirname:
-            # store the dataset in this directory
-            file_path = os.path.join(
-                tmpdirname, config["Added Data Loading"]["DatasetFileName"]
+        with tempfile.TemporaryDirectory() as tmp:
+
+            SaveLoadHelper.save_json(
+                added_data, tmp, config["Added Data Loading"]["DatasetFileName"]
             )
-            with open(file_path, "w") as file:
-                json.dump(added_data, file)
 
             # upload the dataset to WandB as an artifact
             artifact = wandb.Artifact(
                 f"de_{wandb_run.name}",
                 type=config["Added Data Loading"]["DatasetType"],
             )
-            artifact.add_dir(tmpdirname)
+            artifact.add_dir(tmp)
             wandb_run.log_artifact(artifact)
 
     @staticmethod
@@ -65,7 +77,7 @@ class ArtifactManager:
         """
 
         # use a temporary directory as an inbetween
-        with tempfile.TemporaryDirectory() as tmpdirname:
+        with tempfile.TemporaryDirectory() as tmp:
             # download the dataset into this directory from wandb
             artifact_path_components = (
                 config["Wandb"]["Entity"],
@@ -77,15 +89,11 @@ class ArtifactManager:
                 artifact_path,
                 type=config["Added Data Loading"]["DatasetType"],
             )
-            artifact.download(tmpdirname)
+            artifact.download(tmp)
 
-            # load dataset from this directory
-            file_path = os.path.join(
-                tmpdirname, config["Added Data Loading"]["DatasetFileName"]
+            added_data = SaveLoadHelper.load_json(
+                tmp, config["Added Data Loading"]["DatasetFileName"]
             )
-
-            with open(file_path, "r") as file:
-                added_data = json.load(file)
 
             return added_data
 
@@ -105,11 +113,9 @@ class ArtifactManager:
         """
 
         # use a temporary directory as an inbetween
-        with tempfile.TemporaryDirectory() as tmpdirname:
+        with tempfile.TemporaryDirectory() as tmp:
             # store the model in this directory
-            file_path = os.path.join(
-                tmpdirname, config["Classifier Loading"]["ModelFileName"]
-            )
+            file_path = os.path.join(tmp, config["Classifier Loading"]["ModelFileName"])
             model.save_pretrained(file_path)
 
             # upload this model to weights and biases as an artifact
@@ -117,7 +123,7 @@ class ArtifactManager:
                 f"cl_{wandb_run.name}",
                 type=config["Classifier Loading"]["ClassifierType"],
             )
-            artifact.add_dir(tmpdirname)
+            artifact.add_dir(tmp)
             wandb_run.log_artifact(artifact)
 
     @staticmethod
@@ -138,7 +144,7 @@ class ArtifactManager:
         """
 
         # use a temporary directory as an inbetween
-        with tempfile.TemporaryDirectory() as tmpdirname:
+        with tempfile.TemporaryDirectory() as tmp:
             # download the model into this directory from wandb
             artifact_path_components = (
                 config["Wandb"]["Entity"],
@@ -150,12 +156,10 @@ class ArtifactManager:
                 artifact_path,
                 type=config["Classifier Loading"]["ClassifierType"],
             )
-            artifact.download(tmpdirname)
+            artifact.download(tmp)
 
             # load model from this directory
-            file_path = os.path.join(
-                tmpdirname, config["Classifier Loading"]["ModelFileName"]
-            )
+            file_path = os.path.join(tmp, config["Classifier Loading"]["ModelFileName"])
             model = AutoModelForSequenceClassification.from_pretrained(file_path)
             return model
 
@@ -178,27 +182,21 @@ class ArtifactManager:
         """
 
         # save the results to WandB, using a temporary directory as an inbetween
-        with tempfile.TemporaryDirectory() as tmpdirname:
-            # store the labels in this directory
-            labels_file_path = os.path.join(
-                tmpdirname, config["Dual Labelling Loading"]["LabelsFileName"]
-            )
-            with open(labels_file_path, "w") as file:
-                json.dump(data_dict, file)
+        with tempfile.TemporaryDirectory() as tmp:
 
-            # store the results in this directory
-            results_file_path = os.path.join(
-                tmpdirname, config["Dual Labelling Loading"]["ResultsFileName"]
+            SaveLoadHelper.save_json(
+                data_dict, tmp, config["Dual Labelling Loading"]["LabelsFileName"]
             )
-            with open(results_file_path, "w") as file:
-                json.dump(results_dict, file, indent=4)
+            SaveLoadHelper.save_json(
+                results_dict, tmp, config["Dual Labelling Loading"]["ResultsFileName"]
+            )
 
             # upload the dataset to WandB as an artifact
             artifact = wandb.Artifact(
                 f"dl_{wandb_run.name}",
                 type=config["Dual Labelling Loading"]["ArtifactType"],
             )
-            artifact.add_dir(tmpdirname)
+            artifact.add_dir(tmp)
             wandb_run.log_artifact(artifact)
 
     @staticmethod
@@ -226,26 +224,23 @@ class ArtifactManager:
         """
 
         # use a temporary directory as an inbetween
-        with tempfile.TemporaryDirectory() as tmpdirname:
+        with tempfile.TemporaryDirectory() as tmp:
             # store the model in this directory
             model_file_path = os.path.join(
-                tmpdirname, config["TAPT Model Loading"]["ModelFileName"]
+                tmp, config["TAPT Model Loading"]["ModelFileName"]
             )
             model.save_pretrained(model_file_path)
 
-            # store the training_args in this directory
-            dict_file_path = os.path.join(
-                tmpdirname, config["TAPT Model Loading"]["ParametersFileName"]
+            SaveLoadHelper.save_json(
+                training_args, tmp, config["TAPT Model Loading"]["ParametersFileName"]
             )
-            with open(dict_file_path, "w") as f:
-                json.dump(training_args, f, indent=4)
 
             # upload this file to weights and biases as an artifact
             artifact = wandb.Artifact(
                 base_model_name + "---" + dataset_name,
                 type=config["TAPT Model Loading"]["TAPTModelType"],
             )
-            artifact.add_dir(tmpdirname)
+            artifact.add_dir(tmp)
             wandb_run.log_artifact(artifact)
 
     @staticmethod
@@ -277,7 +272,7 @@ class ArtifactManager:
         """
 
         # use a temporary directory as an inbetween
-        with tempfile.TemporaryDirectory() as tmpdirname:
+        with tempfile.TemporaryDirectory() as tmp:
             # download the model into this directory from wandb
             artifact_name = base_model_name + "---" + dataset_name
             artifact_path_components = (
@@ -290,18 +285,16 @@ class ArtifactManager:
                 artifact_path,
                 type=config["TAPT Model Loading"]["TAPTModelType"],
             )
-            artifact.download(tmpdirname)
+            artifact.download(tmp)
 
             # load the dictionary containing the parameters
-            dict_file_path = os.path.join(
-                tmpdirname, config["TAPT Model Loading"]["ParametersFileName"]
+            training_args = SaveLoadHelper.load_json(
+                tmp, config["TAPT Model Loading"]["ParametersFileName"]
             )
-            with open(dict_file_path, "rb") as f:
-                training_args = json.load(f)
 
             # load model from this directory
             model_file_path = os.path.join(
-                tmpdirname, config["TAPT Model Loading"]["ModelFileName"]
+                tmp, config["TAPT Model Loading"]["ModelFileName"]
             )
             # add the correct head depending on the purpose
             if purpose == "classifier":
