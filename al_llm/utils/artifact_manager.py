@@ -26,6 +26,21 @@ class SaveLoadHelper:
         with open(file_path, "r") as file:
             return json.load(file)
 
+    @staticmethod
+    def upload_artifact(
+        wandb_run: wandb.sdk.wandb_run.Run,
+        artifact_name: str,
+        artifact_type: str,
+        tmp: str,
+    ):
+        artifact = wandb.Artifact(artifact_name, type=artifact_type)
+        artifact.add_dir(tmp)
+        wandb_run.log_artifact(artifact)
+
+    @staticmethod
+    def download_artifact():
+        pass
+
 
 class ArtifactManager:
     """A static class to handle all artifact saving and loading"""
@@ -51,13 +66,12 @@ class ArtifactManager:
                 added_data, tmp, config["Added Data Loading"]["DatasetFileName"]
             )
 
-            # upload the dataset to WandB as an artifact
-            artifact = wandb.Artifact(
-                f"de_{wandb_run.name}",
-                type=config["Added Data Loading"]["DatasetType"],
+            SaveLoadHelper.upload_artifact(
+                wandb_run=wandb_run,
+                artifact_name=f"de_{wandb_run.name}",
+                artifact_type=config["Added Data Loading"]["DatasetType"],
+                tmp=tmp,
             )
-            artifact.add_dir(tmp)
-            wandb_run.log_artifact(artifact)
 
     @staticmethod
     def load_dataset_extension(
@@ -118,13 +132,12 @@ class ArtifactManager:
             file_path = os.path.join(tmp, config["Classifier Loading"]["ModelFileName"])
             model.save_pretrained(file_path)
 
-            # upload this model to weights and biases as an artifact
-            artifact = wandb.Artifact(
-                f"cl_{wandb_run.name}",
-                type=config["Classifier Loading"]["ClassifierType"],
+            SaveLoadHelper.upload_artifact(
+                wandb_run=wandb_run,
+                artifact_name=f"cl_{wandb_run.name}",
+                artifact_type=config["Classifier Loading"]["ClassifierType"],
+                tmp=tmp,
             )
-            artifact.add_dir(tmp)
-            wandb_run.log_artifact(artifact)
 
     @staticmethod
     def load_classifier_model(
@@ -191,13 +204,12 @@ class ArtifactManager:
                 results_dict, tmp, config["Dual Labelling Loading"]["ResultsFileName"]
             )
 
-            # upload the dataset to WandB as an artifact
-            artifact = wandb.Artifact(
-                f"dl_{wandb_run.name}",
-                type=config["Dual Labelling Loading"]["ArtifactType"],
+            SaveLoadHelper.upload_artifact(
+                wandb_run=wandb_run,
+                artifact_name=f"dl_{wandb_run.name}",
+                artifact_type=config["Dual Labelling Loading"]["ArtifactType"],
+                tmp=tmp,
             )
-            artifact.add_dir(tmp)
-            wandb_run.log_artifact(artifact)
 
     @staticmethod
     def save_tapted_model(
@@ -235,13 +247,12 @@ class ArtifactManager:
                 training_args, tmp, config["TAPT Model Loading"]["ParametersFileName"]
             )
 
-            # upload this file to weights and biases as an artifact
-            artifact = wandb.Artifact(
-                base_model_name + "---" + dataset_name,
-                type=config["TAPT Model Loading"]["TAPTModelType"],
+            SaveLoadHelper.upload_artifact(
+                wandb_run=wandb_run,
+                artifact_name=base_model_name + "---" + dataset_name,
+                artifact_type=config["TAPT Model Loading"]["TAPTModelType"],
+                tmp=tmp,
             )
-            artifact.add_dir(tmp)
-            wandb_run.log_artifact(artifact)
 
     @staticmethod
     def load_tapted_model(
