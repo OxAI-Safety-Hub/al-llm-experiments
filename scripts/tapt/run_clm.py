@@ -29,11 +29,9 @@ from dataclasses import dataclass, field
 from itertools import chain
 from typing import Optional
 import configparser
-import json
 
 import datasets
 from datasets import load_dataset
-import tempfile
 import wandb
 
 import evaluate
@@ -55,6 +53,8 @@ from transformers.testing_utils import CaptureLogger
 from transformers.trainer_utils import get_last_checkpoint
 from transformers.utils import check_min_version, send_example_telemetry
 from transformers.utils.versions import require_version
+
+from al_llm.utils.artifact_manager import ArtifactManager
 
 
 # Will error if the minimal version of Transformers is not installed. Remove at your own risks.
@@ -671,28 +671,9 @@ def main():
     }
 
     # Saves the tapted model and training_args to wandb
-    #   uses a temporary directory as an inbetween
-    with tempfile.TemporaryDirectory() as tmpdirname:
-        # store the model in this directory
-        model_file_path = os.path.join(
-            tmpdirname, al_llm_config["TAPT Model Loading"]["ModelFileName"]
-        )
-        model.save_pretrained(model_file_path)
-
-        # store the training_args in this directory
-        dict_file_path = os.path.join(
-            tmpdirname, al_llm_config["TAPT Model Loading"]["ParametersFileName"]
-        )
-        with open(dict_file_path, "w") as f:
-            json.dump(training_args, f, indent=4)
-
-        # upload this file to weights and biases as an artifact
-        artifact = wandb.Artifact(
-            model_args.model_name_or_path + "---" + data_args.dataset_name,
-            type=al_llm_config["TAPT Model Loading"]["TAPTModelType"],
-        )
-        artifact.add_dir(tmpdirname)
-        run.log_artifact(artifact)
+    ArtifactManager.save_tapted_model(
+        run, model, training_args, model_args.model_name_or_path, data_args.dataset_name
+    )
 
 
 def _mp_fn(index):

@@ -147,4 +147,3 @@ class DataHandler:
 
         added_data = ArtifactManager.load_dataset_extension(self.wandb_run)
         return added_data
-

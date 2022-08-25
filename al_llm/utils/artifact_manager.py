@@ -199,7 +199,55 @@ class ArtifactManager:
 
             # upload the dataset to WandB as an artifact
             artifact = wandb.Artifact(
-                wandb_run.name + "_dl", type=config["Dual Labelling Loading"]["ArtifactType"]
+                wandb_run.name + "_dl",
+                type=config["Dual Labelling Loading"]["ArtifactType"],
+            )
+            artifact.add_dir(tmpdirname)
+            wandb_run.log_artifact(artifact)
+
+    @staticmethod
+    def save_tapted_model(
+        wandb_run: wandb.sdk.wandb_run.Run,
+        model: Any,
+        training_args: dict,
+        base_model_name: str,
+        dataset_name: str,
+    ):
+        """Save a tapted model and it's parameters to wandb as an artifact
+
+        Parameters
+        ----------
+        wandb_run : wandb.sdk.wandb_run.Run
+            The run that this tapted model should be saved to.
+        model : Any
+            The tapted model to saved
+        training_args : dict
+            The training arguments which the tapt process used
+        base_model_name : str
+            The name of the base model used
+        dataset_name : str
+            The name of the dataset used
+        """
+
+        # use a temporary directory as an inbetween
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            # store the model in this directory
+            model_file_path = os.path.join(
+                tmpdirname, config["TAPT Model Loading"]["ModelFileName"]
+            )
+            model.save_pretrained(model_file_path)
+
+            # store the training_args in this directory
+            dict_file_path = os.path.join(
+                tmpdirname, config["TAPT Model Loading"]["ParametersFileName"]
+            )
+            with open(dict_file_path, "w") as f:
+                json.dump(training_args, f, indent=4)
+
+            # upload this file to weights and biases as an artifact
+            artifact = wandb.Artifact(
+                base_model_name + "---" + dataset_name,
+                type=config["TAPT Model Loading"]["TAPTModelType"],
             )
             artifact.add_dir(tmpdirname)
             wandb_run.log_artifact(artifact)

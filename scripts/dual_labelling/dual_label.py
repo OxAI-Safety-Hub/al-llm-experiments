@@ -172,6 +172,7 @@ def save_results(new_labels: list, new_ambiguities: list, consistency: float):
     # Save the results to wandb as an artifact
     ArtifactManager.save_dual_label_results(run, data_dict, results)
 
+
 # If the user chooses 'y' then, the rest of the program will run
 if decision.lower() == "y":
 
