@@ -1,4 +1,3 @@
-import numpy
 import random
 
 from sklearn.model_selection import ParameterGrid
