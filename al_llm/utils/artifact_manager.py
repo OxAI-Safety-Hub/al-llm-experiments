@@ -16,12 +16,39 @@ config.read("config.ini")
 class SaveLoadHelper:
     @staticmethod
     def save_json(data: Any, tmp: str, file_name: str):
+        """Save data into a json file in a temporary directory
+
+        Parameters
+        ----------
+        data : Any
+            The data to store in the json file.
+        tmp : str
+            The temporary directory to use as an in between.
+        file_name : str
+            The file name to save the data into.
+        """
+
         file_path = os.path.join(tmp, file_name)
         with open(file_path, "w") as file:
             json.dump(data, file, indent=4)
 
     @staticmethod
     def load_json(tmp: str, file_name: str) -> Any:
+        """Load data from a json file in a temporary directory
+
+        Parameters
+        ----------
+        tmp : str
+            The temporary directory to use as an in between.
+        file_name : str
+            The file name to load the data from.
+
+        Returns
+        ----------
+        data : Any
+            The data stored in the json file.
+        """
+
         file_path = os.path.join(tmp, file_name)
         with open(file_path, "r") as file:
             return json.load(file)
@@ -33,6 +60,20 @@ class SaveLoadHelper:
         artifact_type: str,
         tmp: str,
     ):
+        """Upload the contents of a temporary directory as a wandb artifact
+
+        Parameters
+        ----------
+        wandb_run : wandb.sdk.wandb_run.Run
+            The run to save the artifact to.
+        artifact_name : str
+            The name of the artifact.
+        artifact_type : str
+            The type of the artifact.
+        tmp : str
+            The temporary directory to use as an in between.
+        """
+
         artifact = wandb.Artifact(artifact_name, type=artifact_type)
         artifact.add_dir(tmp)
         wandb_run.log_artifact(artifact)
@@ -45,6 +86,22 @@ class SaveLoadHelper:
         artifact_type: str,
         tmp: str,
     ):
+        """Download a wandb artifact into a temporary directory
+
+        Parameters
+        ----------
+        wandb_run : wandb.sdk.wandb_run.Run
+            The run to save the artifact to.
+        project : str
+            The name of the project the artifact is stored under.
+        artifact_name : str
+            The name of the artifact.
+        artifact_type : str
+            The type of the artifact.
+        tmp : str
+            The temporary directory to use as an in between.
+        """
+
         artifact_path_components = (
             config["Wandb"]["Entity"],
             project,
