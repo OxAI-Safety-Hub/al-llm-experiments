@@ -202,8 +202,6 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         Set to either cuda (if GPU available) or CPU
     """
 
-    ARTIFACT_NAME = "classifier"
-
     def __init__(
         self,
         parameters: Parameters,
@@ -273,9 +271,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         self._load_fresh_model()
 
     def save(self):
-        ArtifactManager.save_classifier_model(
-            self.wandb_run, self.model, self.ARTIFACT_NAME
-        )
+        ArtifactManager.save_classifier_model(self.wandb_run, self.model)
 
     def _load_fresh_model(self):
         """Load the classifier model afresh"""
@@ -295,9 +291,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         """Load the classifier using the wandb_run"""
 
         # load and setup the model
-        self.model = ArtifactManager.load_classifier_model(
-            self.wandb_run, self.ARTIFACT_NAME
-        )
+        self.model = ArtifactManager.load_classifier_model(self.wandb_run)
         self._setup_model()
 
     def _setup_model(self):
@@ -652,7 +646,6 @@ class PlainGPT2Classifier(HuggingFaceClassifier):
     """
 
     MODEL_NAME = "gpt2"
-    ARTIFACT_NAME = "gtp2-classifier"
 
     def __init__(
         self,
@@ -702,7 +695,6 @@ class PlainDistilGPT2Classifier(HuggingFaceClassifier):
     """
 
     MODEL_NAME = "distilgpt2"
-    ARTIFACT_NAME = "distilgpt2-classifier"
 
     def __init__(
         self,
@@ -749,7 +741,6 @@ class TAPTGPT2Classifier(TAPTClassifier):
     """
 
     MODEL_NAME = "gpt2"
-    ARTIFACT_NAME = "gtp2-classifier"
 
     def __init__(
         self,
@@ -794,7 +785,6 @@ class TAPTDistilGPT2Classifier(TAPTClassifier):
     """
 
     MODEL_NAME = "distilgpt2"
-    ARTIFACT_NAME = "distilgpt2-classifier"
 
     def __init__(
         self,

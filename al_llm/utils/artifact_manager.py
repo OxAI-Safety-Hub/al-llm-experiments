@@ -41,7 +41,8 @@ class ArtifactManager:
 
             # upload the dataset to WandB as an artifact
             artifact = wandb.Artifact(
-                wandb_run.name, type=config["Added Data Loading"]["DatasetType"]
+                f"de_{wandb_run.name}",
+                type=config["Added Data Loading"]["DatasetType"],
             )
             artifact.add_dir(tmpdirname)
             wandb_run.log_artifact(artifact)
@@ -69,7 +70,7 @@ class ArtifactManager:
             artifact_path_components = (
                 config["Wandb"]["Entity"],
                 wandb_run.project,
-                wandb_run.name + ":latest",
+                f"de_{wandb_run.name}" + ":latest",
             )
             artifact_path = "/".join(artifact_path_components)
             artifact = wandb_run.use_artifact(
@@ -92,7 +93,6 @@ class ArtifactManager:
     def save_classifier_model(
         wandb_run: wandb.sdk.wandb_run.Run,
         model: Any,
-        artifact_name: str,
     ):
         """Save a classifier model to wandb as an artifact
 
@@ -102,8 +102,6 @@ class ArtifactManager:
             The run that this dataset extension should be saved to.
         model : Any
             The classifier model to saved
-        artifact_name : str
-            The artifact name according to the specific classifier
         """
 
         # use a temporary directory as an inbetween
@@ -116,7 +114,8 @@ class ArtifactManager:
 
             # upload this model to weights and biases as an artifact
             artifact = wandb.Artifact(
-                artifact_name, type=config["Classifier Loading"]["ClassifierType"]
+                f"cl_{wandb_run.name}",
+                type=config["Classifier Loading"]["ClassifierType"],
             )
             artifact.add_dir(tmpdirname)
             wandb_run.log_artifact(artifact)
@@ -124,7 +123,6 @@ class ArtifactManager:
     @staticmethod
     def load_classifier_model(
         wandb_run: wandb.sdk.wandb_run.Run,
-        artifact_name: str,
     ) -> Any:
         """Load a classifier model from wandb
 
@@ -132,8 +130,6 @@ class ArtifactManager:
         ----------
         wandb_run : wandb.sdk.wandb_run.Run
             The run with which to load the model
-        artifact_name : str
-            The artifact name according to the specific classifier
 
         Returns
         ----------
@@ -147,7 +143,7 @@ class ArtifactManager:
             artifact_path_components = (
                 config["Wandb"]["Entity"],
                 wandb_run.project,
-                artifact_name + ":latest",
+                f"cl_{wandb_run.name}" + ":latest",
             )
             artifact_path = "/".join(artifact_path_components)
             artifact = wandb_run.use_artifact(
@@ -199,7 +195,7 @@ class ArtifactManager:
 
             # upload the dataset to WandB as an artifact
             artifact = wandb.Artifact(
-                wandb_run.name + "_dl",
+                f"dl_{wandb_run.name}",
                 type=config["Dual Labelling Loading"]["ArtifactType"],
             )
             artifact.add_dir(tmpdirname)
