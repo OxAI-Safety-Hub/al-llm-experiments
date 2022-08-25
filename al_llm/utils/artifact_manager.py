@@ -38,8 +38,24 @@ class SaveLoadHelper:
         wandb_run.log_artifact(artifact)
 
     @staticmethod
-    def download_artifact():
-        pass
+    def download_artifact(
+        wandb_run: wandb.sdk.wandb_run.Run,
+        project: str,
+        artifact_name: str,
+        artifact_type: str,
+        tmp: str,
+    ):
+        artifact_path_components = (
+            config["Wandb"]["Entity"],
+            project,
+            artifact_name + ":latest",
+        )
+        artifact_path = "/".join(artifact_path_components)
+        artifact = wandb_run.use_artifact(
+            artifact_path,
+            type=artifact_type,
+        )
+        artifact.download(tmp)
 
 
 class ArtifactManager:
@@ -92,18 +108,14 @@ class ArtifactManager:
 
         # use a temporary directory as an inbetween
         with tempfile.TemporaryDirectory() as tmp:
-            # download the dataset into this directory from wandb
-            artifact_path_components = (
-                config["Wandb"]["Entity"],
-                wandb_run.project,
-                f"de_{wandb_run.name}" + ":latest",
+
+            SaveLoadHelper.download_artifact(
+                wandb_run=wandb_run,
+                project=wandb_run.project,
+                artifact_name=f"de_{wandb_run.name}",
+                artifact_type=config["Added Data Loading"]["DatasetType"],
+                tmp=tmp,
             )
-            artifact_path = "/".join(artifact_path_components)
-            artifact = wandb_run.use_artifact(
-                artifact_path,
-                type=config["Added Data Loading"]["DatasetType"],
-            )
-            artifact.download(tmp)
 
             added_data = SaveLoadHelper.load_json(
                 tmp, config["Added Data Loading"]["DatasetFileName"]
@@ -158,18 +170,14 @@ class ArtifactManager:
 
         # use a temporary directory as an inbetween
         with tempfile.TemporaryDirectory() as tmp:
-            # download the model into this directory from wandb
-            artifact_path_components = (
-                config["Wandb"]["Entity"],
-                wandb_run.project,
-                f"cl_{wandb_run.name}" + ":latest",
+
+            SaveLoadHelper.download_artifact(
+                wandb_run=wandb_run,
+                project=wandb_run.project,
+                artifact_name=f"cl_{wandb_run.name}",
+                artifact_type=config["Classifier Loading"]["ClassifierType"],
+                tmp=tmp,
             )
-            artifact_path = "/".join(artifact_path_components)
-            artifact = wandb_run.use_artifact(
-                artifact_path,
-                type=config["Classifier Loading"]["ClassifierType"],
-            )
-            artifact.download(tmp)
 
             # load model from this directory
             file_path = os.path.join(tmp, config["Classifier Loading"]["ModelFileName"])
@@ -284,21 +292,15 @@ class ArtifactManager:
 
         # use a temporary directory as an inbetween
         with tempfile.TemporaryDirectory() as tmp:
-            # download the model into this directory from wandb
-            artifact_name = base_model_name + "---" + dataset_name
-            artifact_path_components = (
-                config["Wandb"]["Entity"],
-                config["TAPT Model Loading"]["TAPTProject"],
-                artifact_name + ":latest",
-            )
-            artifact_path = "/".join(artifact_path_components)
-            artifact = wandb_run.use_artifact(
-                artifact_path,
-                type=config["TAPT Model Loading"]["TAPTModelType"],
-            )
-            artifact.download(tmp)
 
-            # load the dictionary containing the parameters
+            SaveLoadHelper.download_artifact(
+                wandb_run=wandb_run,
+                project=config["TAPT Model Loading"]["TAPTProject"],
+                artifact_name=base_model_name + "---" + dataset_name,
+                artifact_type=config["TAPT Model Loading"]["TAPTModelType"],
+                tmp=tmp,
+            )
+
             training_args = SaveLoadHelper.load_json(
                 tmp, config["TAPT Model Loading"]["ParametersFileName"]
             )
