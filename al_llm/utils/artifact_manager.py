@@ -71,6 +71,38 @@ class SaveLoadHelper:
         model.save_pretrained(file_path)
 
     @staticmethod
+    def load_model(tmp: str, file_name: str, purpose: str) -> Any:
+        """Load a model from a temporary directory
+
+        Parameters
+        ----------
+        tmp : str
+            The temporary directory to use as an in between.
+        file_name : str
+            The file name the model is stored in.
+        purpose : str
+            Which head should we load the model with
+
+        Returns
+        ----------
+        model : Any
+            The model from the temporaty directory.
+        """
+
+        model_file_path = os.path.join(
+            tmp, config["TAPT Model Loading"]["ModelFileName"]
+        )
+        # add the correct head depending on the purpose
+        if purpose == "classifier":
+            return AutoModelForSequenceClassification.from_pretrained(
+                model_file_path, num_labels=2
+            )
+        elif purpose == "sample_generator":
+            return AutoModelForCausalLM.from_pretrained(model_file_path)
+        else:
+            raise Exception("Unrecognised 'purpose' when loading tapted model")
+
+    @staticmethod
     def upload_artifact(
         wandb_run: wandb.sdk.wandb_run.Run,
         artifact_name: str,
@@ -254,9 +286,9 @@ class ArtifactManager:
                 tmp=tmp,
             )
 
-            # load model from this directory
-            file_path = os.path.join(tmp, config["Classifier Loading"]["ModelFileName"])
-            model = AutoModelForSequenceClassification.from_pretrained(file_path)
+            model = SaveLoadHelper.load_model(
+                tmp, config["Classifier Loading"]["ModelFileName"], "classifier"
+            )
             return model
 
     @staticmethod
@@ -377,19 +409,7 @@ class ArtifactManager:
             training_args = SaveLoadHelper.load_json(
                 tmp, config["TAPT Model Loading"]["ParametersFileName"]
             )
-
-            # load model from this directory
-            model_file_path = os.path.join(
-                tmp, config["TAPT Model Loading"]["ModelFileName"]
+            model = SaveLoadHelper.load_model(
+                tmp, config["TAPT Model Loading"]["ModelFileName"], purpose
             )
-            # add the correct head depending on the purpose
-            if purpose == "classifier":
-                model = AutoModelForSequenceClassification.from_pretrained(
-                    model_file_path, num_labels=2
-                )
-            elif purpose == "sample_generator":
-                model = AutoModelForCausalLM.from_pretrained(model_file_path)
-            else:
-                raise Exception("Unrecognised 'purpose' when loading tapted model")
-
             return model, training_args
