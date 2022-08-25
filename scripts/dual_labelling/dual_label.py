@@ -8,6 +8,7 @@ import json
 import textwrap
 from collections import OrderedDict
 from typing import Tuple
+from al_llm.utils.artifact_manager import ArtifactManager
 
 # Parser to pass the run id through to the program
 parser = argparse.ArgumentParser(
@@ -41,30 +42,8 @@ run = wandb.init(
 parameters = run.config
 categories = parameters["categories"]
 
-# Download this data from wandb
-#   use a temporary directory as an inbetween
-with tempfile.TemporaryDirectory() as tmpdirname:
-    # download the dataset into this directory from wandb
-    artifact_path_components = (
-        config["Wandb"]["Entity"],
-        config["Wandb"]["Project"],
-        args.run_id + ":latest",
-    )
-    artifact_path = "/".join(artifact_path_components)
-    artifact = run.use_artifact(
-        artifact_path,
-        type=config["Added Data Loading"]["DatasetType"],
-    )
-    artifact.download(tmpdirname)
-
-    # load dataset from this directory
-    file_path = os.path.join(
-        tmpdirname, config["Added Data Loading"]["DatasetFileName"]
-    )
-
-    with open(file_path, "r") as file:
-        data_dict = json.load(file)
-
+# Get the dataset extension form wandb
+data_dict = ArtifactManager.load_dataset_extension(run)
 num_labels = len(data_dict["labels"])
 
 # Log an introductory message to the user, allowing opt out
