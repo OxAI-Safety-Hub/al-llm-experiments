@@ -2,9 +2,6 @@
 # https://docs.python.org/3.10/library/abc.html
 from typing import Union
 import configparser
-import tempfile
-import os
-import json
 
 import torch
 
@@ -14,6 +11,7 @@ import wandb
 from al_llm.classifier import Classifier
 from al_llm.parameters import Parameters
 from al_llm.dataset_container import DatasetContainer
+from al_llm.utils.artifact_manager import ArtifactManager
 
 
 # Load the configuration
@@ -135,21 +133,8 @@ class DataHandler:
         # in the next iteration when labels are provided by a human
         added_data[config["Data Handling"]["TextColumnName"]].extend(unlabelled_samples)
 
-        # save this dict to WandB, using a temporary directory as an inbetween
-        with tempfile.TemporaryDirectory() as tmpdirname:
-            # store the dataset in this directory
-            file_path = os.path.join(
-                tmpdirname, config["Added Data Loading"]["DatasetFileName"]
-            )
-            with open(file_path, "w") as file:
-                json.dump(added_data, file)
-
-            # upload the dataset to WandB as an artifact
-            artifact = wandb.Artifact(
-                self.wandb_run.name, type=config["Added Data Loading"]["DatasetType"]
-            )
-            artifact.add_dir(tmpdirname)
-            self.wandb_run.log_artifact(artifact)
+        # save this dict to WandB, using the ArtifactManager
+        ArtifactManager.save_dataset_extension(self.wandb_run, added_data)
 
     def load(self):
         """Load the data stored on Weights and Biases
@@ -160,27 +145,5 @@ class DataHandler:
             The dictionary of sentences and labels added in earlier iterations
         """
 
-        # use a temporary directory as an inbetween
-        with tempfile.TemporaryDirectory() as tmpdirname:
-            # download the dataset into this directory from wandb
-            artifact_path_components = (
-                config["Wandb"]["Entity"],
-                config["Wandb"]["Project"],
-                self.wandb_run.name + ":latest",
-            )
-            artifact_path = "/".join(artifact_path_components)
-            artifact = self.wandb_run.use_artifact(
-                artifact_path,
-                type=config["Added Data Loading"]["DatasetType"],
-            )
-            artifact.download(tmpdirname)
-
-            # load dataset from this directory
-            file_path = os.path.join(
-                tmpdirname, config["Added Data Loading"]["DatasetFileName"]
-            )
-
-            with open(file_path, "r") as file:
-                added_data = json.load(file)
-
-            return added_data
+        added_data = ArtifactManager.load_dataset_extension(self.wandb_run)
+        return added_data
