@@ -258,7 +258,8 @@ class DataTrainingArguments:
 def main():
 
     run = wandb.init(
-        project="Labs_Project_Experiments", entity="oxai-safety-labs-active-learning"
+        project=al_llm_config["TAPT Model Loading"]["TAPTProject"],
+        entity=al_llm_config["Wandb"]["Entity"],
     )
 
     # See all possible arguments in src/transformers/training_args.py

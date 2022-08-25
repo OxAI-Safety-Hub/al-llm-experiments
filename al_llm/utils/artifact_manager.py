@@ -286,7 +286,7 @@ class ArtifactManager:
             artifact_name = base_model_name + "---" + dataset_name
             artifact_path_components = (
                 config["Wandb"]["Entity"],
-                config["Wandb"]["Project"],
+                config["TAPT Model Loading"]["TAPTProject"],
                 artifact_name + ":latest",
             )
             artifact_path = "/".join(artifact_path_components)
