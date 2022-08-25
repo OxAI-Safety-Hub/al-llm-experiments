@@ -61,6 +61,9 @@ class DataHandler:
         self.classifier = classifier
         self.wandb_run = wandb_run
 
+        # Add 'categories' to the config
+        wandb.config.update({"categories": self.dataset_container.CATEGORIES})
+
         # Tokenize the dataset using the classifier's tokenize function
         self.dataset_container.make_tokenized(self.classifier.tokenize)
 
@@ -144,3 +147,4 @@ class DataHandler:
 
         added_data = ArtifactManager.load_dataset_extension(self.wandb_run)
         return added_data
+
