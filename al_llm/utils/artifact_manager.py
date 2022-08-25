@@ -2,9 +2,9 @@ import os
 import tempfile
 import json
 import configparser
-from typing import Any
+from typing import Any, Tuple
 
-from transformers import AutoModelForSequenceClassification
+from transformers import AutoModelForSequenceClassification, AutoModelForCausalLM
 import datasets
 import wandb
 
@@ -251,3 +251,70 @@ class ArtifactManager:
             )
             artifact.add_dir(tmpdirname)
             wandb_run.log_artifact(artifact)
+
+    @staticmethod
+    def load_tapted_model(
+        wandb_run: wandb.sdk.wandb_run.Run,
+        base_model_name: str,
+        dataset_name: str,
+        purpose: str,
+    ) -> Tuple[Any, dict]:
+        """Load a tapted model and it's parameters from wandb
+
+        Parameters
+        ----------
+        wandb_run : wandb.sdk.wandb_run.Run
+            The run for loading the model.
+        base_model_name : str
+            The name of the base model
+        dataset_name : str
+            The name of the dataset used for tapting
+        purpose : str
+            What will this model be used for. "sample_generator" or "classifier"
+
+        Returns
+        ----------
+        model : Any
+            The loaded tapted model
+        training_args : dict
+            The training arguments which the tapt process used
+        """
+
+        # use a temporary directory as an inbetween
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            # download the model into this directory from wandb
+            artifact_name = base_model_name + "---" + dataset_name
+            artifact_path_components = (
+                config["Wandb"]["Entity"],
+                config["Wandb"]["Project"],
+                artifact_name + ":latest",
+            )
+            artifact_path = "/".join(artifact_path_components)
+            artifact = wandb_run.use_artifact(
+                artifact_path,
+                type=config["TAPT Model Loading"]["TAPTModelType"],
+            )
+            artifact.download(tmpdirname)
+
+            # load the dictionary containing the parameters
+            dict_file_path = os.path.join(
+                tmpdirname, config["TAPT Model Loading"]["ParametersFileName"]
+            )
+            with open(dict_file_path, "rb") as f:
+                training_args = json.load(f)
+
+            # load model from this directory
+            model_file_path = os.path.join(
+                tmpdirname, config["TAPT Model Loading"]["ModelFileName"]
+            )
+            # add the correct head depending on the purpose
+            if purpose == "classifier":
+                model = AutoModelForSequenceClassification.from_pretrained(
+                    model_file_path, num_labels=2
+                )
+            elif purpose == "sample_generator":
+                model = AutoModelForCausalLM.from_pretrained(model_file_path)
+            else:
+                raise Exception("Unrecognised 'purpose' when loading tapted model")
+
+            return model, training_args

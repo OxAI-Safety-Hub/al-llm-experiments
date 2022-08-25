@@ -4,19 +4,17 @@ from abc import ABC, abstractmethod
 from random import randrange
 from typing import Optional, Any
 import configparser
-import tempfile
-import os
-import json
 
 import torch
 
 import wandb
 
-from transformers import pipeline, AutoModelForCausalLM
+from transformers import pipeline
 
 from al_llm.acquisition_function import AcquisitionFunction
 from al_llm.dataset_container import DatasetContainer
 from al_llm.parameters import Parameters
+from al_llm.utils.artifact_manager import ArtifactManager
 
 
 # Load the configuration
@@ -301,35 +299,15 @@ class TAPTSampleGenerator(PipelineGeneratorMixin, SampleGenerator, ABC):
         Sets `self.model` to this pretrained model after loading
         """
 
-        # use a temporary directory as an inbetween
-        with tempfile.TemporaryDirectory() as tmpdirname:
-            # download the model into this directory from wandb
-            artifact_name = self.MODEL_NAME + "---" + self.parameters["dataset_name"]
-            artifact_path_components = (
-                config["Wandb"]["Entity"],
-                config["Wandb"]["Project"],
-                artifact_name + ":latest",
-            )
-            artifact_path = "/".join(artifact_path_components)
-            artifact = self.wandb_run.use_artifact(
-                artifact_path,
-                type=config["TAPT Model Loading"]["TAPTModelType"],
-            )
-            artifact.download(tmpdirname)
-
-            # load the dictionary containing the parameters
-            dict_file_path = os.path.join(
-                tmpdirname, config["TAPT Model Loading"]["ParametersFileName"]
-            )
-            with open(dict_file_path, "rb") as f:
-                tapt_parameters_dict = json.load(f)
-                self.training_parameters = tapt_parameters_dict
-
-            # load model from this directory
-            model_file_path = os.path.join(
-                tmpdirname, config["TAPT Model Loading"]["ModelFileName"]
-            )
-            self.model = AutoModelForCausalLM.from_pretrained(model_file_path)
+        # load model and training args from wandb
+        model, training_args = ArtifactManager.load_tapted_model(
+            self.wandb_run,
+            self.MODEL_NAME,
+            self.parameters["dataset_name"],
+            "sample_generator",
+        )
+        self.model = model
+        self.training_parameters = training_args
 
     def get_training_parameters(self) -> dict:
         """Get the parameters used for training this model

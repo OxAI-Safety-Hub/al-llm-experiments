@@ -3,9 +3,6 @@
 from abc import ABC, abstractmethod
 from typing import Union, Any
 import configparser
-import tempfile
-import os
-import json
 
 import torch
 from torch.utils.data import DataLoader
@@ -607,37 +604,15 @@ class TAPTClassifier(HuggingFaceClassifier, ABC):
         # Delete the old model to free up memory
         del self.model
 
-        # use a temporary directory as an inbetween
-        with tempfile.TemporaryDirectory() as tmpdirname:
-            # download the model into this directory from wandb
-            artifact_name = self.model_name + "---" + self.parameters["dataset_name"]
-            artifact_path_components = (
-                config["Wandb"]["Entity"],
-                config["Wandb"]["Project"],
-                artifact_name + ":latest",
-            )
-            artifact_path = "/".join(artifact_path_components)
-            artifact = self.wandb_run.use_artifact(
-                artifact_path,
-                type=config["TAPT Model Loading"]["TAPTModelType"],
-            )
-            artifact.download(tmpdirname)
-
-            # load the dictionary containing the parameters
-            dict_file_path = os.path.join(
-                tmpdirname, config["TAPT Model Loading"]["ParametersFileName"]
-            )
-            with open(dict_file_path, "rb") as f:
-                tapt_parameters_dict = json.load(f)
-                self.training_parameters = tapt_parameters_dict
-
-            # load model from this directory
-            model_file_path = os.path.join(
-                tmpdirname, config["TAPT Model Loading"]["ModelFileName"]
-            )
-            self.model = AutoModelForSequenceClassification.from_pretrained(
-                model_file_path, num_labels=2
-            )
+        # load model and training args from wandb
+        model, training_args = ArtifactManager.load_tapted_model(
+            self.wandb_run,
+            self.model_name,
+            self.parameters["dataset_name"],
+            "classifier",
+        )
+        self.model = model
+        self.training_parameters = training_args
 
         # Setup the model
         self._setup_model()
