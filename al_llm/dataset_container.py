@@ -655,8 +655,8 @@ class DummyLocalDatasetContainer(LocalDatasetContainer):
     CATEGORIES = OrderedDict([("neg", "Negative"), ("pos", "Positive")])
 
 
-class WikiToxicDatasetContainer(LocalDatasetContainer):
-    """A container Jigsaw Toxic Comment Challenge dataset
+class WikiToxicDatasetContainer(HuggingFaceDatasetContainer):
+    """A container for the Jigsaw Toxic Comment Challenge dataset
 
     This dataset was the basis of a Kaggle competition run by Jigsaw. [1]_
 
@@ -708,13 +708,49 @@ class WikiToxicDatasetContainer(LocalDatasetContainer):
     2019
     """
 
-    DATASET_NAME = "wiki_toxic"
+    DATASET_NAME = "OxAISH-AL-LLM/wiki_toxic"
     CATEGORIES = OrderedDict([("non", "Non-toxic"), ("tox", "Toxic")])
 
     def _preprocess_dataset(self):
 
         # Do any preprocessing defined by the base class
         super()._preprocess_dataset()
+
+        # Remove the 'id' column
+        self.dataset_train = self.dataset_train.remove_columns("id")
+        self.dataset_remainder = self.dataset_remainder.remove_columns("id")
+        self.dataset_validation = self.dataset_validation.remove_columns("id")
+        self.dataset_test = self.dataset_test.remove_columns("id")
+
+        # Rename the 'comment_text' column
+        self.dataset_train = self.dataset_train.rename_column(
+            "comment_text", config["Data Handling"]["TextColumnName"]
+        )
+        self.dataset_remainder = self.dataset_remainder.rename_column(
+            "comment_text", config["Data Handling"]["TextColumnName"]
+        )
+        self.dataset_validation = self.dataset_validation.rename_column(
+            "comment_text", config["Data Handling"]["TextColumnName"]
+        )
+        self.dataset_test = self.dataset_test.rename_column(
+            "comment_text", config["Data Handling"]["TextColumnName"]
+        )
+
+        # Recast the 'label' column so it uses ClassLabels instead of Values
+        new_train_features = self.dataset_train.features.copy()
+        new_remainder_features = self.dataset_remainder.features.copy()
+        new_validation_features = self.dataset_validation.features.copy()
+        new_test_features = self.dataset_test.features.copy()
+
+        new_train_features["label"] = datasets.ClassLabel(names=list(self.CATEGORIES.keys()))
+        new_remainder_features["label"] = datasets.ClassLabel(names=list(self.CATEGORIES.keys()))
+        new_validation_features["label"] = datasets.ClassLabel(names=list(self.CATEGORIES.keys()))
+        new_test_features["label"] = datasets.ClassLabel(names=list(self.CATEGORIES.keys()))
+        
+        self.dataset_train = self.dataset_train.cast(new_train_features)
+        self.dataset_remainder = self.dataset_remainder.cast(new_remainder_features)
+        self.dataset_validation = self.dataset_validation.cast(new_validation_features)
+        self.dataset_test = self.dataset_test.cast(new_test_features)
 
         # Rename the 'label' column
         self.dataset_train = self.dataset_train.rename_column(
