@@ -157,15 +157,16 @@ class DatasetContainer(ABC):
             The remainder of the train split.
         """
 
-        train_dataset_size = self.parameters["train_dataset_size"]
         if self.parameters["supervised"]:
-            train_dataset_size = len(train_split) - 1
-            wandb.config.update({"train_dataset_size": train_dataset_size})
+            self.parameters["train_dataset_size"] = len(train_split) - 1
+            wandb.config.update(
+                {"train_dataset_size": self.parameters["train_dataset_size"]}
+            )
 
-        if len(train_split) < train_dataset_size:
+        if len(train_split) < self.parameters["train_dataset_size"]:
             raise ValueError(
                 f"Train split must be larger than train dataset size (currently"
-                f" {len(train_split)} < {train_dataset_size})"
+                f" {len(train_split)} < {self.parameters['train_dataset_size']})"
             )
 
         # Shuffle the train split
@@ -173,9 +174,9 @@ class DatasetContainer(ABC):
         train_split = train_split.shuffle(seed=seed)
 
         # Select the train and remainder datasets
-        train_range = range(train_dataset_size)
+        train_range = range(self.parameters["train_dataset_size"])
         train_dataset = train_split.select(train_range)
-        remainder_range = range(train_dataset_size, len(train_split))
+        remainder_range = range(self.parameters["train_dataset_size"], len(train_split))
         remainder_dataset = train_split.select(remainder_range)
 
         return train_dataset, remainder_dataset

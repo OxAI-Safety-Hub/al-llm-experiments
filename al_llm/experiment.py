@@ -371,6 +371,11 @@ class Experiment:
         dc_class = cls.MAP_DATASET_CONTAINER[parameters["dataset_name"]]
         dataset_container = dc_class(parameters)
 
+        # If the dataset container changed the parameters, update the parameters
+        #  for everything else. This could happen when supervised learning overrides
+        #  `train_dataset_size` parameter.
+        parameters = dataset_container.parameters
+
         # Set up the classifier
         classifier_model_name = parameters["classifier_base_model"]
         if parameters["use_tapted_classifier"]:
