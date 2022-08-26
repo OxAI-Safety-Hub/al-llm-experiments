@@ -151,11 +151,12 @@ class Experiment:
             # to label
             samples = self._train_and_get_samples(iteration)
 
-            # Get the labels from the human
-            labels, ambiguities = self.interface.prompt(samples)
+            if not self.parameters["supervised"]:
+                # Get the labels from the human
+                labels, ambiguities = self.interface.prompt(samples)
 
-            # Add these samples to the dataset
-            self.data_handler.new_labelled(samples, labels, ambiguities)
+                # Add these samples to the dataset
+                self.data_handler.new_labelled(samples, labels, ambiguities)
 
             # Save the current version of the classifier and dataset
             self._save()
@@ -271,6 +272,10 @@ class Experiment:
             self._train_afresh(iteration)
         else:
             self._train_update(dataset_samples, iteration)
+
+        # If performing supervised learning, skip the sample generation
+        if self.parameters["supervised"]:
+            return []
 
         # Generate some new samples to query
         samples = self.sample_generator.generate()
