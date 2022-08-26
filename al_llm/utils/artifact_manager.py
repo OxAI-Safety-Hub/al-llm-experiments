@@ -16,11 +16,6 @@ config.read("config.ini")
 class SaveLoadHelper:
     """A static class to aid the ArtifactManager"""
 
-    TAPT_PROJECT = "TAPT-Models"
-    TAPT_MODEL_TYPE = "TAPT-model"
-    TAPT_MODEL_FILE_NAME = "model_home.pt"
-    TAPT_PARAMETERS_FILE_NAME = "parameters_home.json"
-
     @staticmethod
     def save_json(data: Any, tmp: str, file_name: str):
         """Save data into a json file in a temporary directory
@@ -173,6 +168,11 @@ class SaveLoadHelper:
 
 class ArtifactManager:
     """A static class to handle all artifact saving and loading"""
+
+    TAPT_PROJECT = "TAPT-Models"
+    TAPT_MODEL_TYPE = "TAPT-model"
+    TAPT_MODEL_FILE_NAME = "model_home.pt"
+    TAPT_PARAMETERS_FILE_NAME = "parameters_home.json"
 
     def save_dataset_extension(
         wandb_run: wandb.sdk.wandb_run.Run,
@@ -329,7 +329,9 @@ class ArtifactManager:
                 tmp=tmp,
             )
 
+    @classmethod
     def save_tapted_model(
+        cls,
         wandb_run: wandb.sdk.wandb_run.Run,
         model: Any,
         training_args: dict,
@@ -355,19 +357,19 @@ class ArtifactManager:
         # use a temporary directory as an inbetween
         with tempfile.TemporaryDirectory() as tmp:
 
-            SaveLoadHelper.save_model(model, tmp, SaveLoadHelper.TAPT_MODEL_FILE_NAME)
-            SaveLoadHelper.save_json(
-                training_args, tmp, SaveLoadHelper.TAPT_PARAMETERS_FILE_NAME
-            )
+            SaveLoadHelper.save_model(model, tmp, cls.TAPT_MODEL_FILE_NAME)
+            SaveLoadHelper.save_json(training_args, tmp, cls.TAPT_PARAMETERS_FILE_NAME)
 
             SaveLoadHelper.upload_artifact(
                 wandb_run=wandb_run,
                 artifact_name=base_model_name + "---" + dataset_name,
-                artifact_type=SaveLoadHelper.TAPT_MODEL_TYPE,
+                artifact_type=cls.TAPT_MODEL_TYPE,
                 tmp=tmp,
             )
 
+    @classmethod
     def load_tapted_model(
+        cls,
         wandb_run: wandb.sdk.wandb_run.Run,
         base_model_name: str,
         dataset_name: str,
@@ -399,16 +401,12 @@ class ArtifactManager:
 
             SaveLoadHelper.download_artifact(
                 wandb_run=wandb_run,
-                project=SaveLoadHelper.TAPT_PROJECT,
+                project=cls.TAPT_PROJECT,
                 artifact_name=base_model_name + "---" + dataset_name,
-                artifact_type=SaveLoadHelper.TAPT_MODEL_TYPE,
+                artifact_type=cls.TAPT_MODEL_TYPE,
                 tmp=tmp,
             )
 
-            training_args = SaveLoadHelper.load_json(
-                tmp, SaveLoadHelper.TAPT_PARAMETERS_FILE_NAME
-            )
-            model = SaveLoadHelper.load_model(
-                tmp, SaveLoadHelper.TAPT_MODEL_FILE_NAME, purpose
-            )
+            training_args = SaveLoadHelper.load_json(tmp, cls.TAPT_PARAMETERS_FILE_NAME)
+            model = SaveLoadHelper.load_model(tmp, cls.TAPT_MODEL_FILE_NAME, purpose)
             return model, training_args
