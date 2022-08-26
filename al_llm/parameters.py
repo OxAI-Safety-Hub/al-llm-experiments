@@ -107,9 +107,10 @@ class Parameters(dict):
     ):
 
         # sets the parameters provided
+        #   'supervised' may override some parameters
         super().__init__(
             dataset_name=dataset_name,
-            num_iterations=num_iterations,
+            num_iterations=1 if supervised else num_iterations,
             refresh_every=refresh_every,
             batch_size=batch_size,
             num_epochs_update=num_epochs_update,
@@ -123,7 +124,7 @@ class Parameters(dict):
             send_alerts=send_alerts,
             validation_proportion=validation_proportion,
             train_dataset_size=train_dataset_size,
-            full_loop=full_loop,
+            full_loop=True if supervised else full_loop,
             supervised=supervised,
             classifier_base_model=classifier_base_model,
             acquisition_function=acquisition_function,
