@@ -267,9 +267,7 @@ class Experiment:
         dataset_samples = self.data_handler.get_latest_tokenized_datapoints()
 
         # Produce the latest classifier
-        if iteration == 0:
-            self.classifier.initialise()
-        elif iteration % self.parameters["refresh_every"] == 0:
+        if iteration % self.parameters["refresh_every"] == 0:
             self._train_afresh(iteration)
         else:
             self._train_update(dataset_samples, iteration)
