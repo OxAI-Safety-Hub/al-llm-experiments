@@ -3,7 +3,7 @@ import wandb
 import configparser
 import textwrap
 from typing import Tuple
-from al_llm.utils.artifact_manager import ArtifactManager
+from al_llm.utils.artifacts import save_dual_label_results, load_dataset_extension
 
 # Parser to pass the run id through to the program
 parser = argparse.ArgumentParser(
@@ -38,7 +38,7 @@ parameters = run.config
 categories = parameters["categories"]
 
 # Get the dataset extension from wandb
-data_dict = ArtifactManager.load_dataset_extension(run)
+data_dict = load_dataset_extension(run)
 num_labels = len(data_dict["labels"])
 
 # Log an introductory message to the user, allowing opt out
@@ -170,7 +170,7 @@ def save_results(new_labels: list, new_ambiguities: list, consistency: float):
     }
 
     # Save the results to wandb as an artifact
-    ArtifactManager.save_dual_label_results(run, data_dict, results)
+    save_dual_label_results(run, data_dict, results)
 
 
 # If the user chooses 'y' then, the rest of the program will run

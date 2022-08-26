@@ -11,7 +11,7 @@ import wandb
 from al_llm.classifier import Classifier
 from al_llm.parameters import Parameters
 from al_llm.dataset_container import DatasetContainer
-from al_llm.utils.artifact_manager import ArtifactManager
+from al_llm.utils.artifacts import save_dataset_extension, load_dataset_extension
 
 
 # Load the configuration
@@ -134,7 +134,7 @@ class DataHandler:
         added_data[config["Data Handling"]["TextColumnName"]].extend(unlabelled_samples)
 
         # save this dict to WandB, using the ArtifactManager
-        ArtifactManager.save_dataset_extension(self.wandb_run, added_data)
+        save_dataset_extension(self.wandb_run, added_data)
 
     def load(self):
         """Load the data stored on Weights and Biases
@@ -145,5 +145,5 @@ class DataHandler:
             The dictionary of sentences and labels added in earlier iterations
         """
 
-        added_data = ArtifactManager.load_dataset_extension(self.wandb_run)
+        added_data = load_dataset_extension(self.wandb_run)
         return added_data

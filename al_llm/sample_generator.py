@@ -14,7 +14,7 @@ from transformers import pipeline
 from al_llm.acquisition_function import AcquisitionFunction
 from al_llm.dataset_container import DatasetContainer
 from al_llm.parameters import Parameters
-from al_llm.utils.artifact_manager import ArtifactManager
+from al_llm.utils.artifacts import load_tapted_model
 
 
 # Load the configuration
@@ -300,7 +300,7 @@ class TAPTSampleGenerator(PipelineGeneratorMixin, SampleGenerator, ABC):
         """
 
         # load model and training args from wandb
-        model, training_args = ArtifactManager.load_tapted_model(
+        model, training_args = load_tapted_model(
             self.wandb_run,
             self.MODEL_NAME,
             self.parameters["dataset_name"],

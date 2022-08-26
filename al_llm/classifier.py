@@ -23,7 +23,11 @@ from tqdm import tqdm
 
 from al_llm.parameters import Parameters
 from al_llm.dataset_container import DatasetContainer
-from al_llm.utils.artifact_manager import ArtifactManager
+from al_llm.utils.artifacts import (
+    save_classifier_model,
+    load_classifier_model,
+    load_tapted_model,
+)
 
 
 # Load the configuration
@@ -271,7 +275,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         self._load_fresh_model()
 
     def save(self):
-        ArtifactManager.save_classifier_model(self.wandb_run, self.model)
+        save_classifier_model(self.wandb_run, self.model)
 
     def _load_fresh_model(self):
         """Load the classifier model afresh"""
@@ -291,7 +295,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         """Load the classifier using the wandb_run"""
 
         # load and setup the model
-        self.model = ArtifactManager.load_classifier_model(self.wandb_run)
+        self.model = load_classifier_model(self.wandb_run)
         self._setup_model()
 
     def _setup_model(self):
@@ -599,7 +603,7 @@ class TAPTClassifier(HuggingFaceClassifier, ABC):
         del self.model
 
         # load model and training args from wandb
-        model, training_args = ArtifactManager.load_tapted_model(
+        model, training_args = load_tapted_model(
             self.wandb_run,
             self.model_name,
             self.parameters["dataset_name"],
