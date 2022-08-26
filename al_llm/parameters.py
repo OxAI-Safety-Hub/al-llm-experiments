@@ -55,6 +55,8 @@ class Parameters(dict):
         used by the pool-based simulator.
     full_loop : bool, default=True
         Run the whole experiment in one go, going through all the AL loops.
+    supervised : bool, default=False
+        Run this experiment using standard supervised learning.
     classifier_base_model : str, default="dummy"
         The name of the base model the classifier should use.
     acquisition_function : str, default="dummy"
@@ -92,6 +94,7 @@ class Parameters(dict):
         validation_proportion=0.2,
         train_dataset_size=10,
         full_loop=True,
+        supervised=False,
         classifier_base_model="dummy",
         acquisition_function="dummy",
         sample_generator_base_model="dummy",
@@ -121,6 +124,7 @@ class Parameters(dict):
             validation_proportion=validation_proportion,
             train_dataset_size=train_dataset_size,
             full_loop=full_loop,
+            supervised=supervised,
             classifier_base_model=classifier_base_model,
             acquisition_function=acquisition_function,
             sample_generator_base_model=sample_generator_base_model,
