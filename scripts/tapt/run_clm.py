@@ -54,7 +54,8 @@ from transformers.trainer_utils import get_last_checkpoint
 from transformers.utils import check_min_version, send_example_telemetry
 from transformers.utils.versions import require_version
 
-from al_llm.utils.artifact_manager import ArtifactManager
+sys.path.append("../../")
+from al_llm.utils.artifact_manager import ArtifactManager, SaveLoadHelper
 
 
 # Will error if the minimal version of Transformers is not installed. Remove at your own risks.
@@ -258,7 +259,7 @@ class DataTrainingArguments:
 def main():
 
     run = wandb.init(
-        project=al_llm_config["TAPT Model Loading"]["TAPTProject"],
+        project=SaveLoadHelper.TAPT_PROJECT,
         entity=al_llm_config["Wandb"]["Entity"],
     )
 
