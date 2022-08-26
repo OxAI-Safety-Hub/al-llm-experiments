@@ -158,7 +158,7 @@ class DatasetContainer(ABC):
 
         train_dataset_size = self.parameters["train_dataset_size"]
         if self.parameters["supervised"]:
-            train_dataset_size = len(train_split)
+            train_dataset_size = len(train_split) - 1
 
         if len(train_split) < train_dataset_size:
             raise ValueError(
