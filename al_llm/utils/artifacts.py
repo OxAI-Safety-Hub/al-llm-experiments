@@ -13,6 +13,26 @@ config = configparser.ConfigParser()
 config.read("config.ini")
 
 
+# Saving and loading constants: Dataset Extensions
+DATASET_EXT_ARTIFACT_TYPE = "dataset-extension"
+DATASET_EXT_DATASET_FILE_NAME = "added_data.json"
+
+# Saving and loading constants: Classifier Models
+CLASSIFIER_ARTIFACT_TYPE = "classifier-model"
+CLASSIFIER_MODEL_FILE_NAME = "model_home.pt"
+
+# Saving and loading constants: Dual Labelling Results
+DUAL_LAB_ARTIFACT_TYPE = "dual-label-results"
+DUAL_LAB_LABELS_FILE_NAME = "labels.json"
+DUAL_LAB_RESULTS_FILE_NAME = "results.json"
+
+# Saving and loading constants: TAPT Models
+TAPT_PROJECT_NAME = "TAPT-Models"
+TAPT_ARTIFACT_TYPE = "TAPT-model"
+TAPT_MODEL_FILE_NAME = "model_home.pt"
+TAPT_PARAMETERS_FILE_NAME = "parameters_home.json"
+
+
 def _save_json(data: Any, tmp: str, file_name: str):
     """Save data into a json file in a temporary directory
 
@@ -87,7 +107,7 @@ def _load_model(tmp: str, file_name: str, purpose: str) -> Any:
         The model from the temporaty directory.
     """
 
-    model_file_path = os.path.join(tmp, config["TAPT Model Loading"]["ModelFileName"])
+    model_file_path = os.path.join(tmp, file_name)
     # add the correct head depending on the purpose
     if purpose == "classifier":
         return AutoModelForSequenceClassification.from_pretrained(
@@ -160,12 +180,6 @@ def _download_artifact(
     artifact.download(tmp)
 
 
-TAPT_PROJECT = "TAPT-Models"
-TAPT_MODEL_TYPE = "TAPT-model"
-TAPT_MODEL_FILE_NAME = "model_home.pt"
-TAPT_PARAMETERS_FILE_NAME = "parameters_home.json"
-
-
 def save_dataset_extension(
     wandb_run: wandb.sdk.wandb_run.Run,
     added_data: datasets.Dataset,
@@ -183,12 +197,12 @@ def save_dataset_extension(
     # use a temporary directory as an inbetween
     with tempfile.TemporaryDirectory() as tmp:
 
-        _save_json(added_data, tmp, config["Added Data Loading"]["DatasetFileName"])
+        _save_json(added_data, tmp, DATASET_EXT_DATASET_FILE_NAME)
 
         _upload_artifact(
             wandb_run=wandb_run,
             artifact_name=f"de_{wandb_run.name}",
-            artifact_type=config["Added Data Loading"]["DatasetType"],
+            artifact_type=DATASET_EXT_ARTIFACT_TYPE,
             tmp=tmp,
         )
 
@@ -216,11 +230,11 @@ def load_dataset_extension(
             wandb_run=wandb_run,
             project=wandb_run.project,
             artifact_name=f"de_{wandb_run.name}",
-            artifact_type=config["Added Data Loading"]["DatasetType"],
+            artifact_type=DATASET_EXT_ARTIFACT_TYPE,
             tmp=tmp,
         )
 
-        added_data = _load_json(tmp, config["Added Data Loading"]["DatasetFileName"])
+        added_data = _load_json(tmp, DATASET_EXT_DATASET_FILE_NAME)
 
         return added_data
 
@@ -242,12 +256,12 @@ def save_classifier_model(
     # use a temporary directory as an inbetween
     with tempfile.TemporaryDirectory() as tmp:
 
-        _save_model(model, tmp, config["Classifier Loading"]["ModelFileName"])
+        _save_model(model, tmp, CLASSIFIER_MODEL_FILE_NAME)
 
         _upload_artifact(
             wandb_run=wandb_run,
             artifact_name=f"cl_{wandb_run.name}",
-            artifact_type=config["Classifier Loading"]["ClassifierType"],
+            artifact_type=CLASSIFIER_ARTIFACT_TYPE,
             tmp=tmp,
         )
 
@@ -275,13 +289,11 @@ def load_classifier_model(
             wandb_run=wandb_run,
             project=wandb_run.project,
             artifact_name=f"cl_{wandb_run.name}",
-            artifact_type=config["Classifier Loading"]["ClassifierType"],
+            artifact_type=CLASSIFIER_ARTIFACT_TYPE,
             tmp=tmp,
         )
 
-        model = _load_model(
-            tmp, config["Classifier Loading"]["ModelFileName"], "classifier"
-        )
+        model = _load_model(tmp, CLASSIFIER_MODEL_FILE_NAME, "classifier")
         return model
 
 
@@ -305,15 +317,13 @@ def save_dual_label_results(
     # use a temporary directory as an inbetween
     with tempfile.TemporaryDirectory() as tmp:
 
-        _save_json(data_dict, tmp, config["Dual Labelling Loading"]["LabelsFileName"])
-        _save_json(
-            results_dict, tmp, config["Dual Labelling Loading"]["ResultsFileName"]
-        )
+        _save_json(data_dict, tmp, DUAL_LAB_LABELS_FILE_NAME)
+        _save_json(results_dict, tmp, DUAL_LAB_RESULTS_FILE_NAME)
 
         _upload_artifact(
             wandb_run=wandb_run,
             artifact_name=f"dl_{wandb_run.name}",
-            artifact_type=config["Dual Labelling Loading"]["ArtifactType"],
+            artifact_type=DUAL_LAB_ARTIFACT_TYPE,
             tmp=tmp,
         )
 
@@ -350,7 +360,7 @@ def save_tapted_model(
         _upload_artifact(
             wandb_run=wandb_run,
             artifact_name=base_model_name + "---" + dataset_name,
-            artifact_type=TAPT_MODEL_TYPE,
+            artifact_type=TAPT_ARTIFACT_TYPE,
             tmp=tmp,
         )
 
@@ -387,9 +397,9 @@ def load_tapted_model(
 
         _download_artifact(
             wandb_run=wandb_run,
-            project=TAPT_PROJECT,
+            project=TAPT_PROJECT_NAME,
             artifact_name=base_model_name + "---" + dataset_name,
-            artifact_type=TAPT_MODEL_TYPE,
+            artifact_type=TAPT_ARTIFACT_TYPE,
             tmp=tmp,
         )
 
