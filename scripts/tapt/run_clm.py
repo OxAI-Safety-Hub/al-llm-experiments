@@ -54,7 +54,8 @@ from transformers.trainer_utils import get_last_checkpoint
 from transformers.utils import check_min_version, send_example_telemetry
 from transformers.utils.versions import require_version
 
-from al_llm.utils.artifact_manager import ArtifactManager
+sys.path.append("../../")
+from al_llm.utils.artifacts import save_tapted_model, TAPT_PROJECT
 
 
 # Will error if the minimal version of Transformers is not installed. Remove at your own risks.
@@ -258,7 +259,8 @@ class DataTrainingArguments:
 def main():
 
     run = wandb.init(
-        project="Labs_Project_Experiments", entity="oxai-safety-labs-active-learning"
+        project=TAPT_PROJECT,
+        entity=al_llm_config["Wandb"]["Entity"],
     )
 
     # See all possible arguments in src/transformers/training_args.py
@@ -671,7 +673,7 @@ def main():
     }
 
     # Saves the tapted model and training_args to wandb
-    ArtifactManager.save_tapted_model(
+    save_tapted_model(
         run, model, training_args, model_args.model_name_or_path, data_args.dataset_name
     )
 
