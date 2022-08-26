@@ -544,7 +544,7 @@ class LocalDatasetContainer(DatasetContainer, ABC):
         pass
 
 
-class RottenTomatoesDatasetHandler(HuggingFaceDatasetContainer):
+class RottenTomatoesDatasetContainer(HuggingFaceDatasetContainer):
     """A dataset container for the rotten tomatoes dataset
 
     A dataset container which stores the various dataset splits and their
