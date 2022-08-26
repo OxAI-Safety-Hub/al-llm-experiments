@@ -109,7 +109,7 @@ class Classifier(ABC):
         return None
 
     @abstractmethod
-    def initialise(self):
+    def _initialise(self):
         """Initialise the model at the beginning of the experiment"""
         pass
 
@@ -162,7 +162,7 @@ class DummyClassifier(UncertaintyMixin, Classifier):
                 f"Parameter `text` should be string or list, got {type(text)}"
             )
 
-    def initialise(self):
+    def _initialise(self):
         pass
 
     def save(self):
@@ -245,6 +245,10 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         # Get a fresh version of the model
         self._load_fresh_model()
 
+        # Perform any first time setup required
+        if iteration == 0:
+            self._initialise()
+
         # create a dataloader for the train dataset
         train_dataloader = DataLoader(
             tokenized_train, shuffle=True, batch_size=self.parameters["batch_size"]
@@ -271,8 +275,8 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         # Run the training loop
         self._train(samples_dataloader, self.parameters["num_epochs_update"], iteration)
 
-    def initialise(self):
-        self._load_fresh_model()
+    def _initialise(self):
+        pass
 
     def save(self):
         save_classifier_model(self.wandb_run, self.model)
@@ -592,8 +596,7 @@ class TAPTClassifier(HuggingFaceClassifier, ABC):
         Set to either cuda (if GPU available) or CPU
     """
 
-    def initialise(self):
-        self._load_fresh_model()
+    def _initialise(self):
         wandb.config.update({"tapt_classifier": self.training_parameters})
 
     def _load_fresh_model(self):
