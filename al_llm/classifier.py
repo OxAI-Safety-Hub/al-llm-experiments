@@ -23,7 +23,11 @@ from tqdm import tqdm
 
 from al_llm.parameters import Parameters
 from al_llm.dataset_container import DatasetContainer
-from al_llm.utils.artifact_manager import ArtifactManager
+from al_llm.utils.artifacts import (
+    save_classifier_model,
+    load_classifier_model,
+    load_tapted_model,
+)
 
 
 # Load the configuration
@@ -105,7 +109,7 @@ class Classifier(ABC):
         return None
 
     @abstractmethod
-    def initialise(self):
+    def _initialise(self):
         """Initialise the model at the beginning of the experiment"""
         pass
 
@@ -158,7 +162,7 @@ class DummyClassifier(UncertaintyMixin, Classifier):
                 f"Parameter `text` should be string or list, got {type(text)}"
             )
 
-    def initialise(self):
+    def _initialise(self):
         pass
 
     def save(self):
@@ -202,8 +206,6 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         Set to either cuda (if GPU available) or CPU
     """
 
-    ARTIFACT_NAME = "classifier"
-
     def __init__(
         self,
         parameters: Parameters,
@@ -243,6 +245,10 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         # Get a fresh version of the model
         self._load_fresh_model()
 
+        # Perform any first time setup required
+        if iteration == 0:
+            self._initialise()
+
         # create a dataloader for the train dataset
         train_dataloader = DataLoader(
             tokenized_train, shuffle=True, batch_size=self.parameters["batch_size"]
@@ -269,13 +275,11 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         # Run the training loop
         self._train(samples_dataloader, self.parameters["num_epochs_update"], iteration)
 
-    def initialise(self):
-        self._load_fresh_model()
+    def _initialise(self):
+        pass
 
     def save(self):
-        ArtifactManager.save_classifier_model(
-            self.wandb_run, self.model, self.ARTIFACT_NAME
-        )
+        save_classifier_model(self.wandb_run, self.model)
 
     def _load_fresh_model(self):
         """Load the classifier model afresh"""
@@ -295,9 +299,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         """Load the classifier using the wandb_run"""
 
         # load and setup the model
-        self.model = ArtifactManager.load_classifier_model(
-            self.wandb_run, self.ARTIFACT_NAME
-        )
+        self.model = load_classifier_model(self.wandb_run)
         self._setup_model()
 
     def _setup_model(self):
@@ -594,8 +596,7 @@ class TAPTClassifier(HuggingFaceClassifier, ABC):
         Set to either cuda (if GPU available) or CPU
     """
 
-    def initialise(self):
-        self._load_fresh_model()
+    def _initialise(self):
         wandb.config.update({"tapt_classifier": self.training_parameters})
 
     def _load_fresh_model(self):
@@ -605,7 +606,7 @@ class TAPTClassifier(HuggingFaceClassifier, ABC):
         del self.model
 
         # load model and training args from wandb
-        model, training_args = ArtifactManager.load_tapted_model(
+        model, training_args = load_tapted_model(
             self.wandb_run,
             self.model_name,
             self.parameters["dataset_name"],
@@ -652,7 +653,6 @@ class PlainGPT2Classifier(HuggingFaceClassifier):
     """
 
     MODEL_NAME = "gpt2"
-    ARTIFACT_NAME = "gtp2-classifier"
 
     def __init__(
         self,
@@ -702,7 +702,6 @@ class PlainDistilGPT2Classifier(HuggingFaceClassifier):
     """
 
     MODEL_NAME = "distilgpt2"
-    ARTIFACT_NAME = "distilgpt2-classifier"
 
     def __init__(
         self,
@@ -749,7 +748,6 @@ class TAPTGPT2Classifier(TAPTClassifier):
     """
 
     MODEL_NAME = "gpt2"
-    ARTIFACT_NAME = "gtp2-classifier"
 
     def __init__(
         self,
@@ -794,7 +792,6 @@ class TAPTDistilGPT2Classifier(TAPTClassifier):
     """
 
     MODEL_NAME = "distilgpt2"
-    ARTIFACT_NAME = "distilgpt2-classifier"
 
     def __init__(
         self,

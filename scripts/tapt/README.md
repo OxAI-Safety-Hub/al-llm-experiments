@@ -17,7 +17,7 @@ cd scripts/tapt/
 Then run the script, specifying the parameters. Below is an example of this which trains the gpt2 model on the rotten_tomatoes dataset with a batch size of 4, over the course of 8 epochs.
 
 ```
-python tapt_trainer --model-name gpt2 --dataset-name rotten_tomatoes --batch-size 4 --num-epochs 8
+python tapt_trainer.py --model-name gpt2 --dataset-name rotten_tomatoes --batch-size 4 --num-epochs 8
 ```
 
 The parameters
