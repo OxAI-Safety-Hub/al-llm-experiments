@@ -5,6 +5,8 @@ import pandas as pd
 
 from tqdm import tqdm
 
+seed = 7497
+
 TOXIC_COLUMNS = [
     "toxic",
     "severe_toxic",
@@ -133,7 +135,7 @@ test_df = test_df.drop(columns=TOXIC_COLUMNS)
 print("Creating eval split...")
 
 # Shuffle the current train split
-train_df = train_df.sample(frac=1)
+train_df = train_df.sample(frac=1, random_state=seed)
 
 # The new size of the train split
 train_size = math.floor(len(train_df) * 0.8)
