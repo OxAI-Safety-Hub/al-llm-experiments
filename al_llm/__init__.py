@@ -13,7 +13,6 @@ from .dataset_container import (
     DatasetContainer,
     DummyDatasetContainer,
     RottenTomatoesDatasetContainer,
-    DummyLocalDatasetContainer,
     WikiToxicDatasetContainer,
 )
 from .experiment import Experiment, ProjectOption

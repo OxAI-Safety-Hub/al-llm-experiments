@@ -3,7 +3,6 @@
 from abc import ABC, abstractmethod
 from typing import Callable, Tuple
 import configparser
-import os
 from collections import OrderedDict
 
 import datasets
@@ -615,11 +614,19 @@ class WikiToxicDatasetContainer(HuggingFaceDatasetContainer):
         new_validation_features = self.dataset_validation.features.copy()
         new_test_features = self.dataset_test.features.copy()
 
-        new_train_features["label"] = datasets.ClassLabel(names=list(self.CATEGORIES.keys()))
-        new_remainder_features["label"] = datasets.ClassLabel(names=list(self.CATEGORIES.keys()))
-        new_validation_features["label"] = datasets.ClassLabel(names=list(self.CATEGORIES.keys()))
-        new_test_features["label"] = datasets.ClassLabel(names=list(self.CATEGORIES.keys()))
-        
+        new_train_features["label"] = datasets.ClassLabel(
+            names=list(self.CATEGORIES.keys())
+        )
+        new_remainder_features["label"] = datasets.ClassLabel(
+            names=list(self.CATEGORIES.keys())
+        )
+        new_validation_features["label"] = datasets.ClassLabel(
+            names=list(self.CATEGORIES.keys())
+        )
+        new_test_features["label"] = datasets.ClassLabel(
+            names=list(self.CATEGORIES.keys())
+        )
+
         self.dataset_train = self.dataset_train.cast(new_train_features)
         self.dataset_remainder = self.dataset_remainder.cast(new_remainder_features)
         self.dataset_validation = self.dataset_validation.cast(new_validation_features)
