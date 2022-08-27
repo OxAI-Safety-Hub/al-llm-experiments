@@ -1,7 +1,7 @@
 # The python abc module for making abstract base classes
 # https://docs.python.org/3.10/library/abc.html
 from abc import ABC, abstractmethod
-from random import randrange
+from random import randrange, sample
 from typing import Optional, Any
 import configparser
 
@@ -246,14 +246,21 @@ class PoolSampleGenerator(SampleGenerator):
     def generate(self) -> list:
 
         # Filter the acquisition function through the set of sentences in the
-        # remainder dataset
+        # simulated pool taken from the remainder dataset
         sample_pool = self._generate_sample_pool()
         print()
         print("Selecting samples using the acquisition function...")
         return self.acquisition_function.select(sample_pool)
 
     def _generate_sample_pool(self) -> list:
-        return self.remainder_sentences
+
+        # Take `sample_pool_size` random samples from `remainder_sentences`, or
+        # as many as you can take up to the length of `remainder_sentences`
+        simulated_pool = sample(
+            self.remainder_sentences,
+            min(len(self.remainder_sentences), self.parameters["sample_pool_size"]),
+        )
+        return simulated_pool
 
 
 class TAPTSampleGenerator(PipelineGeneratorMixin, SampleGenerator, ABC):
