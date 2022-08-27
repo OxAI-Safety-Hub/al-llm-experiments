@@ -12,8 +12,7 @@ from .data_handler import DataHandler
 from .dataset_container import (
     DatasetContainer,
     DummyDatasetContainer,
-    RottenTomatoesDatasetHandler,
-    DummyLocalDatasetContainer,
+    RottenTomatoesDatasetContainer,
     WikiToxicDatasetContainer,
 )
 from .experiment import Experiment, ProjectOption

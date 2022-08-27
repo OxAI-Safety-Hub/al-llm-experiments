@@ -13,7 +13,7 @@ class Parameters(dict):
     Parameters
     ----------
     dataset_name : str, default="dummy"
-        The name of (hugging face) or path of the (local) dataset.
+        The name of the hugging face dataset.
     num_iterations : int, default=5
         The number of iterations over which to run the active learning.
     refresh_every : int, default=2

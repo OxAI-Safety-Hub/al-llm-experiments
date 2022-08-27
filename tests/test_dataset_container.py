@@ -5,7 +5,7 @@ import datasets
 import torch
 
 from al_llm.parameters import Parameters
-from al_llm.dataset_container import DummyDatasetContainer, DummyLocalDatasetContainer
+from al_llm.dataset_container import DummyDatasetContainer
 from al_llm.classifier import DummyClassifier
 
 
@@ -82,19 +82,6 @@ def test_dummy_dataset_container():
     assert isinstance(dataset_container.dataset_remainder, datasets.Dataset)
     assert isinstance(dataset_container.dataset_validation, datasets.Dataset)
     assert isinstance(dataset_container.dataset_test, datasets.Dataset)
-
-    # The tokenize function, is the dummy one from DummyClassifier
-    def tokenize(text):
-        return DummyClassifier.tokenize(None, text)
-
-    _basic_dataset_container_tests(dataset_container, tokenize)
-
-
-def test_local_dataset_container():
-
-    # Set up the dummy dataset container
-    parameters = Parameters()
-    dataset_container = DummyLocalDatasetContainer(parameters)
 
     # The tokenize function, is the dummy one from DummyClassifier
     def tokenize(text):
