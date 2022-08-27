@@ -313,7 +313,7 @@ class Experiment:
         parameters: Parameters,
         project: ProjectOption,
         run_id: str,
-    ):
+    ) -> dict:
         """Get experiment instances to feed into the constructor
 
         Default setup expects Rotten Tomatoes dataset, and uses a classifier built
@@ -361,8 +361,22 @@ class Experiment:
             resume="allow",
             id=run_id,
             mode="disabled" if parameters["is_running_pytests"] else "online",
-            config=parameters,
         )
+
+        # Ensure that if a run is being resumed, it is intentional
+        if wandb_run.resumed:
+            print("WARNING: Resuming an already existent run.")
+            happy_to_continue = False
+            while not happy_to_continue:
+                choice = input("Do you want to continue? (y/n): ")
+                if choice.lower() == "n":
+                    return None
+                elif choice.lower() == "y":
+                    happy_to_continue = True
+
+        # Log the parameters to the run as it's config. If resuming the run and the
+        #   parameters do not match, it will correctly throw an error.
+        wandb.config.update(parameters)
 
         # Set the seed now, because the data handler may do some shuffling
         set_seed(parameters["seed"])
