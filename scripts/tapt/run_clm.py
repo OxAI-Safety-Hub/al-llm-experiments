@@ -481,6 +481,8 @@ def main():
     else:
         column_names = raw_datasets["validation"].column_names
     text_column_name = "text" if "text" in column_names else column_names[0]
+    if data_args.dataset_name == "wiki_toxic":
+        text_column_name = "comment_text"
 
     # since this will be pickled to avoid _LazyModule error in Hasher force logger loading before tokenize_function
     tok_logger = transformers.utils.logging.get_logger(
