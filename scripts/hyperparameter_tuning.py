@@ -36,7 +36,7 @@ counter = 0
 horizontal = "=" * 70 + "\n"
 
 # Run the experiment for each sampled combination of parameters
-for combination in combinations:
+for counter, combination in enumerate(combinations):
 
     # Ensure the code won't break due to human error in parameter grid
     #   inputs. Better to skip an experiment than crash the whole program
@@ -60,6 +60,3 @@ for combination in combinations:
         args = Experiment.make_experiment(parameters=parameters, run_id=run_id)
         experiment = Experiment(**args)
         experiment.run()
-
-        # Increment the counter
-        counter = counter + 1
