@@ -379,10 +379,6 @@ class Experiment:
                 elif choice.lower() == "y":
                     happy_to_continue = True
 
-        # Log the parameters to the run as it's config. If resuming the run and the
-        #   parameters do not match, it will correctly throw an error.
-        wandb.config.update(parameters)
-
         # Set the seed now, because the data handler may do some shuffling
         set_seed(parameters["seed"])
 
@@ -438,6 +434,10 @@ class Experiment:
             interface = CLIInterface(parameters, dataset_container, wandb_run)
         else:
             interface = CLIBrokenLoopInterface(parameters, dataset_container, wandb_run)
+
+        # Log the parameters to the run as it's config. If resuming the run and the
+        #   parameters do not match, it will correctly throw an error.
+        wandb.config.update(parameters)
 
         experiment_args = {
             "parameters": parameters,
