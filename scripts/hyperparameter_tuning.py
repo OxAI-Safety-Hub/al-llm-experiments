@@ -1,3 +1,4 @@
+import warnings
 import random
 
 from sklearn.model_selection import ParameterGrid
@@ -60,3 +61,9 @@ for counter, combination in enumerate(combinations):
         args = Experiment.make_experiment(parameters=parameters, run_id=run_id)
         experiment = Experiment(**args)
         experiment.run()
+
+    # If the test needs to be skipped, log a warning to the user
+    else:
+        warnings.warn(
+            "Failed to run one of the hyperparameter tuning tests (num_samples > sample_pool_size)."
+        )
