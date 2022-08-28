@@ -77,6 +77,8 @@ MODEL_TYPES = tuple(conf.model_type for conf in MODEL_CONFIG_CLASSES)
 al_llm_config = configparser.ConfigParser()
 al_llm_config.read("../../config.ini")
 
+WIKI_TOXIC_DATASET_NAME = "OxAISH-AL-LLM/wiki_toxic"
+
 
 @dataclass
 class ModelArguments:
@@ -340,7 +342,7 @@ def main():
 
     real_dataset_name = data_args.dataset_name
     if real_dataset_name == "wiki_toxic":
-        real_dataset_name = "OxAISH-AL-LLM/wiki_toxic"
+        real_dataset_name = WIKI_TOXIC_DATASET_NAME
 
     if real_dataset_name is not None:
         # Downloading and loading a dataset from the hub.
