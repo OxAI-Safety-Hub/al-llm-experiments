@@ -6,7 +6,6 @@ import configparser
 from collections import OrderedDict
 
 import datasets
-import wandb
 
 from al_llm.parameters import Parameters
 from al_llm.utils.fake_data import FakeSentenceGenerator, FakeLabelGenerator
@@ -158,9 +157,6 @@ class DatasetContainer(ABC):
 
         if self.parameters["supervised"]:
             self.parameters["train_dataset_size"] = len(train_split) - 1
-            wandb.config.update(
-                {"train_dataset_size": self.parameters["train_dataset_size"]}
-            )
 
         if len(train_split) < self.parameters["train_dataset_size"]:
             raise ValueError(

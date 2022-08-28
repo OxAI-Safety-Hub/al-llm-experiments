@@ -1,3 +1,4 @@
+import warnings
 import random
 
 from sklearn.model_selection import ParameterGrid
@@ -13,7 +14,7 @@ param_grid = {
     "num_epochs_update": [1, 3, 10],
     "num_epochs_afresh": [1, 3, 10],
     "num_samples": [50],
-    "sample_pool_size": [10, 100, 1000],
+    "sample_pool_size": [50, 100, 1000],  # Should never be less than 'num_samples'
     "train_dataset_size": [10, 100, 1000],
     "classifier_base_model": ["gpt2"],
     "acquisition_function": ["max_uncertainty"],
@@ -36,26 +37,33 @@ counter = 0
 horizontal = "=" * 70 + "\n"
 
 # Run the experiment for each sampled combination of parameters
-for combination in combinations:
+for counter, combination in enumerate(combinations):
 
-    # Create a unique run_id for this trial
-    run_id = f"hparams_tuning_trial_{counter}"
+    # Ensure the code won't break due to human error in parameter grid
+    #   inputs. Better to skip an experiment than crash the whole program
+    if combination["num_samples"] <= combination["sample_pool_size"]:
 
-    # Print the run_id and the Parameters
-    text = "\n"
-    text += horizontal
-    text += f"Run ID: {run_id}\n\n"
-    text += f"Parameters: {combination}\n"
-    text += horizontal
-    print(text)
+        # Create a unique run_id for this trial
+        run_id = f"hparams_tuning_trial_{counter}"
 
-    # Set up the parameters for the experiment
-    parameters = Parameters(**combination)
+        # Print the run_id and the Parameters
+        text = "\n"
+        text += horizontal
+        text += f"Run ID: {run_id}\n\n"
+        text += f"Parameters: {combination}\n"
+        text += horizontal
+        print(text)
 
-    # Make the experiment and run it
-    args = Experiment.make_experiment(parameters=parameters, run_id=run_id)
-    experiment = Experiment(**args)
-    experiment.run()
+        # Set up the parameters for the experiment
+        parameters = Parameters(**combination)
 
-    # Increment the counter
-    counter = counter + 1
+        # Make the experiment and run it
+        args = Experiment.make_experiment(parameters=parameters, run_id=run_id)
+        experiment = Experiment(**args)
+        experiment.run()
+
+    # If the test needs to be skipped, log a warning to the user
+    else:
+        warnings.warn(
+            "Failed to run one of the hyperparameter tuning tests (num_samples > sample_pool_size)."
+        )

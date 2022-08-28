@@ -267,8 +267,13 @@ class Experiment:
 
         dataset_samples = self.data_handler.get_latest_tokenized_datapoints()
 
-        # Produce the latest classifier
-        if iteration % self.parameters["refresh_every"] == 0:
+        # Train either a fresh model or update the existing one. If this is
+        #   the last iteration of this experiment, it will end on a call to
+        #   _train_afresh.
+        if (
+            iteration % self.parameters["refresh_every"] == 0
+            or iteration + 1 == self.parameters["num_iterations"]
+        ):
             self._train_afresh(iteration)
         else:
             self._train_update(dataset_samples, iteration)
@@ -374,21 +379,12 @@ class Experiment:
                 elif choice.lower() == "y":
                     happy_to_continue = True
 
-        # Log the parameters to the run as it's config. If resuming the run and the
-        #   parameters do not match, it will correctly throw an error.
-        wandb.config.update(parameters)
-
         # Set the seed now, because the data handler may do some shuffling
         set_seed(parameters["seed"])
 
         # Set up the dataset_container
         dc_class = cls.MAP_DATASET_CONTAINER[parameters["dataset_name"]]
         dataset_container = dc_class(parameters)
-
-        # If the dataset container changed the parameters, update the parameters
-        #  for everything else. This could happen when supervised learning overrides
-        #  `train_dataset_size` parameter.
-        parameters = dataset_container.parameters
 
         # Set up the classifier
         classifier_model_name = parameters["classifier_base_model"]
@@ -438,6 +434,10 @@ class Experiment:
             interface = CLIInterface(parameters, dataset_container, wandb_run)
         else:
             interface = CLIBrokenLoopInterface(parameters, dataset_container, wandb_run)
+
+        # Log the parameters to the run as it's config. If resuming the run and the
+        #   parameters do not match, it will correctly throw an error.
+        wandb.config.update(parameters)
 
         experiment_args = {
             "parameters": parameters,
