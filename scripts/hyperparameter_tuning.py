@@ -9,8 +9,8 @@ from al_llm.constants import WANDB_PROJECTS
 # The different hyperparameters to test
 param_grid = {
     "dataset_name": ["rotten_tomatoes"],
-    "num_iterations": [1, 5, 10],
-    "refresh_every": [1, 3, 10],
+    "num_iterations": [5, 10],
+    "refresh_every": [1, 3, 6],
     "batch_size": [4, 8, 16],
     "num_epochs_update": [1, 3, 6],
     "num_epochs_afresh": [1, 3, 6],
@@ -20,13 +20,14 @@ param_grid = {
     "classifier_base_model": ["gpt2"],
     "acquisition_function": ["max_uncertainty"],
     "sample_generator_base_model": ["pool"],
+    "use_tapted_classifier": [True],
 }
 
 # An interator over the configurations of hyperparameters
 param_iter = ParameterGrid(param_grid)
 
 # Set the number of trials to run
-num_trials = 10
+num_trials = 20
 
 # Get a list of random samples to try from the param_iter
 combinations = random.sample(list(param_iter), num_trials)
@@ -45,7 +46,7 @@ for counter, combination in enumerate(combinations):
     if combination["num_samples"] <= combination["sample_pool_size"]:
 
         # Create a unique run_id for this trial
-        run_id = f"hparams_tuning_trial_{counter}"
+        run_id = f"hpt_rt_{counter}"
 
         # Print the run_id and the Parameters
         text = "\n"
@@ -60,7 +61,7 @@ for counter, combination in enumerate(combinations):
 
         # Make the experiment and run it
         args = Experiment.make_experiment(
-            parameters=parameters, run_id=run_id, project_name=WANDB_PROJECTS["sandbox"]
+            parameters=parameters, run_id=run_id, project_name="Hyperparameter-Tuning-RT"
         )
         experiment = Experiment(**args)
         experiment.run()
