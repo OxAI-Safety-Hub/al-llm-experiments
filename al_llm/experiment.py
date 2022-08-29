@@ -1,6 +1,4 @@
 from typing import Union
-import configparser
-from enum import Enum
 
 import torch
 
@@ -44,17 +42,12 @@ from al_llm.interface import (
     PoolSimulatorInterface,
 )
 from al_llm.parameters import Parameters
-
-
-# Load the configuration
-config = configparser.ConfigParser()
-config.read("config.ini")
-
-
-class ProjectOption(Enum):
-    Sandbox = "Sandbox"
-    HyperparameterTuning = "Hyperparameter-Tuning"
-    Experiment = "Experiments"
+from al_llm.constants import (
+    TEXT_COLUMN_NAME,
+    LABEL_COLUMN_NAME,
+    AMBIGUITIES_COLUMN_NAME,
+    WANDB_ENTITY,
+)
 
 
 class Experiment:
@@ -195,9 +188,9 @@ class Experiment:
 
             # add the additional data into the local training datasets
             self.data_handler.new_labelled(
-                added_data[config["Data Handling"]["TextColumnName"]],
-                added_data[config["Data Handling"]["LabelColumnName"]],
-                added_data[config["Data Handling"]["AmbiguitiesColumnName"]],
+                added_data[TEXT_COLUMN_NAME],
+                added_data[LABEL_COLUMN_NAME],
+                added_data[AMBIGUITIES_COLUMN_NAME],
             )
 
         # Perform a single iteration of model update, obtaining new samples
@@ -233,7 +226,7 @@ class Experiment:
 
         # Get the unlabelled sentences saved to WandB by taking the
         # last `num_samples` items from added_data's 'text' column
-        unlabelled_added = added_data[config["Data Handling"]["TextColumnName"]][
+        unlabelled_added = added_data[TEXT_COLUMN_NAME][
             -self.parameters["num_samples"] :
         ]
 
@@ -241,8 +234,8 @@ class Experiment:
         labels, ambiguities = self.interface.prompt(unlabelled_added)
 
         # Append these labels onto the end of the added_data
-        added_data[config["Data Handling"]["LabelColumnName"]].extend(labels)
-        added_data[config["Data Handling"]["AmbiguitiesColumnName"]].extend(ambiguities)
+        added_data[LABEL_COLUMN_NAME].extend(labels)
+        added_data[AMBIGUITIES_COLUMN_NAME].extend(ambiguities)
 
         # Return the added_data dataset
         return added_data
@@ -316,7 +309,7 @@ class Experiment:
     def make_experiment(
         cls,
         parameters: Parameters,
-        project: ProjectOption,
+        project_name: str,
         run_id: str,
     ) -> dict:
         """Get experiment instances to feed into the constructor
@@ -330,7 +323,7 @@ class Experiment:
         ----------
         parameters : Parameters
             The dictionary of parameters for the present experiment
-        project : ProjectOption
+        project_name : str
             The wandb project which this experiment should be logged to
         run_id : str
             The ID of the current run
@@ -361,8 +354,8 @@ class Experiment:
         #   Set mode to disabled when running pytests so that a login is not required
         #   for the program to run.
         wandb_run = wandb.init(
-            project=project.value,
-            entity=config["Wandb"]["Entity"],
+            project=project_name,
+            entity=WANDB_ENTITY,
             resume="allow",
             id=run_id,
             mode="disabled" if parameters["is_running_pytests"] else "online",

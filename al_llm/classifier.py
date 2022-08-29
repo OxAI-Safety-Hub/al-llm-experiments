@@ -2,7 +2,6 @@
 # https://docs.python.org/3.10/library/abc.html
 from abc import ABC, abstractmethod
 from typing import Union, Any
-import configparser
 
 import torch
 from torch.utils.data import DataLoader
@@ -28,11 +27,7 @@ from al_llm.utils.artifacts import (
     load_classifier_model,
     load_tapted_model,
 )
-
-
-# Load the configuration
-config = configparser.ConfigParser()
-config.read("config.ini")
+from al_llm.constants import LABEL_COLUMN_NAME, EVALUATE_METRICS
 
 
 class Classifier(ABC):
@@ -225,7 +220,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         self.tokenizer.pad_token = self.tokenizer.eos_token
 
         # Set up the Hugging Face metric evaluator
-        metrics = config["Wandb"]["EvaluateMetrics"].replace(" ", "").split(",")
+        metrics = EVALUATE_METRICS
         self.evaluator = evaluate.combine(metrics)
 
         # model not required until a call to `train_afresh`
@@ -416,7 +411,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
             # Use these outputs to calculate metrics
             self.evaluator.add_batch(
                 predictions=predictions,
-                references=batch[config["Data Handling"]["LabelColumnName"]],
+                references=batch[LABEL_COLUMN_NAME],
             )
 
             # Compute the loss
@@ -484,7 +479,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
             # give the predictions to the metric(s)
             self.evaluator.add_batch(
                 predictions=predictions,
-                references=batch[config["Data Handling"]["LabelColumnName"]],
+                references=batch[LABEL_COLUMN_NAME],
             )
 
             # Compute the loss

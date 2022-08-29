@@ -1,16 +1,13 @@
 import os
 import tempfile
 import json
-import configparser
 from typing import Any, Tuple
 
 from transformers import AutoModelForSequenceClassification, AutoModelForCausalLM
 import datasets
 import wandb
 
-# Load the configuration
-config = configparser.ConfigParser()
-config.read("config.ini")
+from al_llm.constants import WANDB_ENTITY
 
 
 # Saving and loading constants: Dataset Extensions
@@ -168,7 +165,7 @@ def _download_artifact(
     """
 
     artifact_path_components = (
-        config["Wandb"]["Entity"],
+        WANDB_ENTITY,
         project,
         artifact_name + ":latest",
     )

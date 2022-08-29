@@ -1,7 +1,6 @@
 # The python abc module for making abstract base classes
 # https://docs.python.org/3.10/library/abc.html
 from typing import Union
-import configparser
 
 import torch
 
@@ -12,11 +11,11 @@ from al_llm.classifier import Classifier
 from al_llm.parameters import Parameters
 from al_llm.dataset_container import DatasetContainer
 from al_llm.utils.artifacts import save_dataset_extension, load_dataset_extension
-
-
-# Load the configuration
-config = configparser.ConfigParser()
-config.read("config.ini")
+from al_llm.constants import (
+    TEXT_COLUMN_NAME,
+    LABEL_COLUMN_NAME,
+    AMBIGUITIES_COLUMN_NAME,
+)
 
 
 class DataHandler:
@@ -102,9 +101,9 @@ class DataHandler:
 
         # Add the items using the dataset container
         items = {
-            config["Data Handling"]["TextColumnName"]: samples,
-            config["Data Handling"]["LabelColumnName"]: labels,
-            config["Data Handling"]["AmbiguitiesColumnName"]: ambiguities,
+            TEXT_COLUMN_NAME: samples,
+            LABEL_COLUMN_NAME: labels,
+            AMBIGUITIES_COLUMN_NAME: ambiguities,
         }
         self.dataset_container.add_items(items, self.classifier.tokenize)
 
@@ -131,7 +130,7 @@ class DataHandler:
         # add the samples in `unlabelled_samples` (if there are any)
         # the other column of the dictionary remains a shorter list to be extended
         # in the next iteration when labels are provided by a human
-        added_data[config["Data Handling"]["TextColumnName"]].extend(unlabelled_samples)
+        added_data[TEXT_COLUMN_NAME].extend(unlabelled_samples)
 
         # save this dict to WandB, using the ArtifactManager
         save_dataset_extension(self.wandb_run, added_data)

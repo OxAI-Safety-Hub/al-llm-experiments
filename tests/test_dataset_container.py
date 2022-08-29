@@ -1,5 +1,3 @@
-import configparser
-
 import datasets
 
 import torch
@@ -7,11 +5,7 @@ import torch
 from al_llm.parameters import Parameters
 from al_llm.dataset_container import DummyDatasetContainer
 from al_llm.classifier import DummyClassifier
-
-
-# Load the configuration
-config = configparser.ConfigParser()
-config.read("config.ini")
+from al_llm.constants import LABEL_COLUMN_NAME, AMBIGUITIES_COLUMN_NAME
 
 
 def _basic_dataset_container_tests(dataset_container, tokenize):
@@ -54,8 +48,8 @@ def _basic_dataset_container_tests(dataset_container, tokenize):
     # Add some more items, this time in a batch
     items = {
         "text": ["This is another test sentence", "As it this one"],
-        config["Data Handling"]["LabelColumnName"]: [0, 0],
-        config["Data Handling"]["AmbiguitiesColumnName"]: [0, 0],
+        LABEL_COLUMN_NAME: [0, 0],
+        AMBIGUITIES_COLUMN_NAME: [0, 0],
     }
     items_len = len(items["text"])
     dataset_container.add_items(items, tokenize)

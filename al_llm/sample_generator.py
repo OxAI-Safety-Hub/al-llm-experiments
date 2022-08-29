@@ -3,7 +3,6 @@
 from abc import ABC, abstractmethod
 from random import randrange, sample
 from typing import Optional, Any
-import configparser
 
 import torch
 
@@ -15,11 +14,7 @@ from al_llm.acquisition_function import AcquisitionFunction
 from al_llm.dataset_container import DatasetContainer
 from al_llm.parameters import Parameters
 from al_llm.utils.artifacts import load_tapted_model
-
-
-# Load the configuration
-config = configparser.ConfigParser()
-config.read("config.ini")
+from al_llm.constants import TEXT_COLUMN_NAME
 
 
 class SampleGenerator(ABC):
@@ -240,7 +235,7 @@ class PoolSampleGenerator(SampleGenerator):
 
         # Get the list of sentences in the remainder dataset, as a list
         remainder_python = dataset_container.dataset_remainder.with_format(None)
-        text_column_name = config["Data Handling"]["TextColumnName"]
+        text_column_name = TEXT_COLUMN_NAME
         self.remainder_sentences = remainder_python[text_column_name]
 
     def generate(self) -> list:

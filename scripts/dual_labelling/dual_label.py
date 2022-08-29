@@ -1,9 +1,11 @@
 import argparse
-import wandb
-import configparser
 import textwrap
 from typing import Tuple
+
+import wandb
+
 from al_llm.utils.artifacts import save_dual_label_results, load_dataset_extension
+from al_llm.constants import WANDB_ENTITY
 
 # Parser to pass the run id through to the program
 parser = argparse.ArgumentParser(
@@ -15,20 +17,21 @@ parser.add_argument(
     help="The run id of the experiment whos added data we should dual label.",
 )
 parser.add_argument(
+    "--project-name",
+    type=str,
+    help="The W&B project containing the run.",
+)
+parser.add_argument(
     "--score-ambiguities",
     help="If flagged, the ambiguities of labels have to match",
     action="store_true",
 )
 args = parser.parse_args()
 
-# Load the configuration
-config = configparser.ConfigParser()
-config.read("config.ini")
-
 # Initialise a run to retrieve this data
 run = wandb.init(
-    project=config["Wandb"]["Project"],
-    entity=config["Wandb"]["Entity"],
+    project=args.project_name,
+    entity=WANDB_ENTITY,
     id=args.run_id,
     resume="must",
 )
