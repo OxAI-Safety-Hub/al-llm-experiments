@@ -1,5 +1,4 @@
 from typing import Union
-from enum import Enum
 
 import torch
 
@@ -49,12 +48,6 @@ from al_llm.constants import (
     AMBIGUITIES_COLUMN_NAME,
     WANDB_ENTITY,
 )
-
-
-class ProjectOption(Enum):
-    Sandbox = "Sandbox"
-    HyperparameterTuning = "Hyperparameter-Tuning"
-    Experiment = "Experiments"
 
 
 class Experiment:
@@ -316,7 +309,7 @@ class Experiment:
     def make_experiment(
         cls,
         parameters: Parameters,
-        project: ProjectOption,
+        project_name: str,
         run_id: str,
     ) -> dict:
         """Get experiment instances to feed into the constructor
@@ -330,7 +323,7 @@ class Experiment:
         ----------
         parameters : Parameters
             The dictionary of parameters for the present experiment
-        project : ProjectOption
+        project_name : str
             The wandb project which this experiment should be logged to
         run_id : str
             The ID of the current run
@@ -361,7 +354,7 @@ class Experiment:
         #   Set mode to disabled when running pytests so that a login is not required
         #   for the program to run.
         wandb_run = wandb.init(
-            project=project.value,
+            project=project_name,
             entity=WANDB_ENTITY,
             resume="allow",
             id=run_id,

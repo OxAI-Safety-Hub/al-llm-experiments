@@ -15,7 +15,7 @@ from .dataset_container import (
     RottenTomatoesDatasetContainer,
     WikiToxicDatasetContainer,
 )
-from .experiment import Experiment, ProjectOption
+from .experiment import Experiment
 from .interface import Interface, CLIInterface, PoolSimulatorInterface
 from .acquisition_function import (
     AcquisitionFunction,
