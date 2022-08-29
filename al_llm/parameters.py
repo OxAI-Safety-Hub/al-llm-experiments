@@ -135,6 +135,7 @@ class Parameters(dict):
             use_tapted_sample_generator=use_tapted_sample_generator,
             use_tapted_classifier=use_tapted_classifier,
             ambiguity_mode=ambiguity_mode,
+            cuda_device=cuda_device,
             is_running_pytests=is_running_pytests,
             *args,
             **kwargs,
