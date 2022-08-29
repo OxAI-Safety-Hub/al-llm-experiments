@@ -17,4 +17,4 @@ WANDB_PROJECTS = {
 }
 
 # The metrics to use to evaluate the performance of the classifier
-EVALUATE_METRICS = {"accuracy", "f1", "precision", "recall"}
+EVALUATE_METRICS = ["accuracy", "f1", "precision", "recall"]
