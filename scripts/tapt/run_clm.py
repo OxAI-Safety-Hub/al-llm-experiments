@@ -28,7 +28,6 @@ import sys
 from dataclasses import dataclass, field
 from itertools import chain
 from typing import Optional
-import configparser
 
 import datasets
 from datasets import load_dataset
@@ -56,6 +55,7 @@ from transformers.utils.versions import require_version
 
 sys.path.append("../../")
 from al_llm.utils.artifacts import save_tapted_model, TAPT_PROJECT_NAME
+from al_llm.constants import WANDB_ENTITY
 
 
 # Will error if the minimal version of Transformers is not installed. Remove at your own risks.
@@ -71,11 +71,6 @@ logger = logging.getLogger(__name__)
 
 MODEL_CONFIG_CLASSES = list(MODEL_FOR_CAUSAL_LM_MAPPING.keys())
 MODEL_TYPES = tuple(conf.model_type for conf in MODEL_CONFIG_CLASSES)
-
-
-# Load the configuration
-al_llm_config = configparser.ConfigParser()
-al_llm_config.read("../../config.ini")
 
 WIKI_TOXIC_DATASET_NAME = "OxAISH-AL-LLM/wiki_toxic"
 
@@ -262,7 +257,7 @@ def main():
 
     run = wandb.init(
         project=TAPT_PROJECT_NAME,
-        entity=al_llm_config["Wandb"]["Entity"],
+        entity=WANDB_ENTITY,
     )
 
     # See all possible arguments in src/transformers/training_args.py

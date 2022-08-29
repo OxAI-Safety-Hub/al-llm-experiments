@@ -1,5 +1,4 @@
 from typing import Union
-import configparser
 from enum import Enum
 
 import torch
@@ -44,11 +43,12 @@ from al_llm.interface import (
     PoolSimulatorInterface,
 )
 from al_llm.parameters import Parameters
-
-
-# Load the configuration
-config = configparser.ConfigParser()
-config.read("config.ini")
+from al_llm.constants import (
+    TEXT_COLUMN_NAME,
+    LABEL_COLUMN_NAME,
+    AMBIGUITIES_COLUMN_NAME,
+    WANDB_ENTITY,
+)
 
 
 class ProjectOption(Enum):
@@ -195,9 +195,9 @@ class Experiment:
 
             # add the additional data into the local training datasets
             self.data_handler.new_labelled(
-                added_data[config["Data Handling"]["TextColumnName"]],
-                added_data[config["Data Handling"]["LabelColumnName"]],
-                added_data[config["Data Handling"]["AmbiguitiesColumnName"]],
+                added_data[TEXT_COLUMN_NAME],
+                added_data[LABEL_COLUMN_NAME],
+                added_data[AMBIGUITIES_COLUMN_NAME],
             )
 
         # Perform a single iteration of model update, obtaining new samples
@@ -233,7 +233,7 @@ class Experiment:
 
         # Get the unlabelled sentences saved to WandB by taking the
         # last `num_samples` items from added_data's 'text' column
-        unlabelled_added = added_data[config["Data Handling"]["TextColumnName"]][
+        unlabelled_added = added_data[TEXT_COLUMN_NAME][
             -self.parameters["num_samples"] :
         ]
 
@@ -241,8 +241,8 @@ class Experiment:
         labels, ambiguities = self.interface.prompt(unlabelled_added)
 
         # Append these labels onto the end of the added_data
-        added_data[config["Data Handling"]["LabelColumnName"]].extend(labels)
-        added_data[config["Data Handling"]["AmbiguitiesColumnName"]].extend(ambiguities)
+        added_data[LABEL_COLUMN_NAME].extend(labels)
+        added_data[AMBIGUITIES_COLUMN_NAME].extend(ambiguities)
 
         # Return the added_data dataset
         return added_data
@@ -362,7 +362,7 @@ class Experiment:
         #   for the program to run.
         wandb_run = wandb.init(
             project=project.value,
-            entity=config["Wandb"]["Entity"],
+            entity=WANDB_ENTITY,
             resume="allow",
             id=run_id,
             mode="disabled" if parameters["is_running_pytests"] else "online",
