@@ -4,18 +4,19 @@ import random
 from sklearn.model_selection import ParameterGrid
 
 from al_llm import Experiment, Parameters
+from al_llm.constants import WANDB_PROJECTS
 
 # The different hyperparameters to test
 param_grid = {
     "dataset_name": ["rotten_tomatoes"],
     "num_iterations": [1, 5, 10],
     "refresh_every": [1, 3, 10],
-    "batch_size": [4],
-    "num_epochs_update": [1, 3, 10],
-    "num_epochs_afresh": [1, 3, 10],
+    "batch_size": [4, 8, 16],
+    "num_epochs_update": [1, 3, 6],
+    "num_epochs_afresh": [1, 3, 6],
     "num_samples": [50],
     "sample_pool_size": [50, 100, 1000],  # Should never be less than 'num_samples'
-    "train_dataset_size": [10, 100, 1000],
+    "train_dataset_size": [100],
     "classifier_base_model": ["gpt2"],
     "acquisition_function": ["max_uncertainty"],
     "sample_generator_base_model": ["pool"],
@@ -58,7 +59,7 @@ for counter, combination in enumerate(combinations):
         parameters = Parameters(**combination)
 
         # Make the experiment and run it
-        args = Experiment.make_experiment(parameters=parameters, run_id=run_id)
+        args = Experiment.make_experiment(parameters=parameters, run_id=run_id, project_name=WANDB_PROJECTS["sandbox"])
         experiment = Experiment(**args)
         experiment.run()
 
