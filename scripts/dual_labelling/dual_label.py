@@ -17,6 +17,11 @@ parser.add_argument(
     help="The run id of the experiment whos added data we should dual label.",
 )
 parser.add_argument(
+    "--project-name",
+    type=str,
+    help="The W&B project containing the run.",
+)
+parser.add_argument(
     "--score-ambiguities",
     help="If flagged, the ambiguities of labels have to match",
     action="store_true",
@@ -25,7 +30,7 @@ args = parser.parse_args()
 
 # Initialise a run to retrieve this data
 run = wandb.init(
-    project=config["Wandb"]["Project"],
+    project=args.project_name,
     entity=WANDB_ENTITY,
     id=args.run_id,
     resume="must",
