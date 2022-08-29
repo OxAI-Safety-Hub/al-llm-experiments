@@ -59,7 +59,9 @@ for counter, combination in enumerate(combinations):
         parameters = Parameters(**combination)
 
         # Make the experiment and run it
-        args = Experiment.make_experiment(parameters=parameters, run_id=run_id, project_name=WANDB_PROJECTS["sandbox"])
+        args = Experiment.make_experiment(
+            parameters=parameters, run_id=run_id, project_name=WANDB_PROJECTS["sandbox"]
+        )
         experiment = Experiment(**args)
         experiment.run()
 
