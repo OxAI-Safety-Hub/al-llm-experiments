@@ -154,6 +154,9 @@ class Experiment:
             # Save the current version of the classifier and dataset
             self._save()
 
+        # Clean up to stop the wandb cache from overfilling
+        self._clear_cache()
+        
         # End the interface
         self.interface.end()
 
@@ -201,6 +204,9 @@ class Experiment:
         # the new samples awaiting labels from the human
         self._save(samples)
 
+        # Clean up to stop the wandb cache from overfilling
+        self._clear_cache()
+        
         # Alert the slack channel that the iteration is complete
         if self.parameters["send_alerts"]:
             wandb.alert(
@@ -239,6 +245,13 @@ class Experiment:
 
         # Return the added_data dataset
         return added_data
+
+    def _clear_cache(self):
+        """Clear some space in the Weights and Biases cache"""
+
+        # Get the artifacts cache and clear it down to a size of 5GB
+        c = wandb.wandb_sdk.wandb_artifacts.get_artifacts_cache()
+        c.cleanup(wandb.util.from_human_size("5GB"))
 
     def _train_and_get_samples(self, iteration: int) -> list:
         """Train the classifier with the latest datapoints, and get new samples
