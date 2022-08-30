@@ -72,6 +72,8 @@ class Parameters(dict):
         allows the human to mark data as ambiguous but the experiment will
         run as if it isn't. "none" means the user does not have the choice of
         marking it as ambiguous.
+    cuda_device : str, default="cuda:0"
+        The string specifying the CUDA device to use
     is_running_pytests: bool, default=False
         If true, wandb will be disabled for the test experiments
     """
@@ -101,6 +103,7 @@ class Parameters(dict):
         use_tapted_sample_generator=False,
         use_tapted_classifier=False,
         ambiguity_mode="only_mark",
+        cuda_device="cuda:0",
         is_running_pytests=False,
         *args,
         **kwargs,
@@ -132,6 +135,7 @@ class Parameters(dict):
             use_tapted_sample_generator=use_tapted_sample_generator,
             use_tapted_classifier=use_tapted_classifier,
             ambiguity_mode=ambiguity_mode,
+            cuda_device=cuda_device,
             is_running_pytests=is_running_pytests,
             *args,
             **kwargs,
