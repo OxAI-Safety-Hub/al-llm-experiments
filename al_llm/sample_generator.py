@@ -104,9 +104,10 @@ class PipelineGeneratorMixin(ABC):
         """
 
         # Set the device to use
-        device = (
-            torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
-        )
+        if torch.cuda.is_available():
+            device = torch.device(self.parameters["cuda_device"])
+        else:
+            device = torch.device("cpu")
 
         # Create a pipeline for text generation
         self.generator = pipeline(

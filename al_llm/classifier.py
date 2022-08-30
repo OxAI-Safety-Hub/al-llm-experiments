@@ -227,9 +227,10 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         self.model = None
 
         # set device
-        self.device = (
-            torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-        )
+        if torch.cuda.is_available():
+            self.device = torch.device(self.parameters["cuda_device"])
+        else:
+            self.device = torch.device("cpu")
 
     def train_afresh(
         self,
