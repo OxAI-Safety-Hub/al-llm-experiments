@@ -61,7 +61,9 @@ for counter, combination in enumerate(combinations):
 
         # Make the experiment and run it
         args = Experiment.make_experiment(
-            parameters=parameters, run_id=run_id, project_name="Hyperparameter-Tuning-RT"
+            parameters=parameters,
+            run_id=run_id,
+            project_name="Hyperparameter-Tuning-RT",
         )
         experiment = Experiment(**args)
         experiment.run()

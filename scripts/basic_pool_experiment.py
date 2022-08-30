@@ -28,6 +28,8 @@ parameters = Parameters(
     is_running_pytests=False,
 )
 
-args = Experiment.make_experiment(parameters, ProjectOption.Experiment, "rotten_tomatoes_pool_2")
+args = Experiment.make_experiment(
+    parameters, ProjectOption.Experiment, "rotten_tomatoes_pool_2"
+)
 experiment = Experiment(**args)
 experiment.run()
