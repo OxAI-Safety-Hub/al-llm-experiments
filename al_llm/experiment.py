@@ -127,6 +127,10 @@ class Experiment:
         self.already_finetuned = already_finetuned
 
     def run(self):
+
+        # Clean up to stop the wandb cache from overfilling
+        self._clear_cache()
+
         if self.parameters["full_loop"]:
             self._run_full()
         else:
@@ -153,9 +157,6 @@ class Experiment:
 
             # Save the current version of the classifier and dataset
             self._save()
-
-        # Clean up to stop the wandb cache from overfilling
-        self._clear_cache()
 
         # End the interface
         self.interface.end()
@@ -203,9 +204,6 @@ class Experiment:
         # Save the current version of the classifier and dataset, including
         # the new samples awaiting labels from the human
         self._save(samples)
-
-        # Clean up to stop the wandb cache from overfilling
-        self._clear_cache()
 
         # Alert the slack channel that the iteration is complete
         if self.parameters["send_alerts"]:
