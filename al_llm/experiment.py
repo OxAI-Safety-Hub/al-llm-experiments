@@ -156,7 +156,7 @@ class Experiment:
 
         # Clean up to stop the wandb cache from overfilling
         self._clear_cache()
-        
+
         # End the interface
         self.interface.end()
 
@@ -206,7 +206,7 @@ class Experiment:
 
         # Clean up to stop the wandb cache from overfilling
         self._clear_cache()
-        
+
         # Alert the slack channel that the iteration is complete
         if self.parameters["send_alerts"]:
             wandb.alert(
