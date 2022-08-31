@@ -27,4 +27,35 @@ The new labels, along with the old are stored to weights and biases as a new art
 
 - `num_labels` : The number of labels given in this process.
 
-- `labelling_consistency` : The percentage of sentences that both humans labelled the same. 
+- `labelling_consistency` : The proportion of sentences that both humans labelled the same. 
+
+Guide to Labelling Training
+==========================
+
+Another measure we want is how similar our own labelling is to that of the original labels in the dataset. We also want to train ourselves to get better at this before running experiments. To do this we load a subset of the dataset and compare our own labels against it.
+
+How to run
+-------------
+
+To run the script, you must pass the following parameters:
+
+- `--dataset-name` : The name of the dataset you wish to train yourself on.
+
+- `--seed` : The seed to use for shuffling the dataset to create the subset to label.
+
+- `--num-labels` : The size of the subset to take from the dataset.
+
+You can then call the script from the console. For example, this will make a subset of size 10 from the rotten_tomatoes dataset for you to label.
+
+```
+python scripts/labelling/label_training.py --dataset-name rotten_tomatoes --seed 42 --num-labels 10
+```
+
+
+The results
+---------------------------
+
+The results of this process are logged to weights and biases in the 'Labelling-Training' project. The metrics recorded are:
+
+- `consistency` : The proportion of sentences that you labelled correctly.
+
