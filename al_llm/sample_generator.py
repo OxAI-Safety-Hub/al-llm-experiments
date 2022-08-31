@@ -212,7 +212,7 @@ class PlainGPT2SampleGenerator(PipelineGeneratorMixin, SampleGenerator):
             self.MODEL_NAME,
             self.MODEL_NAME,
             temperature=parameters["sample_generator_temperature"],
-            top_k=parameters["sample_generator_temperature"],
+            top_k=parameters["sample_generator_top_k"],
         )
 
 
@@ -303,7 +303,7 @@ class TAPTSampleGenerator(PipelineGeneratorMixin, SampleGenerator, ABC):
             self.model,
             self.MODEL_NAME,
             temperature=parameters["sample_generator_temperature"],
-            top_k=parameters["sample_generator_temperature"],
+            top_k=parameters["sample_generator_top_k"],
         )
 
     def _load_tapted_model(self):
