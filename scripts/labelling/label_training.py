@@ -30,7 +30,7 @@ parser.add_argument(
 args = parser.parse_args()
 
 # Create a dataset container for the dataset
-dummy_parameters = Parameters()
+dummy_parameters = Parameters(train_dataset_size=1000)
 if args.dataset_name == "rotten_tomatoes":
     dataset_container = RottenTomatoesDatasetContainer(dummy_parameters)
 elif args.dataset_name == "wiki_toxic":
