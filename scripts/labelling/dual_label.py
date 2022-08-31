@@ -6,9 +6,7 @@ from al_llm.constants import WANDB_ENTITY
 from labelling_helper import label_and_get_results
 
 # Parser to pass the run id through to the program
-parser = argparse.ArgumentParser(
-    description="Pretrain the model on the unlabelled data."
-)
+parser = argparse.ArgumentParser(description="Dual label existing experiment labels.")
 parser.add_argument(
     "--run-id",
     type=str,
