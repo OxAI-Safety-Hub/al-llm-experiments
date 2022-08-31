@@ -15,7 +15,7 @@ To run the script, you must pass the following parameters:
 You can then call the script from the console. For example, this will dual label the data from the experiment with run id "make_example_dataset", and the ambiguities matter.
 
 ```
-python scripts/dual_labelling/dual_label.py --run-id make_example_dataset --score-ambiguities
+python scripts/labelling/dual_label.py --run-id make_example_dataset --score-ambiguities
 ```
 
 
