@@ -16,5 +16,8 @@ WANDB_PROJECTS = {
     "experiment": "Experiments",
 }
 
+# The maximum size to clear the W&B cache down to
+CACHE_SIZE = "10GB"
+
 # The metrics to use to evaluate the performance of the classifier
 EVALUATE_METRICS = ["accuracy", "f1", "precision", "recall"]

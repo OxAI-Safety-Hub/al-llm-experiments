@@ -47,6 +47,7 @@ from al_llm.constants import (
     LABEL_COLUMN_NAME,
     AMBIGUITIES_COLUMN_NAME,
     WANDB_ENTITY,
+    CACHE_SIZE,
 )
 
 
@@ -127,6 +128,10 @@ class Experiment:
         self.already_finetuned = already_finetuned
 
     def run(self):
+
+        # Clean up to stop the wandb cache from overfilling
+        self._clear_cache()
+
         if self.parameters["full_loop"]:
             self._run_full()
         else:
@@ -239,6 +244,13 @@ class Experiment:
 
         # Return the added_data dataset
         return added_data
+
+    def _clear_cache(self):
+        """Clear some space in the Weights and Biases cache"""
+
+        # Get the artifacts cache and clear it down to a size of 5GB
+        c = wandb.wandb_sdk.wandb_artifacts.get_artifacts_cache()
+        c.cleanup(wandb.util.from_human_size(CACHE_SIZE))
 
     def _train_and_get_samples(self, iteration: int) -> list:
         """Train the classifier with the latest datapoints, and get new samples
