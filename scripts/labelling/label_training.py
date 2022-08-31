@@ -1,10 +1,12 @@
 import argparse
+import wandb
 from al_llm.dataset_container import (
     RottenTomatoesDatasetContainer,
     WikiToxicDatasetContainer,
 )
 from al_llm.parameters import Parameters
 
+from al_llm.constants import WANDB_ENTITY
 from labelling_helper import label_and_get_results
 
 # Parser to pass the run id through to the program
@@ -52,20 +54,28 @@ decision = input("Answer (y/n): ")
 print("------------------------------------------------------")
 
 
-def save_results(new_labels: list, new_ambiguities: list, consistency: float):
-    """Calculates the consistency of the two human labellers
+def log_results(consistency: float):
+    """Logs the results of this training to wandb
 
     Parameters
     ----------
-    new_labels : list
-        A list of the new labels
-    new_ambiguities : list
-        A list of the new ambiguities
     consistency : float
         The proportion of sentences which both humans labelled the same
     """
 
-    pass
+    label_training_parameters = {
+        "dataset_name": args.dataset_name,
+        "seed": args.seed,
+        "num_labels": args.num_labels,
+    }
+
+    wandb_run = wandb.init(
+        project="Labelling-Training",
+        entity=WANDB_ENTITY,
+        config=label_training_parameters,
+    )
+
+    wandb_run.log({"consistency": consistency})
 
 
 # If the user chooses 'y' then, the rest of the program will run
@@ -85,7 +95,7 @@ if decision.lower() == "y":
     print("------------------------------------------------------")
 
     # save the results to wandb
-    save_results(new_labels, new_ambiguities, results["consistency"])
+    log_results(results["consistency"])
 
     # end the program
     print("------------------------------------------------------")

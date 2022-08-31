@@ -51,7 +51,7 @@ print("------------------------------------------------------")
 
 
 def save_results(new_labels: list, new_ambiguities: list, consistency: float):
-    """Calculates the consistency of the two human labellers
+    """Saves the results of this dual labelling process to wandb
 
     Parameters
     ----------
