@@ -47,6 +47,7 @@ from al_llm.constants import (
     LABEL_COLUMN_NAME,
     AMBIGUITIES_COLUMN_NAME,
     WANDB_ENTITY,
+    CACHE_SIZE,
 )
 
 
@@ -249,7 +250,7 @@ class Experiment:
 
         # Get the artifacts cache and clear it down to a size of 5GB
         c = wandb.wandb_sdk.wandb_artifacts.get_artifacts_cache()
-        c.cleanup(wandb.util.from_human_size("5GB"))
+        c.cleanup(wandb.util.from_human_size(CACHE_SIZE))
 
     def _train_and_get_samples(self, iteration: int) -> list:
         """Train the classifier with the latest datapoints, and get new samples
