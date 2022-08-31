@@ -208,7 +208,11 @@ class PlainGPT2SampleGenerator(PipelineGeneratorMixin, SampleGenerator):
 
         # Setup the pipeline generator
         self._make_pipeline_generator(
-            "text-generation", self.MODEL_NAME, self.MODEL_NAME
+            "text-generation",
+            self.MODEL_NAME,
+            self.MODEL_NAME,
+            temperature=parameters["sample_generator_temperature"],
+            top_k=parameters["sample_generator_top_k"],
         )
 
 
@@ -294,7 +298,13 @@ class TAPTSampleGenerator(PipelineGeneratorMixin, SampleGenerator, ABC):
         self._load_tapted_model()
 
         # Setup the pipeline generator
-        self._make_pipeline_generator("text-generation", self.model, self.MODEL_NAME)
+        self._make_pipeline_generator(
+            "text-generation",
+            self.model,
+            self.MODEL_NAME,
+            temperature=parameters["sample_generator_temperature"],
+            top_k=parameters["sample_generator_top_k"],
+        )
 
     def _load_tapted_model(self):
         """Loads the pretrained model from wandb
