@@ -1,13 +1,11 @@
 import argparse
 import sys
 import wandb
-from al_llm.dataset_container import (
-    RottenTomatoesDatasetContainer,
-    WikiToxicDatasetContainer,
-)
-from al_llm.parameters import Parameters
 
-from al_llm.constants import WANDB_ENTITY
+from al_llm.parameters import Parameters
+from al_llm.experiment import Experiment
+
+from al_llm.constants import WANDB_ENTITY, LABEL_TRAINING_SEED, LABEL_TRAINING_PROJECT
 from labelling_helper import label_and_get_results
 
 # Parser to pass the run id through to the program
@@ -18,26 +16,22 @@ parser.add_argument(
     help="The name of the dataset to learn to label.",
 )
 parser.add_argument(
-    "--seed",
-    type=int,
-    help="The seed to use for shuffling the dataset.",
-)
-parser.add_argument(
     "--num-labels",
     type=int,
     help="The number of examples to learn from.",
+)
+parser.add_argument(
+    "--seed",
+    type=int,
+    help="The seed to use for shuffling the dataset.",
+    default=LABEL_TRAINING_SEED,
 )
 
 args = parser.parse_args()
 
 # Create a dataset container for the dataset
 dummy_parameters = Parameters(train_dataset_size=1000)
-if args.dataset_name == "rotten_tomatoes":
-    dataset_container = RottenTomatoesDatasetContainer(dummy_parameters)
-elif args.dataset_name == "wiki_toxic":
-    dataset_container = WikiToxicDatasetContainer(dummy_parameters)
-else:
-    raise Exception(f"{args.dataset_name} is not a valid dataset_name.")
+dataset_container = Experiment.MAP_DATASET_CONTAINER[args.dataset_name]
 
 # Create a sub dataset to use for labelling
 dataset = dataset_container.dataset_train
@@ -74,7 +68,7 @@ def log_results(consistency: float):
     }
 
     wandb_run = wandb.init(
-        project="Labelling-Training",
+        project=LABEL_TRAINING_PROJECT,
         entity=WANDB_ENTITY,
         config=label_training_parameters,
     )

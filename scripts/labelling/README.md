@@ -41,14 +41,14 @@ To run the script, you must pass the following parameters:
 
 - `--dataset-name` : The name of the dataset you wish to train yourself on.
 
-- `--seed` : The seed to use for shuffling the dataset to create the subset to label.
-
 - `--num-labels` : The size of the subset to take from the dataset.
+
+- `--seed` : The seed to use for shuffling the dataset to create the subset to label. ***Default=42***
 
 You can then call the script from the console. For example, this will make a subset of size 10 from the rotten_tomatoes dataset for you to label.
 
 ```
-python scripts/labelling/label_training.py --dataset-name rotten_tomatoes --seed 42 --num-labels 10
+python scripts/labelling/label_training.py --dataset-name rotten_tomatoes --num-labels 10
 ```
 
 
