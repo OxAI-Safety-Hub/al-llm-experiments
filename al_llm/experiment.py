@@ -366,10 +366,10 @@ class Experiment:
             print("WARNING: Resuming an already existent run.")
             happy_to_continue = False
             while not happy_to_continue:
-                choice = input("Do you want to continue? (y/n): ")
+                choice = input("Do you want to continue? (Y/n): ")
                 if choice.lower() == "n":
                     return None
-                elif choice.lower() == "y":
+                elif choice.lower() == "y" or choice.lower() == "":
                     happy_to_continue = True
 
         # Set the seed now, because the data handler may do some shuffling

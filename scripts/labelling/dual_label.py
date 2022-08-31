@@ -1,4 +1,5 @@
 import argparse
+import sys
 import wandb
 
 from al_llm.utils.artifacts import save_dual_label_results, load_dataset_extension
@@ -46,8 +47,11 @@ print("------------------------------------------------------")
 print("Your job is to label each of these sentences using the labels provided.")
 print(f"In this dataset, there are {num_labels} sentences to label.")
 print("You must do this in one sitting. Are you happy to continue?")
-decision = input("Answer (y/n): ")
+decision = input("Answer (Y/n): ")
 print("------------------------------------------------------")
+
+if decision != "y" and decision != "":
+    sys.exit()
 
 
 def save_results(new_labels: list, new_ambiguities: list, consistency: float):
@@ -78,26 +82,24 @@ def save_results(new_labels: list, new_ambiguities: list, consistency: float):
     save_dual_label_results(run, data_dict, results)
 
 
-# If the user chooses 'y' then, the rest of the program will run
-if decision.lower() == "y":
+# label the data and analyse results
+new_labels, new_ambiguities, results = label_and_get_results(
+    samples=data_dict["text"],
+    existing_labels=data_dict["labels"],
+    existing_ambiguities=data_dict["ambiguities"],
+    categories=run_config["categories"],
+    show_feedback=False,
+    score_ambiguities=args.score_ambiguities,
+)
 
-    new_labels, new_ambiguities, results = label_and_get_results(
-        samples=data_dict["text"],
-        existing_labels=data_dict["labels"],
-        existing_ambiguities=data_dict["ambiguities"],
-        categories=run_config["categories"],
-        show_feedback=False,
-        score_ambiguities=args.score_ambiguities,
-    )
+print("------------------------------------------------------")
+print(f"Labelling consistency: {results['consistency']}")
+print("------------------------------------------------------")
 
-    print("------------------------------------------------------")
-    print(f"Labelling consistency: {results['consistency']}")
-    print("------------------------------------------------------")
+# save the results to wandb
+save_results(new_labels, new_ambiguities, results["consistency"])
 
-    # save the results to wandb
-    save_results(new_labels, new_ambiguities, results["consistency"])
-
-    # end the program
-    print("------------------------------------------------------")
-    print("Thank you for using the dual labelling program!")
-    print("------------------------------------------------------")
+# end the program
+print("------------------------------------------------------")
+print("Thank you for using the dual labelling program!")
+print("------------------------------------------------------")

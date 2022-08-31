@@ -1,4 +1,5 @@
 import argparse
+import sys
 import wandb
 from al_llm.dataset_container import (
     RottenTomatoesDatasetContainer,
@@ -50,8 +51,11 @@ print("------------------------------------------------------")
 print(f"You will be given a subsection of the {args.dataset_name} dataset to label.")
 print(f"In this dataset, there are {args.num_labels} sentences to label.")
 print("You must do this in one sitting. Are you happy to continue?")
-decision = input("Answer (y/n): ")
+decision = input("Answer (Y/n): ")
 print("------------------------------------------------------")
+
+if decision != "y" and decision != "":
+    sys.exit()
 
 
 def log_results(consistency: float):
@@ -78,26 +82,24 @@ def log_results(consistency: float):
     wandb_run.log({"consistency": consistency})
 
 
-# If the user chooses 'y' then, the rest of the program will run
-if decision.lower() == "y":
+# label the data and analyse results
+new_labels, new_ambiguities, results = label_and_get_results(
+    samples=sub_dataset["text"],
+    existing_labels=sub_dataset["labels"],
+    existing_ambiguities=sub_dataset["ambiguities"],
+    categories=dataset_container.CATEGORIES,
+    show_feedback=True,
+    score_ambiguities=False,
+)
 
-    new_labels, new_ambiguities, results = label_and_get_results(
-        samples=sub_dataset["text"],
-        existing_labels=sub_dataset["labels"],
-        existing_ambiguities=sub_dataset["ambiguities"],
-        categories=dataset_container.CATEGORIES,
-        show_feedback=True,
-        score_ambiguities=False,
-    )
+print("------------------------------------------------------")
+print(f"Labelling consistency: {results['consistency']}")
+print("------------------------------------------------------")
 
-    print("------------------------------------------------------")
-    print(f"Labelling consistency: {results['consistency']}")
-    print("------------------------------------------------------")
+# save the results to wandb
+log_results(results["consistency"])
 
-    # save the results to wandb
-    log_results(results["consistency"])
-
-    # end the program
-    print("------------------------------------------------------")
-    print("Thank you for using the labelling training program!")
-    print("------------------------------------------------------")
+# end the program
+print("------------------------------------------------------")
+print("Thank you for using the labelling training program!")
+print("------------------------------------------------------")
