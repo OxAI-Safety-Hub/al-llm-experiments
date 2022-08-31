@@ -134,6 +134,12 @@ def label_and_get_results(
                 print("This was the correct label!")
             else:
                 print("This label was incorrect.")
+                if not score_ambiguities:
+                    print(f"It should have been: {existing_labels[i]}")
+                else:
+                    print(
+                        f"It should have been: Label: {existing_labels[i]}, Ambiguity: {existing_ambiguities[i]}"
+                    )
 
     # assemble and return results
     results = {"consistency": num_consistent_labels / len(samples)}
