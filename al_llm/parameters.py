@@ -67,6 +67,11 @@ class Parameters(dict):
         True if a pretrained sample generator should be used.
     use_tapted_classifier : bool, default=False
         True if a pretrained classifier should be used.
+    sample_generator_temperature : float, default=1.0
+        The temperature used when generating new samples
+    sample_generator_top_k : int, default=50
+        The number of highest probability vocabulary tokens to keep for
+        top-k-filtering when doing sample generation
     ambiguity_mode : str, default="only_mark"
         How the experiment treat ambiguous data. Default is "only_mark" which
         allows the human to mark data as ambiguous but the experiment will
@@ -102,6 +107,8 @@ class Parameters(dict):
         sample_generator_base_model="dummy",
         use_tapted_sample_generator=False,
         use_tapted_classifier=False,
+        sample_generator_temperature=1.0,
+        sample_generator_top_k=50,
         ambiguity_mode="only_mark",
         cuda_device="cuda:0",
         is_running_pytests=False,
@@ -134,6 +141,8 @@ class Parameters(dict):
             sample_generator_base_model=sample_generator_base_model,
             use_tapted_sample_generator=use_tapted_sample_generator,
             use_tapted_classifier=use_tapted_classifier,
+            sample_generator_temperature=sample_generator_temperature,
+            sample_generator_top_k=sample_generator_top_k,
             ambiguity_mode=ambiguity_mode,
             cuda_device=cuda_device,
             is_running_pytests=is_running_pytests,
