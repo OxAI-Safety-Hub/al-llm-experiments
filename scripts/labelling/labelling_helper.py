@@ -66,56 +66,6 @@ def _prompt(
     return new_label, new_ambiguity
 
 
-def _calculate_consistency(
-    old_labels: list,
-    old_ambiguities: list,
-    new_labels: list,
-    new_ambiguities: list,
-    score_ambiguities: bool,
-) -> float:
-    """Calculates the consistency of two sets of labels
-
-    Parameters
-    ----------
-    old_labels : list
-        A list of the old labels
-    old_ambiguities : list
-        A list of the old ambiguities
-    new_labels : list
-        A list of the new labels
-    new_ambiguities : list
-        A list of the new ambiguities
-    score_ambiguities : bool
-        True if ambiguities should have to match as well as the labels
-
-    Returns
-    ----------
-    consistency : float
-        The proportion of sentences which both humans labelled the same
-    """
-
-    # keep track of the total number of consistent labels
-    num_consistent_labels = 0
-    num_labels = len(old_labels)
-
-    for i in range(num_labels):
-
-        labels_match = new_labels[i] == old_labels[i]
-
-        if score_ambiguities:
-            ambiguities_match = new_ambiguities[i] == old_ambiguities[i]
-            labels_match = labels_match and ambiguities_match
-
-        # if the labels are consistent
-        if labels_match:
-            # increment the tally
-            num_consistent_labels += 1
-
-    # calculate and return the consistency
-    consistency = num_consistent_labels / num_labels
-    return consistency
-
-
 def label_and_get_results(
     samples: list,
     existing_labels: list,
@@ -156,6 +106,8 @@ def label_and_get_results(
     new_labels = []
     new_ambiguities = []
 
+    num_consistent_labels = 0
+
     # for each sample that needs labelling
     for i in range(len(samples)):
 
@@ -166,14 +118,23 @@ def label_and_get_results(
         new_labels.append(l)
         new_ambiguities.append(a)
 
-    # calculate and display labelling consistency
-    labelling_consistency = _calculate_consistency(
-        existing_labels,
-        existing_ambiguities,
-        new_labels,
-        new_ambiguities,
-        score_ambiguities=score_ambiguities,
-    )
+        # does this new label match the existing one
+        labels_match = new_labels[i] == existing_labels[i]
+        if score_ambiguities:
+            ambiguities_match = new_ambiguities[i] == existing_ambiguities[i]
+            labels_match = labels_match and ambiguities_match
 
-    results = {"consistency": labelling_consistency}
+        # if the labels match, update consistency
+        if labels_match:
+            num_consistent_labels += 1
+
+        # show live feedback on results
+        if show_feedback:
+            if labels_match:
+                print("This was the correct label!")
+            else:
+                print("This label was incorrect.")
+
+    # assemble and return results
+    results = {"consistency": num_consistent_labels / len(samples)}
     return new_labels, new_ambiguities, results
