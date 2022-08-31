@@ -33,7 +33,7 @@ run = wandb.init(
 )
 
 # Get the parameters which this experiment used
-parameters = run.config
+run_config = run.config
 
 # Get the dataset extension from wandb
 data_dict = load_dataset_extension(run)
@@ -85,7 +85,7 @@ if decision.lower() == "y":
         samples=data_dict["text"],
         existing_labels=data_dict["labels"],
         existing_ambiguities=data_dict["ambiguities"],
-        categories=parameters["categories"],
+        categories=run_config["categories"],
         show_feedback=False,
         score_ambiguities=args.score_ambiguities,
     )

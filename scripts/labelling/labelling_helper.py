@@ -112,11 +112,11 @@ def label_and_get_results(
 
         # prompt for label and ambiguity
         print(f"\nSample [{i+1}/{len(samples)}]")
-        l, a = _prompt(samples[i], categories, score_ambiguities)
+        label, ambiguity = _prompt(samples[i], categories, score_ambiguities)
 
         # record these values
-        new_labels.append(l)
-        new_ambiguities.append(a)
+        new_labels.append(label)
+        new_ambiguities.append(ambiguity)
 
         # does this new label match the existing one
         labels_match = new_labels[i] == existing_labels[i]
