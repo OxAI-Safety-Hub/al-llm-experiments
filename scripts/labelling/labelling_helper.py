@@ -30,8 +30,7 @@ def _prompt(
     """
 
     # Build the message with the sample plus the category selection
-    text = "\n"
-    text += _wrap(f"{sample!r}") + "\n"
+    text = _wrap(f"{sample!r}") + "\n"
     text += _wrap("How would you classify this?") + "\n"
     for j, cat_human_readable in enumerate(categories.values()):
         text += _wrap(f"[{j}] {cat_human_readable}") + "\n"
@@ -112,6 +111,7 @@ def label_and_get_results(
     for i in range(len(samples)):
 
         # prompt for label and ambiguity
+        print(f"\nSample [{i+1}/{len(samples)}]")
         l, a = _prompt(samples[i], categories, score_ambiguities)
 
         # record these values
