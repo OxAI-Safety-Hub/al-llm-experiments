@@ -79,8 +79,13 @@ class Parameters(dict):
         marking it as ambiguous.
     cuda_device : str, default="cuda:0"
         The string specifying the CUDA device to use
-    is_running_pytests: bool, default=False
+    is_running_pytests : bool, default=False
         If true, wandb will be disabled for the test experiments
+    save_classifier_every : int, default=0
+        Specifies how often to save the classifier model. A value of -1 means
+        that we never save. A value of 0 means that we only save after the
+        last iteration. A positive value k means that we save every k
+        iterations, and also on the last iteration.
     """
 
     def __init__(
@@ -112,6 +117,7 @@ class Parameters(dict):
         ambiguity_mode="only_mark",
         cuda_device="cuda:0",
         is_running_pytests=False,
+        save_classifier_every=0,
         *args,
         **kwargs,
     ):
@@ -146,6 +152,7 @@ class Parameters(dict):
             ambiguity_mode=ambiguity_mode,
             cuda_device=cuda_device,
             is_running_pytests=is_running_pytests,
+            save_classifier_every=save_classifier_every,
             *args,
             **kwargs,
         )
