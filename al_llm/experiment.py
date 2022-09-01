@@ -323,6 +323,7 @@ class Experiment:
         parameters: Parameters,
         project_name: str,
         run_id: str,
+        tags: list = [],
     ) -> dict:
         """Get experiment instances to feed into the constructor
 
@@ -339,6 +340,8 @@ class Experiment:
             The wandb project which this experiment should be logged to
         run_id : str
             The ID of the current run
+        tags : list, default=[]
+            A list of tags to associate to the W&B run
 
         Returns
         -------
@@ -370,6 +373,7 @@ class Experiment:
             entity=WANDB_ENTITY,
             resume="allow",
             id=run_id,
+            tags=tags,
             mode="disabled" if parameters["is_running_pytests"] else "online",
         )
 
