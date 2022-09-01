@@ -157,7 +157,7 @@ class Experiment:
                 self.data_handler.new_labelled(samples, labels, ambiguities)
 
             # Save the current version of the classifier and dataset
-            self._save()
+            self._save(iteration)
 
         # End the interface
         self.interface.end()
@@ -204,7 +204,7 @@ class Experiment:
 
         # Save the current version of the classifier and dataset, including
         # the new samples awaiting labels from the human
-        self._save(samples)
+        self._save(iteration, samples)
 
         # Alert the slack channel that the iteration is complete
         if self.parameters["send_alerts"]:
@@ -312,9 +312,21 @@ class Experiment:
             iteration,
         )
 
-    def _save(self, unlabelled_samples: list = []):
+    def _save(self, iteration: int, unlabelled_samples: list = []):
         """Save the current classifier and dataset"""
-        self.classifier.save()
+
+        # Only save the classifier if we are at the correct iteration according
+        # to the 'save_classifier_every' parameter
+        save_classifier_every = self.parameters["save_classifier_every"]
+        iteration_max = self.parameters["num_iterations"] - 1
+        if (
+            not self.parameters["full_loop"]
+            or (save_classifier_every > 0 and iteration % save_classifier_every == 0)
+            or (save_classifier_every >= 0 and iteration == iteration_max)
+        ):
+            self.classifier.save()
+
+        # Always save the new samples though
         self.data_handler.save(unlabelled_samples)
 
     @classmethod
