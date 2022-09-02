@@ -145,16 +145,21 @@ class Experiment:
 
         for iteration in range(self.parameters["num_iterations"]):
 
-            # Perform a single iteration of model update, obtaining new samples
-            # to label
-            samples = self._train_and_get_samples(iteration)
+            # Perform a single iteration of model update,
+            self._train(iteration)
 
-            if not self.parameters["supervised"]:
-                # Get the labels from the human
-                labels, ambiguities = self.interface.prompt(samples)
+            # If this is not the last iteration
+            if iteration != self.parameters["num_iterations"] - 1:
 
-                # Add these samples to the dataset
-                self.data_handler.new_labelled(samples, labels, ambiguities)
+                # Obtain new samples to label
+                samples = self._get_samples()
+
+                if not self.parameters["supervised"]:
+                    # Get the labels from the human
+                    labels, ambiguities = self.interface.prompt(samples)
+
+                    # Add these samples to the dataset
+                    self.data_handler.new_labelled(samples, labels, ambiguities)
 
             # Save the current version of the classifier and dataset
             self._save(iteration)
@@ -200,7 +205,8 @@ class Experiment:
 
         # Perform a single iteration of model update, obtaining new samples
         # to label
-        samples = self._train_and_get_samples(iteration)
+        self._train(iteration)
+        samples = self._get_samples()
 
         # Save the current version of the classifier and dataset, including
         # the new samples awaiting labels from the human
@@ -252,18 +258,13 @@ class Experiment:
         c = wandb.wandb_sdk.wandb_artifacts.get_artifacts_cache()
         c.cleanup(wandb.util.from_human_size(CACHE_SIZE))
 
-    def _train_and_get_samples(self, iteration: int) -> list:
-        """Train the classifier with the latest datapoints, and get new samples
+    def _train(self, iteration: int):
+        """Train the classifier with the latest datapoints
 
         Parameters
         ----------
         iteration : int
             The index of the current iteration number, starting with 0
-
-        Returns
-        -------
-        samples : list
-            The latest samples for labelling
         """
 
         # Set the random number seed, so that the experiment is
@@ -282,6 +283,15 @@ class Experiment:
             self._train_afresh(iteration)
         else:
             self._train_update(dataset_samples, iteration)
+
+    def _get_samples(self) -> list:
+        """Get new samples from the sample generator
+
+        Returns
+        -------
+        samples : list
+            The latest samples for labelling
+        """
 
         # If performing supervised learning, skip the sample generation
         if self.parameters["supervised"]:
