@@ -334,19 +334,25 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
             print()
             print(f"--- Epoch: {epoch+1} ---")
 
-            # Run the training and evaluation loops, obtaining the metrics
+            # Run the training loop, obtaining the metrics
             print("- Running train loop")
             train_metrics = self._train_epoch(train_dataloader, optimizer, lr_scheduler)
             print(
                 f"Train loss: {train_metrics['loss']:.8}; "
                 f"train accuracy: {train_metrics['accuracy']:.6%}"
             )
-            print("- Running eval loop")
-            eval_metrics = self._eval_epoch(eval_dataloader)
-            print(
-                f"Eval loss: {eval_metrics['loss']:.8}; "
-                f"eval accuracy: {eval_metrics['accuracy']:.6%}"
-            )
+
+            # If the eval loop should run this epoch, or if it is the last epoch
+            run_eval = (epoch + 1) % self.parameters["eval_every"] == 0
+            run_eval = run_eval or epoch == num_epochs - 1
+            if run_eval:
+                # Run the evaluation loop, obtaining the metrics
+                print("- Running eval loop")
+                eval_metrics = self._eval_epoch(eval_dataloader)
+                print(
+                    f"Eval loss: {eval_metrics['loss']:.8}; "
+                    f"eval accuracy: {eval_metrics['accuracy']:.6%}"
+                )
 
             # Record the metrics with W&B
             self.wandb_run.log(
