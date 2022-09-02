@@ -342,6 +342,13 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
                 f"train accuracy: {train_metrics['accuracy']:.6%}"
             )
 
+            # The results to log to weights and biases for this epoch
+            results_to_log = {
+                "epoch": epoch,
+                "iteration": iteration,
+                "train": train_metrics,
+            }
+
             # If the eval loop should run this epoch, or if it is the last epoch
             run_eval = (epoch + 1) % self.parameters["eval_every"] == 0
             run_eval = run_eval or epoch == num_epochs - 1
@@ -353,16 +360,10 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
                     f"Eval loss: {eval_metrics['loss']:.8}; "
                     f"eval accuracy: {eval_metrics['accuracy']:.6%}"
                 )
+                results_to_log["eval":eval_metrics]
 
             # Record the metrics with W&B
-            self.wandb_run.log(
-                {
-                    "epoch": epoch,
-                    "iteration": iteration,
-                    "train": train_metrics,
-                    "eval": eval_metrics,
-                }
-            )
+            self.wandb_run.log(results_to_log)
 
     def _train_epoch(
         self,
