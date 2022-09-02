@@ -360,7 +360,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
                     f"Eval loss: {eval_metrics['loss']:.8}; "
                     f"eval accuracy: {eval_metrics['accuracy']:.6%}"
                 )
-                results_to_log["eval":eval_metrics]
+                results_to_log["eval"] = eval_metrics
 
             # Record the metrics with W&B
             self.wandb_run.log(results_to_log)
