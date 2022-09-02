@@ -315,7 +315,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         # The eval dataloader
         eval_dataloader = DataLoader(
             self.dataset_container.tokenized_validation,
-            batch_size=self.parameters["batch_size"],
+            batch_size=self.parameters["eval_batch_size"],
         )
 
         # create a learning rate scheduler
