@@ -28,5 +28,7 @@ from .sample_generator import (
     DummySampleGenerator,
     PlainGPT2SampleGenerator,
     PoolSampleGenerator,
+    TAPTGPT2SampleGenerator,
+    TAPTDistilGPT2SampleGenerator,
 )
 from .parameters import Parameters
