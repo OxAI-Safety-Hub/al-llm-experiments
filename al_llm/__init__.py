@@ -30,5 +30,6 @@ from .sample_generator import (
     PoolSampleGenerator,
     TAPTGPT2SampleGenerator,
     TAPTDistilGPT2SampleGenerator,
+    TokenByTokenSampleGenerator,
 )
 from .parameters import Parameters

@@ -13,6 +13,7 @@ from transformers import pipeline
 from al_llm.acquisition_function import AcquisitionFunction
 from al_llm.dataset_container import DatasetContainer
 from al_llm.parameters import Parameters
+from al_llm.classifier import HuggingFaceClassifier
 from al_llm.utils.artifacts import load_tapted_model
 from al_llm.constants import TEXT_COLUMN_NAME
 
@@ -261,6 +262,35 @@ class PoolSampleGenerator(SampleGenerator):
             min(len(self.remainder_sentences), self.parameters["sample_pool_size"]),
         )
         return simulated_pool
+
+
+class TokenByTokenSampleGenerator(SampleGenerator):
+    """Generate a sentence token-by-token to maximise uncertainty
+
+    Parameters
+    ----------
+    parameters : Parameters
+        The dictionary of parameters for the present experiment
+    classifier : HuggingFaceClassifier
+        The classifier used in the current experiment, for which we maximise
+        uncertainty.
+    acquisition_function : AcquisitionFunction, optional
+        The acquisition function to use, if any. By default we simply generate
+        a number of samples with no selection procedure.
+    """
+
+    def __init__(
+        self,
+        parameters: Parameters,
+        classifier: HuggingFaceClassifier,
+        acquisition_function: Optional[AcquisitionFunction] = None,
+    ):
+        super().__init__(parameters, acquisition_function)
+
+        self.classifier = classifier
+
+    def _generate_sample_pool(self, pool_size: int) -> list:
+        return []
 
 
 class TAPTSampleGenerator(PipelineGeneratorMixin, SampleGenerator, ABC):

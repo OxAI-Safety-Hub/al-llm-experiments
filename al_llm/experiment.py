@@ -29,6 +29,7 @@ from al_llm.sample_generator import (
     TAPTGPT2SampleGenerator,
     TAPTDistilGPT2SampleGenerator,
     PoolSampleGenerator,
+    TokenByTokenSampleGenerator,
 )
 from al_llm.acquisition_function import (
     DummyAF,
@@ -99,6 +100,7 @@ class Experiment:
         "dummy": DummySampleGenerator,
         "gpt2": PlainGPT2SampleGenerator,
         "pool": PoolSampleGenerator,
+        "token_by_token": TokenByTokenSampleGenerator,
     }
     MAP_TAPT_SAMPLE_GENERATOR = {
         "distilgpt2": TAPTDistilGPT2SampleGenerator,
@@ -420,6 +422,10 @@ class Experiment:
         if sg_model_name == "pool":
             sample_generator = cls.MAP_PLAIN_SAMPLE_GENERATOR[sg_model_name](
                 parameters, acquisition_function, dataset_container
+            )
+        elif sg_model_name == "token_by_token":
+            sample_generator = cls.MAP_PLAIN_SAMPLE_GENERATOR[sg_model_name](
+                parameters, classifier, acquisition_function
             )
         elif parameters["use_tapted_sample_generator"]:
             sample_generator = cls.MAP_TAPT_SAMPLE_GENERATOR[sg_model_name](

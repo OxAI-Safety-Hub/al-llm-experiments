@@ -137,6 +137,28 @@ class UncertaintyMixin(ABC):
         """
         pass
 
+    @abstractmethod
+    def calculate_uncertainties_tokenized(
+        self, tokenized_samples: torch.Tensor
+    ) -> torch.Tensor:
+        """Compute the uncertainty of tokenize samples
+
+        Uncertainties are floats, whose interpretations depend on the
+        classifier
+
+        Parameters
+        ----------
+        tokenized_samples : torch.Tensor of shape (num_samples, num_tokens)
+            A tensor of the tokenized samples for which to compute the
+            uncertainty values
+
+        Returns
+        -------
+        uncertainties : torch.Tensor of shape (num_samples)
+            The uncertainties of the samples
+        """
+        pass
+
 
 class DummyClassifier(UncertaintyMixin, Classifier):
     """Dummy classifier, which does nothing"""
@@ -511,31 +533,52 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         if isinstance(samples, str):
             samples = [str]
             return_string = True
-        else:
+        elif isinstance(samples, list):
             return_string = False
+        else:
+            raise TypeError(
+                f"Parameter `samples` must be a string or list, got {type(samples)}"
+            )
 
         # Tokenize the samples, ready for feeding into the model
         tokenized_samples_dict = self.tokenize(samples)
-        tokenized_samples = datasets.Dataset.from_dict(tokenized_samples_dict)
-        tokenized_samples.set_format("torch", columns=["input_ids", "attention_mask"])
+        tokenized_samples_dataset = datasets.Dataset.from_dict(tokenized_samples_dict)
+        tokenized_samples_dataset.set_format("torch", columns=["input_ids"])
+        tokenized_samples = tokenized_samples_dataset["input_ids"]
 
-        # Put them in a PyTorch dataloader
-        samples_dataloader = DataLoader(
-            tokenized_samples, batch_size=self.parameters["batch_size"]
-        )
+        # Compute the uncertainties, as a PyTorch tensor
+        uncertainties = self.calculate_uncertainties_tokenized(tokenized_samples)
+
+        if return_string:
+            return uncertainties.item()
+        else:
+            return uncertainties.to_list()
+
+    def calculate_uncertainties_tokenized(
+        self, tokenized_samples: torch.Tensor
+    ) -> torch.Tensor:
+
+        # Get the number of samples
+        num_samples = tokenized_samples.shape[0]
+
+        # Store the batch size with a shorter variable name
+        batch_size = self.parameters["batch_size"]
+
+        # Make a PyTorch dataloader for the samples
+        samples_dataloader = DataLoader(tokenized_samples, batch_size=batch_size)
 
         # set the model to eval mode
         self._model.eval()
 
         # A list of the uncertainties (entropies) for each element of `samples`
-        uncertainties = []
+        uncertainties = torch.zeros(num_samples)
 
         # Print a message to say what we're doing
         print()
         print("Computing uncertainties...")
 
         # iterate over all the batches in the dataloader
-        for batch in tqdm(samples_dataloader):
+        for idx, batch in tqdm(enumerate(samples_dataloader)):
 
             # Move the batch to the appropriate device
             batch = {k: v.to(self.device) for k, v in batch.items()}
@@ -557,12 +600,9 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
                 sum_entropies = torch.sum(per_class_entropies, dim=-1)
 
                 # Add these to the list of uncertainties
-                uncertainties.extend(sum_entropies.tolist())
+                uncertainties[idx * batch_size, (idx + 1) * batch_size] = sum_entropies
 
-        if return_string:
-            return uncertainties[0]
-        else:
-            return uncertainties
+        return uncertainties
 
     @property
     def model(self):
