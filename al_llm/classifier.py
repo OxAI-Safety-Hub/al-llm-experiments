@@ -224,7 +224,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         self.evaluator = evaluate.combine(metrics)
 
         # model not required until a call to `train_afresh`
-        self.model = None
+        self._model = None
 
         # set device
         if torch.cuda.is_available():
@@ -260,7 +260,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
     ):
 
         # If the model is not already loaded then load it
-        if self.model is None:
+        if self._model is None:
             self._load_model_from_wandb()
 
         # Make a smaple loader from the latest batch of labelled samples
@@ -275,16 +275,16 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         pass
 
     def save(self):
-        save_classifier_model(self.wandb_run, self.model)
+        save_classifier_model(self.wandb_run, self._model)
 
     def _load_fresh_model(self):
         """Load the classifier model afresh"""
 
         # Delete the old model to free up memory
-        del self.model
+        del self._model
 
         # load a fresh version of the model
-        self.model = AutoModelForSequenceClassification.from_pretrained(
+        self._model = AutoModelForSequenceClassification.from_pretrained(
             self.model_name, num_labels=2
         )
 
@@ -295,22 +295,22 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         """Load the classifier using the wandb_run"""
 
         # load and setup the model
-        self.model = load_classifier_model(self.wandb_run)
+        self._model = load_classifier_model(self.wandb_run)
         self._setup_model()
 
     def _setup_model(self):
         """Perform some intial setup on the classifier model"""
 
         # set the End of Sentence token as the token used for padding by the model
-        self.model.config.pad_token_id = self.model.config.eos_token_id
+        self._model.config.pad_token_id = self._model.config.eos_token_id
 
         # assign the model to the device (CUDA or GPU)
-        self.model.to(self.device)
+        self._model.to(self.device)
 
     def _train(self, train_dataloader: DataLoader, num_epochs: int, iteration: int):
 
         # create an optimizer for the model
-        optimizer = AdamW(self.model.parameters(), lr=self.parameters["learning_rate"])
+        optimizer = AdamW(self._model.parameters(), lr=self.parameters["learning_rate"])
 
         # The eval dataloader
         eval_dataloader = DataLoader(
@@ -390,7 +390,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         """
 
         # set the model to train mode
-        self.model.train()
+        self._model.train()
 
         # Recording the training loss by accumulating across batches
         train_loss = 0
@@ -402,7 +402,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
             batch = {k: v.to(self.device) for k, v in batch.items()}
 
             # pass the data to the model
-            outputs = self.model(**batch)
+            outputs = self._model(**batch)
 
             # work out the model's predictions for the data using argmax on
             # the logits
@@ -458,7 +458,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         """
 
         # set the model to eval mode
-        self.model.eval()
+        self._model.eval()
 
         # Recording the evaluation loss by accumulating across batches
         eval_loss = 0
@@ -471,7 +471,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
 
             # pass the data through the model without tracking computations
             with torch.no_grad():
-                outputs = self.model(**batch)
+                outputs = self._model(**batch)
             logits = outputs.logits
 
             # work out the model's predictions for the data using argmax on the logits
@@ -525,7 +525,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         )
 
         # set the model to eval mode
-        self.model.eval()
+        self._model.eval()
 
         # A list of the uncertainties (entropies) for each element of `samples`
         uncertainties = []
@@ -543,7 +543,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
             with torch.no_grad():
 
                 # Get the raw model output logits
-                outputs = self.model(**batch)
+                outputs = self._model(**batch)
                 logits = outputs.logits
 
                 # Compute the class probabilities
@@ -563,6 +563,14 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
             return uncertainties[0]
         else:
             return uncertainties
+
+    @property
+    def model(self):
+        """Get the Hugging Face model for this classifier, if it exists"""
+        if self._model is not None:
+            return self._model
+        else:
+            raise AttributeError
 
 
 class TAPTClassifier(HuggingFaceClassifier, ABC):
