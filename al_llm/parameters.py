@@ -21,8 +21,9 @@ class Parameters(dict):
         we never refresh.
     refresh_on_last : bool, default=False
         Whether to refresh the model on the last iteration.
-    eval_every : int, default=1
-        How often run an eval loop when training.
+    eval_every : int, default=0
+        How often run an eval loop when training. A value of `0` means we only
+        do it on the last epoch per iteration.
     batch_size : int, default=8
         Batch size of the dataloader which the classifier trains from.
     eval_batch_size : int, default=8
@@ -101,7 +102,7 @@ class Parameters(dict):
         num_iterations=5,
         refresh_every=-1,
         refresh_on_last=False,
-        eval_every=1,
+        eval_every=0,
         batch_size=8,
         eval_batch_size=8,
         num_epochs_update=3,
