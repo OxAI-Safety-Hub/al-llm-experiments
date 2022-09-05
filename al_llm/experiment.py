@@ -147,19 +147,24 @@ class Experiment:
 
         for iteration in range(self.parameters["num_iterations"]):
 
-            # Perform a single iteration of model update, obtaining new samples
-            # to label
-            samples = self._train_and_get_samples(iteration)
+            # Perform a single iteration of model update,
+            self._train(iteration)
 
-            if not self.parameters["supervised"]:
-                # Get the labels from the human
-                labels, ambiguities = self.interface.prompt(samples)
+            # If this is not the last iteration
+            if iteration != self.parameters["num_iterations"] - 1:
 
-                # Add these samples to the dataset
-                self.data_handler.new_labelled(samples, labels, ambiguities)
+                # Obtain new samples to label
+                samples = self._get_samples()
+
+                if not self.parameters["supervised"]:
+                    # Get the labels from the human
+                    labels, ambiguities = self.interface.prompt(samples)
+
+                    # Add these samples to the dataset
+                    self.data_handler.new_labelled(samples, labels, ambiguities)
 
             # Save the current version of the classifier and dataset
-            self._save()
+            self._save(iteration)
 
         # End the interface
         self.interface.end()
@@ -202,11 +207,12 @@ class Experiment:
 
         # Perform a single iteration of model update, obtaining new samples
         # to label
-        samples = self._train_and_get_samples(iteration)
+        self._train(iteration)
+        samples = self._get_samples()
 
         # Save the current version of the classifier and dataset, including
         # the new samples awaiting labels from the human
-        self._save(samples)
+        self._save(iteration, samples)
 
         # Alert the slack channel that the iteration is complete
         if self.parameters["send_alerts"]:
@@ -254,18 +260,13 @@ class Experiment:
         c = wandb.wandb_sdk.wandb_artifacts.get_artifacts_cache()
         c.cleanup(wandb.util.from_human_size(CACHE_SIZE))
 
-    def _train_and_get_samples(self, iteration: int) -> list:
-        """Train the classifier with the latest datapoints, and get new samples
+    def _train(self, iteration: int):
+        """Train the classifier with the latest datapoints
 
         Parameters
         ----------
         iteration : int
             The index of the current iteration number, starting with 0
-
-        Returns
-        -------
-        samples : list
-            The latest samples for labelling
         """
 
         # Set the random number seed, so that the experiment is
@@ -284,6 +285,15 @@ class Experiment:
             self._train_afresh(iteration)
         else:
             self._train_update(dataset_samples, iteration)
+
+    def _get_samples(self) -> list:
+        """Get new samples from the sample generator
+
+        Returns
+        -------
+        samples : list
+            The latest samples for labelling
+        """
 
         # If performing supervised learning, skip the sample generation
         if self.parameters["supervised"]:
@@ -314,9 +324,21 @@ class Experiment:
             iteration,
         )
 
-    def _save(self, unlabelled_samples: list = []):
+    def _save(self, iteration: int, unlabelled_samples: list = []):
         """Save the current classifier and dataset"""
-        self.classifier.save()
+
+        # Only save the classifier if we are at the correct iteration according
+        # to the 'save_classifier_every' parameter
+        save_classifier_every = self.parameters["save_classifier_every"]
+        iteration_max = self.parameters["num_iterations"] - 1
+        if (
+            not self.parameters["full_loop"]
+            or (save_classifier_every > 0 and iteration % save_classifier_every == 0)
+            or (save_classifier_every >= 0 and iteration == iteration_max)
+        ):
+            self.classifier.save()
+
+        # Always save the new samples though
         self.data_handler.save(unlabelled_samples)
 
     @classmethod
@@ -325,6 +347,7 @@ class Experiment:
         parameters: Parameters,
         project_name: str,
         run_id: str,
+        tags: list = [],
     ) -> dict:
         """Get experiment instances to feed into the constructor
 
@@ -341,6 +364,8 @@ class Experiment:
             The wandb project which this experiment should be logged to
         run_id : str
             The ID of the current run
+        tags : list, default=[]
+            A list of tags to associate to the W&B run
 
         Returns
         -------
@@ -372,6 +397,7 @@ class Experiment:
             entity=WANDB_ENTITY,
             resume="allow",
             id=run_id,
+            tags=tags,
             mode="disabled" if parameters["is_running_pytests"] else "online",
         )
 

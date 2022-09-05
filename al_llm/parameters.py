@@ -18,8 +18,12 @@ class Parameters(dict):
         The number of iterations over which to run the active learning.
     refresh_every : int, default=2
         How often to retrain the classifier from scratch.
+    eval_every : int, default=1
+        How often run an eval loop when training.
     batch_size : int, default=8
-        Batch size of the dataloaders which the classifier trains from.
+        Batch size of the dataloader which the classifier trains from.
+    eval_batch_size : int, default=8
+        Batch size of the dataloader which the classifier evaluates from.
     num_epochs_update : int, default=3
         The number of epochs to train for when updating the classifier
         model with new datapoints
@@ -79,8 +83,13 @@ class Parameters(dict):
         marking it as ambiguous.
     cuda_device : str, default="cuda:0"
         The string specifying the CUDA device to use
-    is_running_pytests: bool, default=False
+    is_running_pytests : bool, default=False
         If true, wandb will be disabled for the test experiments
+    save_classifier_every : int, default=0
+        Specifies how often to save the classifier model. A value of -1 means
+        that we never save. A value of 0 means that we only save after the
+        last iteration. A positive value k means that we save every k
+        iterations, and also on the last iteration.
     """
 
     def __init__(
@@ -88,7 +97,9 @@ class Parameters(dict):
         dataset_name="dummy",
         num_iterations=5,
         refresh_every=2,
+        eval_every=1,
         batch_size=8,
+        eval_batch_size=8,
         num_epochs_update=3,
         num_epochs_afresh=3,
         num_samples=5,
@@ -112,6 +123,7 @@ class Parameters(dict):
         ambiguity_mode="only_mark",
         cuda_device="cuda:0",
         is_running_pytests=False,
+        save_classifier_every=0,
         *args,
         **kwargs,
     ):
@@ -122,7 +134,9 @@ class Parameters(dict):
             dataset_name=dataset_name,
             num_iterations=1 if supervised else num_iterations,
             refresh_every=refresh_every,
+            eval_every=eval_every,
             batch_size=batch_size,
+            eval_batch_size=eval_batch_size,
             num_epochs_update=num_epochs_update,
             num_epochs_afresh=num_epochs_afresh,
             num_samples=num_samples,
@@ -146,6 +160,7 @@ class Parameters(dict):
             ambiguity_mode=ambiguity_mode,
             cuda_device=cuda_device,
             is_running_pytests=is_running_pytests,
+            save_classifier_every=save_classifier_every,
             *args,
             **kwargs,
         )

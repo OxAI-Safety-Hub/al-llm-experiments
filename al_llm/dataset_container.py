@@ -155,9 +155,6 @@ class DatasetContainer(ABC):
             The remainder of the train split.
         """
 
-        if self.parameters["supervised"]:
-            self.parameters["train_dataset_size"] = len(train_split) - 1
-
         if len(train_split) < self.parameters["train_dataset_size"]:
             raise ValueError(
                 f"Train split must be larger than train dataset size (currently"
