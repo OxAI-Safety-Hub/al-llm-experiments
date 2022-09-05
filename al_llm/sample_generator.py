@@ -9,6 +9,7 @@ import torch
 import wandb
 
 from transformers import pipeline
+from transformers import LogitsProcessor, TopKLogitsWarper, LogitsProcessorList
 
 from al_llm.acquisition_function import AcquisitionFunction
 from al_llm.dataset_container import DatasetContainer
@@ -16,6 +17,91 @@ from al_llm.parameters import Parameters
 from al_llm.classifier import HuggingFaceClassifier
 from al_llm.utils.artifacts import load_tapted_model
 from al_llm.constants import TEXT_COLUMN_NAME
+
+
+class TopKLogitsProcessor(TopKLogitsWarper, LogitsProcessor):
+    """LogitsProcessor that performs top-k filtering
+
+    Restricts to the k highest probability elements.
+
+    Obtained by converting `TopKLogitsWarper` into a `LogitsProcessor`
+
+    Parameters
+    ----------
+    top_k : int
+        The number of highest probability vocabulary tokens to keep for
+        top-k-filtering.
+    filter_value : float, optional, default=-`float("Inf")`
+        All filtered values will be set to this float value.
+    min_tokens_to_keep : int, optional, default=1
+        Minimum number of tokens that cannot be filtered.
+    """
+
+    pass
+
+
+class UncertaintyLogitsProcessor(LogitsProcessor):
+    """A logits processor which incorporates uncertainties from a classifier
+
+    Adds to each probability a weighted uncertainty estimate for the sentence
+    generated up to this point together with the corresponding token.
+
+    Given the probability value `p` of a particular token (the output of the
+    generative model) and the uncertainty value `u` of the sentence generated
+    so far plus this token, the new probability value is:
+        p + uncertainty_weighting * u
+
+    Given that we actually work with a logit value `v` and not a probability,
+    the actual calculation, producing the new logit value, is:
+        logsumexp(v, uncertainty_weighting * u)
+
+    Parameters
+    ----------
+    classifier : HuggingFaceClassifier
+        The classifier for which to compute the uncertainties
+    uncertainty_weighting : float
+        The weighting to use when adding the uncertainty to the logit value
+    filter_value : float, default=`-float("Inf")`
+        The value used in the `scores` by previous processors to indicate that
+        we shouldn't consider that token.
+    """
+
+    def __init__(
+        self,
+        classifier: HuggingFaceClassifier,
+        uncertainty_weighting: float,
+        filter_value: float = -float("Inf"),
+    ):
+        super().__init__()
+
+        self.classifier = classifier
+        self.uncertainty_weighting = uncertainty_weighting
+        self.filter_value = filter_value
+
+    @torch.no_grad()
+    def __call__(
+        self, input_ids: torch.LongTensor, scores: torch.FloatTensor
+    ) -> torch.FloatTensor:
+
+        # The mask for the uncertainties we actually want to compute
+        mask = scores != self.filter_value
+
+        # Filter the input IDs by the mask
+        filtered_input_ids = input_ids[mask]
+
+        # Compute the uncertainties of the input sequences for the classifier
+        filtered_uncertainties = self.classifier.calculate_uncertainties_tokenized(
+            filtered_input_ids
+        )
+
+        # Add these to the scores, weighting appropriately
+        filtered_weighted_uncertainties = (
+            self.uncertainty_weighting * filtered_uncertainties
+        )
+        to_sum = torch.stack([scores, filtered_weighted_uncertainties], dim=0)
+        scores[mask] = torch.logsumexp(to_sum, dim=0)
+
+        return scores
 
 
 class SampleGenerator(ABC):
@@ -264,8 +350,8 @@ class PoolSampleGenerator(SampleGenerator):
         return simulated_pool
 
 
-class TokenByTokenSampleGenerator(SampleGenerator):
-    """Generate a sentence token-by-token to maximise uncertainty
+class TokenByTokenSampleGenerator(SampleGenerator, ABC):
+    """Base class to generate a sentence token-by-token to maximise uncertainty
 
     Parameters
     ----------
@@ -279,6 +365,8 @@ class TokenByTokenSampleGenerator(SampleGenerator):
         a number of samples with no selection procedure.
     """
 
+    GENERATOR_MODEL_NAME = ""
+
     def __init__(
         self,
         parameters: Parameters,
@@ -290,7 +378,41 @@ class TokenByTokenSampleGenerator(SampleGenerator):
         self.classifier = classifier
 
     def _generate_sample_pool(self, pool_size: int) -> list:
-        return []
+
+        # The logits processor which filters out the top k tokens before adding
+        # the uncertainties
+        pre_top_k_logits_processor = TopKLogitsProcessor(
+            self.parameters["tbt_pre_top_k"]
+        )
+
+        # The logits processor which adds the uncertainty values
+        uncertainty_logits_processor = UncertaintyLogitsProcessor(
+            self.classifier, self.parameters["tbt_uncertainty_weighting"]
+        )
+
+        # Combine these two into a list of the logits processors
+        logits_processor = LogitsProcessorList(
+            pre_top_k_logits_processor, uncertainty_logits_processor
+        )
+
+        # Use the Hugging Face generation utility to generate samples. This
+        # does most of the hard work for us in terms of interacting with the
+        # model. We use a custom logits processor to add the uncertainty
+        # values coming from the classifier
+        samples_tokenized = self.classifier.model.generate(
+            temperature=self.parameters["sample_generator_temperature"],
+            top_k=self.parameters["sample_generator_top_k"],
+            logits_processor=logits_processor,
+            renormalize_logits=True,
+            num_return_sequences=pool_size,
+        )
+
+        # Detokenize the samples to produce the final sentences
+        samples = self.classifier.tokenizer.batch_decode(
+            samples_tokenized, skip_special_tokens=True
+        )
+
+        return samples
 
 
 class TAPTSampleGenerator(PipelineGeneratorMixin, SampleGenerator, ABC):

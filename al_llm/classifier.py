@@ -197,6 +197,11 @@ class DummyClassifier(UncertaintyMixin, Classifier):
                 f"Parameter `samples` must be a string or list, got {type(samples)}"
             )
 
+    def calculate_uncertainties_tokenized(
+        self, tokenized_samples: torch.Tensor
+    ) -> torch.Tensor:
+        return torch.zeros(tokenized_samples.shape[0])
+
 
 class HuggingFaceClassifier(UncertaintyMixin, Classifier):
     """A classifier using a Hugging Face model

@@ -76,6 +76,15 @@ class Parameters(dict):
     sample_generator_top_k : int, default=50
         The number of highest probability vocabulary tokens to keep for
         top-k-filtering when doing sample generation
+    tbt_pre_top_k : int, default=1024
+        When doing token-by-token generation, this is the number of tokens
+        which get selected to add the uncertainties to. We take the top k
+        tokens ordered according to the probability given by the generating
+        model. This is done for efficiency reasons, to avoid having to
+        compute the uncertainties for every token.
+    tbt_uncertainty_weighting : float, default=1
+        When doing token-by-token generation, this is the weighting to use
+        when adding the uncertainty to the logit value.
     ambiguity_mode : str, default="only_mark"
         How the experiment treat ambiguous data. Default is "only_mark" which
         allows the human to mark data as ambiguous but the experiment will
