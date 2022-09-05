@@ -17,7 +17,8 @@ class Parameters(dict):
     num_iterations : int, default=5
         The number of iterations over which to run the active learning.
     refresh_every : int, default=2
-        How often to retrain the classifier from scratch.
+        How often to retrain the classifier from scratch. A value of `-1` means
+        we never refresh.
     refresh_on_last : bool, default=False
         Whether to refresh the model on the last iteration.
     eval_every : int, default=1
@@ -98,7 +99,7 @@ class Parameters(dict):
         self,
         dataset_name="dummy",
         num_iterations=5,
-        refresh_every=2,
+        refresh_every=-1,
         refresh_on_last=False,
         eval_every=1,
         batch_size=8,
