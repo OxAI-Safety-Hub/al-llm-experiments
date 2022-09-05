@@ -11,6 +11,8 @@ import torch.nn.functional as F
 from transformers import (
     AutoTokenizer,
     AutoModelForSequenceClassification,
+    PreTrainedModel,
+    PreTrainedTokenizer,
     get_scheduler,
 )
 import datasets
@@ -238,7 +240,9 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         self.model_name = model_name
 
         # loads the tokenizer that the model will use
-        self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
+        self.tokenizer: PreTrainedTokenizer = AutoTokenizer.from_pretrained(
+            self.model_name
+        )
         self.tokenizer.pad_token = self.tokenizer.eos_token
 
         # Set up the Hugging Face metric evaluator
@@ -612,7 +616,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         return uncertainties
 
     @property
-    def model(self):
+    def model(self) -> PreTrainedModel:
         """Get the Hugging Face model for this classifier, if it exists"""
         if self._model is not None:
             return self._model
