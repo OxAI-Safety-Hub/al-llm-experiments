@@ -276,9 +276,9 @@ class Experiment:
         # Train either a fresh model or update the existing one. If this is
         #   the last iteration of this experiment, it will end on a call to
         #   _train_afresh.
-        if (
-            iteration % self.parameters["refresh_every"] == 0
-            or iteration + 1 == self.parameters["num_iterations"]
+        if iteration % self.parameters["refresh_every"] == 0 or (
+            iteration + 1 == self.parameters["num_iterations"]
+            and self.parameters["refresh_on_last"]
         ):
             self._train_afresh(iteration)
         else:
