@@ -350,7 +350,10 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
             }
 
             # If the eval loop should run this epoch, or if it is the last epoch
-            run_eval = (epoch + 1) % self.parameters["eval_every"] == 0
+            run_eval = (
+                self.parameters["eval_every"] > 0
+                and (epoch + 1) % self.parameters["eval_every"] == 0
+            )
             run_eval = run_eval or epoch == num_epochs - 1
             if run_eval:
                 # Run the evaluation loop, obtaining the metrics

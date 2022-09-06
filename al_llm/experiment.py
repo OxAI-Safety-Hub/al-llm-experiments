@@ -274,11 +274,18 @@ class Experiment:
         dataset_samples = self.data_handler.get_latest_tokenized_datapoints()
 
         # Train either a fresh model or update the existing one. If this is
-        #   the last iteration of this experiment, it will end on a call to
-        #   _train_afresh.
+        # the last iteration of this experiment, it will end on a call to
+        # _train_afresh.
         if (
-            iteration % self.parameters["refresh_every"] == 0
-            or iteration + 1 == self.parameters["num_iterations"]
+            iteration == 0
+            or (
+                self.parameters["refresh_every"] != -1
+                and iteration % self.parameters["refresh_every"] == 0
+            )
+            or (
+                iteration + 1 == self.parameters["num_iterations"]
+                and self.parameters["refresh_on_last"]
+            )
         ):
             self._train_afresh(iteration)
         else:
