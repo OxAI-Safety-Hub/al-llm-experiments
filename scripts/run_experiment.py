@@ -11,6 +11,7 @@ DEFAULTS = dict(
     dataset_name="rotten_tomatoes",
     classifier_base_model="gpt2",
     sample_generator_base_model="gpt2",
+    acquisition_function="max_uncertainty",
 )
 
 # Set up the arg parser
