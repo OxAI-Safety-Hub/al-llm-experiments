@@ -14,7 +14,7 @@ class Parameters(dict):
     ----------
     dataset_name : str, default="dummy"
         The name of the hugging face dataset.
-    num_iterations : int, default=10
+    num_iterations : int, default=15
         The number of iterations over which to run the active learning.
     refresh_every : int, default=2
         How often to retrain the classifier from scratch. A value of `-1` means
@@ -99,7 +99,7 @@ class Parameters(dict):
     def __init__(
         self,
         dataset_name="dummy",
-        num_iterations=10,
+        num_iterations=15,
         refresh_every=-1,
         refresh_on_last=False,
         eval_every=0,
