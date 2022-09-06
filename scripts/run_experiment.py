@@ -21,7 +21,7 @@ parser = ArgumentParser(
 )
 
 # Add arguments for the W&B run
-parser.add_argument("run-id", type=str, help="The W&B run ID to use")
+parser.add_argument("run_id", type=str, help="The W&B run ID to use")
 parser.add_argument(
     "--project-name", type=str, default=PROJECT_NAME, help="The W&B project to use."
 )
