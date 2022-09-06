@@ -244,12 +244,12 @@ class Parameters(dict):
     @classmethod
     def from_argparse_namespace(cls, namespace: Namespace) -> "Parameters":
         """Build a `Parameters` object from and argparse namespace
-        
+
         Parameters
         ----------
         namespace : Namespace
             The parsed command line arguments, from an ArgumentParser instance
-        
+
         Returns
         -------
         parameters : Parameters
