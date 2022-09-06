@@ -66,7 +66,7 @@ for i, seed in enumerate(seeds):
     # Make the experiment
     args = Experiment.make_experiment(
         parameters=parameters,
-        run_id=cmd_args.run_id,
+        run_id=f"{cmd_args.run_id}_{seed}",
         project_name=cmd_args.project_name,
     )
     experiment = Experiment(**args)
