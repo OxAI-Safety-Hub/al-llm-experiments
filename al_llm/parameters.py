@@ -140,6 +140,10 @@ class Parameters(dict):
         **kwargs,
     ):
 
+        # If we're running supervised learning, we need to run a full loop
+        if supervised == True:
+            full_loop = True
+
         # sets the parameters provided
         #   'supervised' may override some parameters
         super().__init__(
@@ -161,7 +165,7 @@ class Parameters(dict):
             send_alerts=send_alerts,
             validation_proportion=validation_proportion,
             train_dataset_size=train_dataset_size,
-            full_loop=True if supervised else full_loop,
+            full_loop=full_loop,
             supervised=supervised,
             classifier_base_model=classifier_base_model,
             acquisition_function=acquisition_function,
@@ -219,16 +223,19 @@ class Parameters(dict):
                 cmd_name = "--" + name.replace("_", "-")
                 parser.add_argument(
                     cmd_name,
+                    dest=name,
                     action="store_true",
+                    default=default,
                     help=f"Set parameter {name} to `True`",
                 )
                 cmd_neg_name = "--no-" + name.replace("_", "-")
                 parser.add_argument(
                     cmd_neg_name,
+                    dest=name,
                     action="store_false",
+                    default=not default,
                     help=f"Set parameter {name} to `False`",
                 )
-                parser.set_defaults(name=default)
 
             else:
 
