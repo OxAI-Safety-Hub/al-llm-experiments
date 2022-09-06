@@ -1,3 +1,10 @@
+# from __future__ import annotations
+
+from typing import Optional
+import inspect
+from argparse import ArgumentParser, Namespace
+
+
 class Parameters(dict):
     """A sub-class of dict storing the parameters for this experiment.
 
@@ -170,3 +177,102 @@ class Parameters(dict):
             *args,
             **kwargs,
         )
+
+    @classmethod
+    def add_to_arg_parser(cls, parser: ArgumentParser, defaults: Optional[dict] = None):
+        """Add the parameters to an ArgumentParser instance
+
+        This adds all the possible parameters as command line options, depending
+        on type, together with their default values, which can be overridden
+        by `defaults`.
+
+        Parameters
+        ----------
+        parser : ArgumentParser
+            The argument parser to which to add the parameters
+        defaults : dict, optional
+            A dictionary of default values for the parameters, which override
+            the ones defined in `Parameters`
+        """
+
+        # Get the method signature for the constructor
+        signature = inspect.signature(cls.__init__)
+
+        # Loop over all the parameters in the signature
+        for name, parameter in dict(signature.parameters).items():
+
+            # We don't want to add the `self` argument, or any of the `*args`
+            # or `**kwargs`
+            if name in ["self", "args", "kwargs"]:
+                continue
+
+            # Get the default for this parameter
+            if name in defaults:
+                default = defaults[name]
+            else:
+                default = parameter.default
+
+            if parameter.annotation == bool:
+
+                # For boolean parameters we add two flags, one for true and
+                # one for false, then set the default
+                cmd_name = "--" + name.replace("_", "-")
+                parser.add_argument(
+                    cmd_name,
+                    action="store_true",
+                    help=f"Set parameter {name} to `True`",
+                )
+                cmd_neg_name = "--no-" + name.replace("_", "-")
+                parser.add_argument(
+                    cmd_neg_name,
+                    action="store_false",
+                    help=f"Set parameter {name} to `False`",
+                )
+                parser.set_defaults(name=default)
+
+            else:
+
+                # Other parameters are regular arguments
+                cmd_name = "--" + name.replace("_", "-")
+                parser.add_argument(
+                    cmd_name,
+                    type=parameter.annotation,
+                    default=default,
+                    help=f"Set the value of parameter {name}",
+                )
+
+    @classmethod
+    def from_argparse_namespace(cls, namespace: Namespace) -> "Parameters":
+        """Build a `Parameters` object from and argparse namespace
+        
+        Parameters
+        ----------
+        namespace : Namespace
+            The parsed command line arguments, from an ArgumentParser instance
+        
+        Returns
+        -------
+        parameters : Parameters
+            The `Parameters` object built from the namespace
+        """
+
+        # Get the method signature for the constructor
+        signature = inspect.signature(cls.__init__)
+
+        # The arguments which we'll use to construct the `Parameters` instance
+        parameters_args = {}
+
+        # Loop over all the parameters in the signature
+        for name in list(signature.parameters):
+
+            # We don't want to add the `self` argument, or any of the `*args`
+            # or `**kwargs`
+            if name in ["self", "args", "kwargs"]:
+                continue
+
+            # Add the value of the argument from the namespace, if it exists
+            if name in namespace:
+                parameters_args[name] = namespace.__dict__[name]
+
+        # Return the `Parameters` object constructed from the arguments
+        return cls(**parameters_args)
