@@ -23,7 +23,7 @@ class Parameters(dict):
         The name of the hugging face dataset.
     num_iterations : int, default=15
         The number of iterations over which to run the active learning.
-    refresh_every : int, default=2
+    refresh_every : int, default=-1
         How often to retrain the classifier from scratch. A value of `-1` means
         we never refresh.
     refresh_on_last : bool, default=False
