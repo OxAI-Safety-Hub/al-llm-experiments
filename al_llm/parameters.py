@@ -38,7 +38,7 @@ class Parameters(dict):
     num_epochs_update : int, default=3
         The number of epochs to train for when updating the classifier
         model with new datapoints
-    num_epochs_afresh : int, default=3
+    num_epochs_afresh : int, default=10
         The number of epochs to train for when training the classifier
         model afresh, starting from scratch
     num_samples : int, default=10
@@ -113,7 +113,7 @@ class Parameters(dict):
         batch_size: int = 16,
         eval_batch_size: int = 128,
         num_epochs_update: int = 3,
-        num_epochs_afresh: int = 3,
+        num_epochs_afresh: int = 10,
         num_samples: int = 10,
         num_warmup_steps: int = 0,
         sample_pool_size: int = 50,
