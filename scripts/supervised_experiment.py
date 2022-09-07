@@ -26,9 +26,9 @@ combinations = list(ParameterGrid(param_grid))
 # If splitting between GPUs, select the appropriate half of the combinations
 if SPLIT_BETWEEN_GPUS:
     if GPU_NUMBER == 0:
-        combinations = combinations[:len(combinations) // 2]
+        combinations = combinations[: len(combinations) // 2]
     else:
-        combinations = combinations[len(combinations) // 2:]
+        combinations = combinations[len(combinations) // 2 :]
 
 # Run the experiment for each sampled combination of parameters
 for counter, combination in enumerate(combinations):
