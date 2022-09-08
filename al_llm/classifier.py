@@ -531,7 +531,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
 
         # Put them in a PyTorch dataloader
         samples_dataloader = DataLoader(
-            tokenized_samples, batch_size=self.parameters["batch_size"]
+            tokenized_samples, batch_size=self.parameters["eval_batch_size"]
         )
 
         # set the model to eval mode
