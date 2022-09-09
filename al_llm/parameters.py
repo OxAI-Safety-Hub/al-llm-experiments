@@ -87,7 +87,7 @@ class Parameters(dict):
     sample_generator_top_k : int, default=50
         The number of highest probability vocabulary tokens to keep for
         top-k-filtering when doing sample generation
-    tbt_pre_top_k : int, default=1024
+    tbt_pre_top_k : int, default=256
         When doing token-by-token generation, this is the number of tokens
         which get selected to add the uncertainties to. We take the top k
         tokens ordered according to the probability given by the generating
@@ -141,6 +141,8 @@ class Parameters(dict):
         use_tapted_classifier: bool = False,
         sample_generator_temperature: float = 1.0,
         sample_generator_top_k: int = 50,
+        tbt_pre_top_k: int = 256,
+        tbt_uncertainty_weighting: float = 1,
         ambiguity_mode: str = "only_mark",
         cuda_device: str = "cuda:0",
         is_running_pytests: bool = False,
@@ -183,6 +185,8 @@ class Parameters(dict):
             use_tapted_classifier=use_tapted_classifier,
             sample_generator_temperature=sample_generator_temperature,
             sample_generator_top_k=sample_generator_top_k,
+            tbt_pre_top_k=tbt_pre_top_k,
+            tbt_uncertainty_weighting=tbt_uncertainty_weighting,
             ambiguity_mode=ambiguity_mode,
             cuda_device=cuda_device,
             is_running_pytests=is_running_pytests,
