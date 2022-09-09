@@ -592,6 +592,10 @@ class AutomaticLabellerInterface(SimpleCLIInterfaceMixin, Interface):
             datasets.Dataset.from_dict({"text": samples}), "text"
         )
 
+        # Announce what we're doing
+        print()
+        print("Getting labels from the automatic labeller...")
+
         # Get the outputs of the model
         outputs = self.pipeline(
             samples_dataset, batch_size=self.parameters["eval_batch_size"]
