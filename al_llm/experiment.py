@@ -40,6 +40,7 @@ from al_llm.interface import (
     Interface,
     CLIInterface,
     PoolSimulatorInterface,
+    AutomaticLabellerInterface,
 )
 from al_llm.parameters import Parameters
 from al_llm.constants import (
@@ -468,6 +469,13 @@ class Experiment:
         # Set up the interface
         if sg_model_name == "pool":
             interface = PoolSimulatorInterface(parameters, dataset_container, wandb_run)
+        elif parameters["use_automatic_labeller"]:
+            interface = AutomaticLabellerInterface(
+                parameters,
+                dataset_container,
+                wandb_run,
+                parameters["automatic_labeller_model_name"],
+            )
         elif parameters["full_loop"]:
             interface = CLIInterface(parameters, dataset_container, wandb_run)
         else:

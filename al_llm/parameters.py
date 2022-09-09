@@ -87,6 +87,13 @@ class Parameters(dict):
     sample_generator_top_k : int, default=50
         The number of highest probability vocabulary tokens to keep for
         top-k-filtering when doing sample generation
+    use_automatic_labeller : bool, default=True
+        Whether to use a pretrained classifier to provide the labels, instead
+        of a human.
+    automatic_labeller_model_name : str,
+    default="textattack/roberta-base-rotten-tomatoes"
+        The name of the Hugging Face model to use as the automatical labeller.
+        This is a model hosted in the Hugging Face repository of models.
     ambiguity_mode : str, default="only_mark"
         How the experiment treat ambiguous data. Default is "only_mark" which
         allows the human to mark data as ambiguous but the experiment will
@@ -132,6 +139,8 @@ class Parameters(dict):
         use_tapted_classifier: bool = False,
         sample_generator_temperature: float = 1.0,
         sample_generator_top_k: int = 50,
+        use_automatic_labeller: bool = False,
+        automatic_labeller_model_name: str = "textattack/roberta-base-rotten-tomatoes",
         ambiguity_mode: str = "only_mark",
         cuda_device: str = "cuda:0",
         is_running_pytests: bool = False,
@@ -174,6 +183,8 @@ class Parameters(dict):
             use_tapted_classifier=use_tapted_classifier,
             sample_generator_temperature=sample_generator_temperature,
             sample_generator_top_k=sample_generator_top_k,
+            use_automatic_labeller=use_automatic_labeller,
+            automatic_labeller_model_name=automatic_labeller_model_name,
             ambiguity_mode=ambiguity_mode,
             cuda_device=cuda_device,
             is_running_pytests=is_running_pytests,
