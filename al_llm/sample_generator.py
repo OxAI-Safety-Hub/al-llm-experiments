@@ -405,6 +405,7 @@ class TokenByTokenSampleGenerator(SampleGenerator, ABC):
             logits_processor=logits_processor,
             renormalize_logits=True,
             num_return_sequences=pool_size,
+            do_sample=True,
         )
 
         # Detokenize the samples to produce the final sentences
