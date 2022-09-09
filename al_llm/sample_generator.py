@@ -392,8 +392,15 @@ class TokenByTokenSampleGenerator(PipelineGeneratorMixin, SampleGenerator, ABC):
 
     def _load_generator_model(self):
         """Load the model used as a sentence generator"""
+
+        # Load a text generation verion of the model
         self.generator_model = AutoModelForCausalLM.from_pretrained(
             self.GENERATOR_MODEL_NAME
+        )
+
+        # Set the padding token to EOS for open generation
+        self.generator_model.config.pad_token_id = (
+            self.generator_model.config.eos_token_id
         )
 
     def _make_pipeline_generator(self):
@@ -546,6 +553,7 @@ class TAPTGPT2SampleGenerator(TAPTSampleGenerator):
     """
 
     MODEL_NAME = "gpt2"
+
 
 class PlainGPT2TokenByTokenSampleGenerator(TokenByTokenSampleGenerator):
     """GPT-2 token-by-token generator to maximise uncertainty
