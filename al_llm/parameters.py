@@ -87,7 +87,7 @@ class Parameters(dict):
     sample_generator_top_k : int, default=50
         The number of highest probability vocabulary tokens to keep for
         top-k-filtering when doing sample generation
-    use_automatic_labeller : bool, default=True
+    use_automatic_labeller : bool, default=False
         Whether to use a pretrained classifier to provide the labels, instead
         of a human.
     automatic_labeller_model_name : str,
