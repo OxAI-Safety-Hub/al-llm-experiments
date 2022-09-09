@@ -392,7 +392,7 @@ class TokenByTokenSampleGenerator(SampleGenerator, ABC):
 
         # Combine these two into a list of the logits processors
         logits_processor = LogitsProcessorList(
-            pre_top_k_logits_processor, uncertainty_logits_processor
+            [pre_top_k_logits_processor, uncertainty_logits_processor]
         )
 
         # Use the Hugging Face generation utility to generate samples. This
