@@ -8,8 +8,13 @@ import torch
 
 import wandb
 
-from transformers import pipeline
-from transformers import LogitsProcessor, TopKLogitsWarper, LogitsProcessorList
+from transformers import (
+    pipeline,
+    LogitsProcessor,
+    TopKLogitsWarper,
+    LogitsProcessorList,
+    AutoModelForCausalLM,
+)
 
 from al_llm.acquisition_function import AcquisitionFunction
 from al_llm.dataset_container import DatasetContainer
@@ -178,7 +183,7 @@ class PipelineGeneratorMixin(ABC):
     """A mixin for sample generators which use the pipeline() for generation."""
 
     def _make_pipeline_generator(self, task: str, model: Any, tokenizer: str, **kwargs):
-        """Created the generator using pipeline()
+        """Create the generator using pipeline()
 
         Parameters
         ----------
@@ -350,7 +355,7 @@ class PoolSampleGenerator(SampleGenerator):
         return simulated_pool
 
 
-class TokenByTokenSampleGenerator(SampleGenerator, ABC):
+class TokenByTokenSampleGenerator(PipelineGeneratorMixin, SampleGenerator, ABC):
     """Base class to generate a sentence token-by-token to maximise uncertainty
 
     Parameters
@@ -372,12 +377,27 @@ class TokenByTokenSampleGenerator(SampleGenerator, ABC):
         parameters: Parameters,
         classifier: HuggingFaceClassifier,
         acquisition_function: Optional[AcquisitionFunction] = None,
+        max_length: int = 30,
     ):
         super().__init__(parameters, acquisition_function)
 
         self.classifier = classifier
+        self.max_length = max_length
 
-    def _generate_sample_pool(self, pool_size: int) -> list:
+        # Load the base sample generator model
+        self._load_generator_model()
+
+        # Make a pipeline for text generation
+        self._make_pipeline_generator()
+
+    def _load_generator_model(self):
+        """Load the model used as a sentence generator"""
+        self.generator_model = AutoModelForCausalLM.from_pretrained(
+            self.GENERATOR_MODEL_NAME
+        )
+
+    def _make_pipeline_generator(self):
+        """Create the generator using pipeline()"""
 
         # The logits processor which filters out the top k tokens before adding
         # the uncertainties
@@ -395,25 +415,21 @@ class TokenByTokenSampleGenerator(SampleGenerator, ABC):
             [pre_top_k_logits_processor, uncertainty_logits_processor]
         )
 
+        # Setup the pipeline generator
         # Use the Hugging Face generation utility to generate samples. This
         # does most of the hard work for us in terms of interacting with the
         # model. We use a custom logits processor to add the uncertainty
         # values coming from the classifier
-        samples_tokenized = self.classifier.model.generate(
+        super()._make_pipeline_generator(
+            "text-generation",
+            self.generator_model,
+            self.GENERATOR_MODEL_NAME,
             temperature=self.parameters["sample_generator_temperature"],
             top_k=self.parameters["sample_generator_top_k"],
             logits_processor=logits_processor,
             renormalize_logits=True,
-            num_return_sequences=pool_size,
             do_sample=True,
         )
-
-        # Detokenize the samples to produce the final sentences
-        samples = self.classifier.tokenizer.batch_decode(
-            samples_tokenized, skip_special_tokens=True
-        )
-
-        return samples
 
 
 class TAPTSampleGenerator(PipelineGeneratorMixin, SampleGenerator, ABC):
@@ -530,3 +546,20 @@ class TAPTGPT2SampleGenerator(TAPTSampleGenerator):
     """
 
     MODEL_NAME = "gpt2"
+
+class PlainGPT2TokenByTokenSampleGenerator(TokenByTokenSampleGenerator):
+    """GPT-2 token-by-token generator to maximise uncertainty
+
+    Parameters
+    ----------
+    parameters : Parameters
+        The dictionary of parameters for the present experiment
+    classifier : HuggingFaceClassifier
+        The classifier used in the current experiment, for which we maximise
+        uncertainty.
+    acquisition_function : AcquisitionFunction, optional
+        The acquisition function to use, if any. By default we simply generate
+        a number of samples with no selection procedure.
+    """
+
+    GENERATOR_MODEL_NAME = "gpt2"

@@ -80,6 +80,8 @@ class Parameters(dict):
         The name of the base model the sample generator should use.
     use_tapted_sample_generator : bool, default=False
         True if a pretrained sample generator should be used.
+    use_tbt_sample_generator : bool, default=False
+        Whether to use the token-by-token sample generator.
     use_tapted_classifier : bool, default=False
         True if a pretrained classifier should be used.
     sample_generator_temperature : float, default=1.0
@@ -139,6 +141,7 @@ class Parameters(dict):
         sample_generator_base_model: str = "dummy",
         use_tapted_sample_generator: bool = False,
         use_tapted_classifier: bool = False,
+        use_tbt_sample_generator: bool = False,
         sample_generator_temperature: float = 1.0,
         sample_generator_top_k: int = 50,
         tbt_pre_top_k: int = 256,
@@ -183,6 +186,7 @@ class Parameters(dict):
             sample_generator_base_model=sample_generator_base_model,
             use_tapted_sample_generator=use_tapted_sample_generator,
             use_tapted_classifier=use_tapted_classifier,
+            use_tbt_sample_generator=use_tbt_sample_generator,
             sample_generator_temperature=sample_generator_temperature,
             sample_generator_top_k=sample_generator_top_k,
             tbt_pre_top_k=tbt_pre_top_k,
