@@ -3,6 +3,9 @@ TEXT_COLUMN_NAME = "text"
 LABEL_COLUMN_NAME = "labels"
 AMBIGUITIES_COLUMN_NAME = "ambiguities"
 
+# Seeds used for running experiments
+EXPERIMENT_SEEDS = [7086, 3202, 6353, 3437]
+
 # Seed used for preprocessing datasets
 PREPROCESSING_SEED = 7497
 
