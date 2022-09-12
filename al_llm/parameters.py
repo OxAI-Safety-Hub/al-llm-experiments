@@ -100,6 +100,13 @@ class Parameters(dict):
     tbt_uncertainty_weighting : float, default=1
         When doing token-by-token generation, this is the weighting to use
         when adding the uncertainty to the logit value.
+    use_automatic_labeller : bool, default=False
+        Whether to use a pretrained classifier to provide the labels, instead
+        of a human.
+    automatic_labeller_model_name : str,
+    default="textattack/roberta-base-rotten-tomatoes"
+        The name of the Hugging Face model to use as the automatical labeller.
+        This is a model hosted in the Hugging Face repository of models.
     ambiguity_mode : str, default="only_mark"
         How the experiment treat ambiguous data. Default is "only_mark" which
         allows the human to mark data as ambiguous but the experiment will
@@ -149,6 +156,8 @@ class Parameters(dict):
         sample_generator_max_length: int = 30,
         tbt_pre_top_k: int = 256,
         tbt_uncertainty_weighting: float = 1,
+        use_automatic_labeller: bool = False,
+        automatic_labeller_model_name: str = "textattack/roberta-base-rotten-tomatoes",
         ambiguity_mode: str = "only_mark",
         cuda_device: str = "cuda:0",
         is_running_pytests: bool = False,
@@ -195,6 +204,8 @@ class Parameters(dict):
             sample_generator_max_length=sample_generator_max_length,
             tbt_pre_top_k=tbt_pre_top_k,
             tbt_uncertainty_weighting=tbt_uncertainty_weighting,
+            use_automatic_labeller=use_automatic_labeller,
+            automatic_labeller_model_name=automatic_labeller_model_name,
             ambiguity_mode=ambiguity_mode,
             cuda_device=cuda_device,
             is_running_pytests=is_running_pytests,

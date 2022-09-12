@@ -584,7 +584,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         num_samples = tokenized_samples.shape[0]
 
         # Store the batch size with a shorter variable name
-        batch_size = self.parameters["batch_size"]
+        batch_size = self.parameters["eval_batch_size"]
 
         # Make a PyTorch dataloader for the samples
         samples_dataloader = DataLoader(tokenized_samples, batch_size=batch_size)
@@ -628,6 +628,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
                 sum_entropies = torch.sum(per_class_entropies, dim=-1)
 
                 # Add these to the list of uncertainties
+
                 uncertainties[idx * batch_size : (idx + 1) * batch_size] = sum_entropies
 
         return uncertainties

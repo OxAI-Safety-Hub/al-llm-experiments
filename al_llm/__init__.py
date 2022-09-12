@@ -16,7 +16,12 @@ from .dataset_container import (
     WikiToxicDatasetContainer,
 )
 from .experiment import Experiment
-from .interface import Interface, CLIInterface, PoolSimulatorInterface
+from .interface import (
+    Interface,
+    CLIInterface,
+    PoolSimulatorInterface,
+    AutomaticLabellerInterface,
+)
 from .acquisition_function import (
     AcquisitionFunction,
     DummyAF,
