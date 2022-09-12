@@ -571,7 +571,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         if return_string:
             return uncertainties.item()
         else:
-            return uncertainties.to_list()
+            return uncertainties.tolist()
 
     def calculate_uncertainties_tokenized(
         self, tokenized_samples: torch.Tensor
@@ -590,7 +590,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         self._model.eval()
 
         # A list of the uncertainties (entropies) for each element of `samples`
-        uncertainties = torch.zeros(num_samples)
+        uncertainties = torch.zeros(num_samples, device=self.device)
 
         # Print a message to say what we're doing
         print()
@@ -619,7 +619,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
                 sum_entropies = torch.sum(per_class_entropies, dim=-1)
 
                 # Add these to the list of uncertainties
-                uncertainties[idx * batch_size, (idx + 1) * batch_size] = sum_entropies
+                uncertainties[idx * batch_size : (idx + 1) * batch_size] = sum_entropies
 
         return uncertainties
 
