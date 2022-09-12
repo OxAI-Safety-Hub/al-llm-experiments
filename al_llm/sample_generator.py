@@ -5,6 +5,7 @@ from random import randrange, sample
 from typing import Optional, Any
 
 import torch
+import torch.nn.functional as F
 
 import wandb
 
@@ -33,12 +34,10 @@ class TqdmHolder:
         self.tqdm_bar: Optional[tqdm] = None
 
 
-class TopKLogitsProcessor(TopKLogitsWarper, LogitsProcessor):
+class TopKLogitsProcessor(LogitsProcessor):
     """LogitsProcessor that performs top-k filtering
 
     Restricts to the k highest probability elements.
-
-    Obtained by converting `TopKLogitsWarper` into a `LogitsProcessor`
 
     Parameters
     ----------
@@ -51,7 +50,28 @@ class TopKLogitsProcessor(TopKLogitsWarper, LogitsProcessor):
         Minimum number of tokens that cannot be filtered.
     """
 
-    pass
+    def __init__(self, top_k: int, filter_value: float = -float("Inf")):
+        self.top_k = top_k
+        self.filter_value = filter_value
+
+    def __call__(
+        self, input_ids: torch.LongTensor, scores: torch.FloatTensor
+    ) -> torch.FloatTensor:
+
+        # Compute the indices of the top k scores
+        indices_to_keep = torch.topk(scores, self.top_k, dim=1).indices
+
+        # Create a new tensor from `scores`, where all of the values to remove
+        # get value `self.filter_value`
+        filtered_sores = torch.ones_like(scores) * self.filter_value
+        dim_0_indices = (
+            torch.arange(scores.shape[0]).repeat(self.top_k, 1).transpose(0, 1)
+        )
+        filtered_sores[dim_0_indices, indices_to_keep] = scores[
+            dim_0_indices, indices_to_keep
+        ]
+
+        return filtered_sores
 
 
 class UncertaintyLogitsProcessor(LogitsProcessor):
@@ -65,9 +85,10 @@ class UncertaintyLogitsProcessor(LogitsProcessor):
     so far plus this token, the new probability value is:
         p + uncertainty_weighting * u
 
-    Given that we actually work with a logit value `v` and not a probability,
-    the actual calculation, producing the new logit value, is:
-        logsumexp(v, uncertainty_weighting * u)
+    Given that we actually work with a logit values L and not probabilities
+    the actual calculation, producing the new logit values L' given uncertainty
+    values U, is:
+        L' = log(softmax(L) + uncertainty_weighting * U)
 
     Parameters
     ----------
@@ -151,17 +172,20 @@ class UncertaintyLogitsProcessor(LogitsProcessor):
             sequences_serialised, print_output=False
         )
 
-        # Insert the uncertainty values in the appropriate places in a:
+        # Insert the weighted uncertainty values in the appropriate places in a:
         #     num_inputs x num_tokens
         # tensor, so be added to the scores.
-        to_add = torch.zeros_like(scores)
-        to_add[scores_mask] = uncertainties_serialised
+        uncertainties_located = torch.zeros_like(scores)
+        uncertainties_located[scores_mask] = uncertainties_serialised
 
-        # Add these to the scores, weighting appropriately
-        to_sum = torch.stack((scores, self.uncertainty_weighting * to_add), dim=0)
-        scores = torch.logsumexp(to_sum, dim=0)
+        # Compute the probabilities corresponding to the scores using softmax
+        probabilities = F.softmax(scores, dim=1)
 
-        return scores
+        # Add the weighted uncertainties to the probabilities
+        new_outputs = probabilities + self.uncertainty_weighting * uncertainties_located
+
+        # The new scores are the log of these
+        return torch.log(new_outputs)
 
 
 class TqdmStepLogitsProcessor(LogitsProcessor):
