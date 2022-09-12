@@ -88,6 +88,9 @@ class UncertaintyLogitsProcessor(LogitsProcessor):
         self, input_ids: torch.LongTensor, scores: torch.FloatTensor
     ) -> torch.FloatTensor:
 
+        # Get the device used to hold the tensors
+        device = input_ids.device
+
         # The number of input sequences
         num_inputs = input_ids.shape[0]
 
@@ -118,7 +121,7 @@ class UncertaintyLogitsProcessor(LogitsProcessor):
         inputs_repeated = input_ids.repeat(num_filtered_scores, 1, 1)
 
         # Get the token ids of each of the filtered scores
-        score_indices = torch.arange(num_tokens).repeat(num_inputs, 1)
+        score_indices = torch.arange(num_tokens, device=device).repeat(num_inputs, 1)
         filtered_token_ids = score_indices[scores_mask].reshape(
             (num_inputs, num_filtered_scores, 1)
         )
