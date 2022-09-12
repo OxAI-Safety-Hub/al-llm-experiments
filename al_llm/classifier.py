@@ -600,12 +600,12 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         for idx, batch in tqdm(enumerate(samples_dataloader)):
 
             # Move the batch to the appropriate device
-            batch = {k: v.to(self.device) for k, v in batch.items()}
+            batch = batch.to(self.device)
 
             with torch.no_grad():
 
                 # Get the raw model output logits
-                outputs = self._model(**batch)
+                outputs = self._model(input_ids=batch)
                 logits = outputs.logits
 
                 # Compute the class probabilities
