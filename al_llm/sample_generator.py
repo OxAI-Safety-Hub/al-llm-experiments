@@ -267,7 +267,7 @@ class PipelineGeneratorMixin(ABC):
 
     def _make_logits_processor(self) -> LogitsProcessorList:
         """Make a logits processor for use in generation
-        
+
         Returns
         -------
         logits_processor : LogitsProcessorList
@@ -303,7 +303,7 @@ class PipelineGeneratorMixin(ABC):
             device = torch.device(self.parameters["cuda_device"])
         else:
             device = torch.device("cpu")
-            logits_processor=logits_processor,
+            logits_processor = (logits_processor,)
 
         # Get the logits preprocessor to use
         logits_processor = self._make_logits_processor()
@@ -335,14 +335,14 @@ class PipelineGeneratorMixin(ABC):
         # Create a tqdm progress bar to track the generation progress. We
         # assume that we go to the max length; if not, the bar will just end
         # early
-        with tqdm(total=self.max_length) as tqdm_bar:
+        with tqdm(total=self.parameters["sample_generator_max_length"]) as tqdm_bar:
 
             self._tqdm_holder.tqdm_bar = tqdm_bar
 
             # Use the pipeline to generate real sentences
             sentence_dicts = self.generator(
                 "",
-                max_length=self.max_length,
+                max_length=self.parameters["sample_generator_max_length"],
                 num_return_sequences=pool_size,
             )
 
@@ -397,8 +397,6 @@ class PlainGPT2SampleGenerator(PipelineGeneratorMixin, SampleGenerator):
     acquisition_function : AcquisitionFunction, optional
         The acquisition function to use, if any. By default we simply generate
         a number of samples with no selection procedure.
-    max_length : int, default=30
-        The maximum length of the sentences generated.
     """
 
     MODEL_NAME = "gpt2"
@@ -407,12 +405,9 @@ class PlainGPT2SampleGenerator(PipelineGeneratorMixin, SampleGenerator):
         self,
         parameters: Parameters,
         acquisition_function: Optional[AcquisitionFunction] = None,
-        max_length: int = 30,
     ):
 
         super().__init__(parameters, acquisition_function)
-
-        self.max_length = max_length
 
         # Setup the pipeline generator
         self._make_pipeline_generator(
@@ -493,12 +488,10 @@ class TokenByTokenSampleGenerator(PipelineGeneratorMixin, SampleGenerator, ABC):
         parameters: Parameters,
         classifier: HuggingFaceClassifier,
         acquisition_function: Optional[AcquisitionFunction] = None,
-        max_length: int = 30,
     ):
         super().__init__(parameters, acquisition_function)
 
         self.classifier = classifier
-        self.max_length = max_length
 
         # Load the base sample generator model
         self._load_generator_model()
@@ -515,7 +508,8 @@ class TokenByTokenSampleGenerator(PipelineGeneratorMixin, SampleGenerator, ABC):
             temperature=self.parameters["sample_generator_temperature"],
             top_k=self.parameters["sample_generator_top_k"],
             renormalize_logits=True,
-            do_sample=True,)
+            do_sample=True,
+        )
 
     def _load_generator_model(self):
         """Load the model used as a sentence generator"""
@@ -564,8 +558,6 @@ class TAPTSampleGenerator(PipelineGeneratorMixin, SampleGenerator, ABC):
     acquisition_function : acquisition_function.AcquisitionFunction, optional
         The acquisition function to use, if any. By default we simply generate
         a number of samples with no selection procedure.
-    max_length : int, default=30
-        The maximum length of the sentences generated.
     """
 
     MODEL_NAME = ""
@@ -575,13 +567,11 @@ class TAPTSampleGenerator(PipelineGeneratorMixin, SampleGenerator, ABC):
         parameters: Parameters,
         wandb_run: wandb.sdk.wandb_run.Run,
         acquisition_function: Optional[AcquisitionFunction] = None,
-        max_length: int = 30,
     ):
 
         super().__init__(parameters, acquisition_function)
 
         self.wandb_run = wandb_run
-        self.max_length = max_length
 
         # Loads the pretrained model from wandb
         self._load_tapted_model()
@@ -638,8 +628,6 @@ class TAPTDistilGPT2SampleGenerator(TAPTSampleGenerator):
     acquisition_function : acquisition_function.AcquisitionFunction, optional
         The acquisition function to use, if any. By default we simply generate
         a number of samples with no selection procedure.
-    max_length : int, default=30
-        The maximum length of the sentences generated.
     """
 
     MODEL_NAME = "distilgpt2"
@@ -661,8 +649,6 @@ class TAPTGPT2SampleGenerator(TAPTSampleGenerator):
     acquisition_function : acquisition_function.AcquisitionFunction, optional
         The acquisition function to use, if any. By default we simply generate
         a number of samples with no selection procedure.
-    max_length : int, default=30
-        The maximum length of the sentences generated.
     """
 
     MODEL_NAME = "gpt2"
