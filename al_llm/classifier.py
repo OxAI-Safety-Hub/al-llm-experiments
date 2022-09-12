@@ -141,7 +141,7 @@ class UncertaintyMixin(ABC):
 
     @abstractmethod
     def calculate_uncertainties_tokenized(
-        self, tokenized_samples: torch.Tensor
+        self, tokenized_samples: torch.Tensor, print_output=True
     ) -> torch.Tensor:
         """Compute the uncertainty of tokenize samples
 
@@ -153,6 +153,9 @@ class UncertaintyMixin(ABC):
         tokenized_samples : torch.Tensor of shape (num_samples, num_tokens)
             A tensor of the tokenized samples for which to compute the
             uncertainty values
+        print_output : bool, default=True
+            Whether to print a message saying that uncertainties are being
+            computed, and a progress bar
 
         Returns
         -------
@@ -198,7 +201,7 @@ class DummyClassifier(UncertaintyMixin, Classifier):
             )
 
     def calculate_uncertainties_tokenized(
-        self, tokenized_samples: torch.Tensor
+        self, tokenized_samples: torch.Tensor, print_output=True
     ) -> torch.Tensor:
         return torch.zeros(tokenized_samples.shape[0])
 
@@ -574,7 +577,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
             return uncertainties.tolist()
 
     def calculate_uncertainties_tokenized(
-        self, tokenized_samples: torch.Tensor
+        self, tokenized_samples: torch.Tensor, print_output=True
     ) -> torch.Tensor:
 
         # Get the number of samples
@@ -592,12 +595,18 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         # A list of the uncertainties (entropies) for each element of `samples`
         uncertainties = torch.zeros(num_samples, device=self.device)
 
-        # Print a message to say what we're doing
-        print()
-        print("Computing uncertainties...")
+        if print_output:
+            # Print a message to say what we're doing
+            print()
+            print("Computing uncertainties...")
+
+        # Make an iterator, including a progress bar if requested
+        iterator = enumerate(samples_dataloader)
+        if print_output:
+            iterator = tqdm(iterator, total=len(samples_dataloader))
 
         # iterate over all the batches in the dataloader
-        for idx, batch in tqdm(enumerate(samples_dataloader)):
+        for idx, batch in iterator:
 
             # Move the batch to the appropriate device
             batch = batch.to(self.device)

@@ -16,12 +16,21 @@ from transformers import (
     AutoModelForCausalLM,
 )
 
+from tqdm import tqdm
+
 from al_llm.acquisition_function import AcquisitionFunction
 from al_llm.dataset_container import DatasetContainer
 from al_llm.parameters import Parameters
 from al_llm.classifier import HuggingFaceClassifier
 from al_llm.utils.artifacts import load_tapted_model
 from al_llm.constants import TEXT_COLUMN_NAME
+
+
+class TqdmHolder:
+    """Helper class to holds the current tqdm instance"""
+
+    def __init__(self):
+        self.tqdm_bar: Optional[tqdm] = None
 
 
 class TopKLogitsProcessor(TopKLogitsWarper, LogitsProcessor):
@@ -109,7 +118,7 @@ class UncertaintyLogitsProcessor(LogitsProcessor):
         if len(unique_counts) != 1:
             raise ValueError(
                 f"Parameter `scores` must have the same number"
-                f" of filtered values per input. Got {list(count_per_input)}"
+                f" of filtered values per input. Got {count_per_input.tolist()}"
             )
 
         # Get the number of filtered scores
@@ -118,7 +127,7 @@ class UncertaintyLogitsProcessor(LogitsProcessor):
         # Create `num_filtered_scores` copies of each input sequence
         # This creates a tensor of dimension:
         #     num_inputs x num_filtered_scores x {sequence length}
-        inputs_repeated = input_ids.repeat(num_filtered_scores, 1, 1).transpose(0,1)
+        inputs_repeated = input_ids.repeat(num_filtered_scores, 1, 1).transpose(0, 1)
 
         # Get the token ids of each of the filtered scores
         score_indices = torch.arange(num_tokens, device=device).repeat(num_inputs, 1)
@@ -139,7 +148,7 @@ class UncertaintyLogitsProcessor(LogitsProcessor):
 
         # Compute the uncertainties of the input sequences for the classifier
         uncertainties_serialised = self.classifier.calculate_uncertainties_tokenized(
-            sequences_serialised
+            sequences_serialised, print_output=False
         )
 
         # Insert the uncertainty values in the appropriate places in a:
@@ -152,6 +161,34 @@ class UncertaintyLogitsProcessor(LogitsProcessor):
         to_sum = torch.stack((scores, self.uncertainty_weighting * to_add), dim=0)
         scores = torch.logsumexp(to_sum, dim=0)
 
+        return scores
+
+
+class TqdmStepLogitsProcessor(LogitsProcessor):
+    """A LogitsProcessor which steps a tqdm progress bar
+
+    A bit of a hack to make Hugging Face's generation output a progress bar.
+    This is the only way to insert code into the generation loop.
+
+    Parameters
+    ----------
+    tqdm_bar : tqdm
+        The tqdm instance to update
+    """
+
+    def __init__(self, tqdm_holder: TqdmHolder):
+        super().__init__()
+        self.tqdm_holder = tqdm_holder
+
+    def __call__(
+        self, input_ids: torch.LongTensor, scores: torch.FloatTensor
+    ) -> torch.FloatTensor:
+
+        # Update the bar if it exists
+        if self.tqdm_holder.tqdm_bar is not None:
+            self.tqdm_holder.tqdm_bar.update()
+
+        # Return the scores unchanged
         return scores
 
 
@@ -228,6 +265,26 @@ class SampleGenerator(ABC):
 class PipelineGeneratorMixin(ABC):
     """A mixin for sample generators which use the pipeline() for generation."""
 
+    def _make_logits_processor(self) -> LogitsProcessorList:
+        """Make a logits processor for use in generation
+        
+        Returns
+        -------
+        logits_processor : LogitsProcessorList
+            The list of logits processors to use
+        """
+
+        # Create a tqdm holder instance, to communicate with the tqdm updater
+        self._tqdm_holder = TqdmHolder()
+
+        # Add the tqdm updater as a 'logits processor'
+        tqdm_stepper = TqdmStepLogitsProcessor(self._tqdm_holder)
+
+        # Make this into a list
+        logits_processor = LogitsProcessorList([tqdm_stepper])
+
+        return logits_processor
+
     def _make_pipeline_generator(self, task: str, model: Any, tokenizer: str, **kwargs):
         """Create the generator using pipeline()
 
@@ -246,6 +303,10 @@ class PipelineGeneratorMixin(ABC):
             device = torch.device(self.parameters["cuda_device"])
         else:
             device = torch.device("cpu")
+            logits_processor=logits_processor,
+
+        # Get the logits preprocessor to use
+        logits_processor = self._make_logits_processor()
 
         # Create a pipeline for text generation
         self.generator = pipeline(
@@ -253,6 +314,7 @@ class PipelineGeneratorMixin(ABC):
             model=model,
             device=device,
             tokenizer=tokenizer,
+            logits_processor=logits_processor,
             **kwargs,
         )
 
@@ -270,12 +332,20 @@ class PipelineGeneratorMixin(ABC):
             A list of samples
         """
 
-        # Use the pipeline to generate real sentences
-        sentence_dicts = self.generator(
-            "",
-            max_length=self.max_length,
-            num_return_sequences=pool_size,
-        )
+        # Create a tqdm progress bar to track the generation progress. We
+        # assume that we go to the max length; if not, the bar will just end
+        # early
+        with tqdm(total=self.max_length) as tqdm_bar:
+
+            self._tqdm_holder.tqdm_bar = tqdm_bar
+
+            # Use the pipeline to generate real sentences
+            sentence_dicts = self.generator(
+                "",
+                max_length=self.max_length,
+                num_return_sequences=pool_size,
+            )
+
         sample_pool = [d["generated_text"] for d in sentence_dicts]
 
         return sample_pool
@@ -433,8 +503,19 @@ class TokenByTokenSampleGenerator(PipelineGeneratorMixin, SampleGenerator, ABC):
         # Load the base sample generator model
         self._load_generator_model()
 
-        # Make a pipeline for text generation
-        self._make_pipeline_generator()
+        # Setup the pipeline generator
+        # Use the Hugging Face generation utility to generate samples. This
+        # does most of the hard work for us in terms of interacting with the
+        # model. We use a custom logits processor to add the uncertainty
+        # values coming from the classifier
+        self._make_pipeline_generator(
+            "text-generation",
+            self.generator_model,
+            self.GENERATOR_MODEL_NAME,
+            temperature=self.parameters["sample_generator_temperature"],
+            top_k=self.parameters["sample_generator_top_k"],
+            renormalize_logits=True,
+            do_sample=True,)
 
     def _load_generator_model(self):
         """Load the model used as a sentence generator"""
@@ -449,8 +530,9 @@ class TokenByTokenSampleGenerator(PipelineGeneratorMixin, SampleGenerator, ABC):
             self.generator_model.config.eos_token_id
         )
 
-    def _make_pipeline_generator(self):
-        """Create the generator using pipeline()"""
+    def _make_logits_processor(self) -> LogitsProcessorList:
+
+        logits_processor = super()._make_logits_processor()
 
         # The logits processor which filters out the top k tokens before adding
         # the uncertainties
@@ -463,26 +545,11 @@ class TokenByTokenSampleGenerator(PipelineGeneratorMixin, SampleGenerator, ABC):
             self.classifier, self.parameters["tbt_uncertainty_weighting"]
         )
 
-        # Combine these two into a list of the logits processors
-        logits_processor = LogitsProcessorList(
-            [pre_top_k_logits_processor, uncertainty_logits_processor]
-        )
+        # Combine these two to the beginning of the processors list
+        logits_processor.insert(0, pre_top_k_logits_processor)
+        logits_processor.insert(1, uncertainty_logits_processor)
 
-        # Setup the pipeline generator
-        # Use the Hugging Face generation utility to generate samples. This
-        # does most of the hard work for us in terms of interacting with the
-        # model. We use a custom logits processor to add the uncertainty
-        # values coming from the classifier
-        super()._make_pipeline_generator(
-            "text-generation",
-            self.generator_model,
-            self.GENERATOR_MODEL_NAME,
-            temperature=self.parameters["sample_generator_temperature"],
-            top_k=self.parameters["sample_generator_top_k"],
-            logits_processor=logits_processor,
-            renormalize_logits=True,
-            do_sample=True,
-        )
+        return logits_processor
 
 
 class TAPTSampleGenerator(PipelineGeneratorMixin, SampleGenerator, ABC):
