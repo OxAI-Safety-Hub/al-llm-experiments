@@ -88,23 +88,66 @@ class UncertaintyLogitsProcessor(LogitsProcessor):
         self, input_ids: torch.LongTensor, scores: torch.FloatTensor
     ) -> torch.FloatTensor:
 
-        # The mask for the uncertainties we actually want to compute
-        mask = scores != self.filter_value
+        # The number of input sequences
+        num_inputs = input_ids.shape[0]
 
-        # Filter the input IDs by the mask
-        filtered_input_ids = input_ids[mask]
+        # The number of tokens
+        num_tokens = scores.shape[1]
+
+        # The mask for the tokens for which we actually want to compute the
+        # uncertainties
+        scores_mask = scores != self.filter_value
+
+        # Determine the amounts of filtered scores per input
+        count_per_input = torch.count_nonzero(scores_mask, dim=1)
+        unique_counts = torch.unique(count_per_input)
+
+        # We need that all scores have the same number of filtered values
+        if len(unique_counts) != 1:
+            raise ValueError(
+                f"Parameter `scores` must have the same number"
+                f" of filtered values per input. Got {list(count_per_input)}"
+            )
+
+        # Get the number of filtered scores
+        num_filtered_scores = unique_counts.item()
+
+        # Create `num_filtered_scores` copies of each input sequence
+        # This creates a tensor of dimension:
+        #     num_filtered_scores x num_inputs x {sequence length}
+        inputs_repeated = input_ids.repeat(num_filtered_scores, 1, 1)
+
+        # Get the token ids of each of the filtered scores
+        score_indices = torch.arange(num_tokens).repeat(num_inputs, 1)
+        filtered_token_ids = score_indices[scores_mask].reshape(
+            (num_inputs, num_filtered_scores, 1)
+        )
+
+        # Add these token IDs at the end of the repeated inputs, to get a
+        # tensor of dimension:
+        #     num_filtered_scores x num_inputs x ({sequence length} + 1)
+        # which contains all the sequences for which we want to compute the
+        # uncertainty
+        sequences_block = torch.cat((inputs_repeated, filtered_token_ids), dim=2)
+
+        # Serialise these into a tensor of dimension:
+        #     (num_filtered_scores * num_inputs) x ({sequence length} + 1)
+        sequences_serialised = torch.flatten(sequences_block, 0, 1)
 
         # Compute the uncertainties of the input sequences for the classifier
-        filtered_uncertainties = self.classifier.calculate_uncertainties_tokenized(
-            filtered_input_ids
+        uncertainties_serialised = self.classifier.calculate_uncertainties_tokenized(
+            sequences_serialised
         )
 
+        # Insert the uncertainty values in the appropriate places in a:
+        #     num_inputs x num_tokens
+        # tensor, so be added to the scores.
+        to_add = torch.zeros_like(scores)
+        to_add[scores_mask] = uncertainties_serialised
+
         # Add these to the scores, weighting appropriately
-        filtered_weighted_uncertainties = (
-            self.uncertainty_weighting * filtered_uncertainties
-        )
-        to_sum = torch.stack([scores, filtered_weighted_uncertainties], dim=0)
-        scores[mask] = torch.logsumexp(to_sum, dim=0)
+        to_sum = torch.stack((scores, self.uncertainty_weighting * to_add), dim=0)
+        scores = torch.logsumexp(to_sum, dim=0)
 
         return scores
 
