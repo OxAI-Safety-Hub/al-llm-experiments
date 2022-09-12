@@ -117,8 +117,8 @@ class UncertaintyLogitsProcessor(LogitsProcessor):
 
         # Create `num_filtered_scores` copies of each input sequence
         # This creates a tensor of dimension:
-        #     num_filtered_scores x num_inputs x {sequence length}
-        inputs_repeated = input_ids.repeat(num_filtered_scores, 1, 1)
+        #     num_inputs x num_filtered_scores x {sequence length}
+        inputs_repeated = input_ids.repeat(num_filtered_scores, 1, 1).transpose(0,1)
 
         # Get the token ids of each of the filtered scores
         score_indices = torch.arange(num_tokens, device=device).repeat(num_inputs, 1)
@@ -128,13 +128,13 @@ class UncertaintyLogitsProcessor(LogitsProcessor):
 
         # Add these token IDs at the end of the repeated inputs, to get a
         # tensor of dimension:
-        #     num_filtered_scores x num_inputs x ({sequence length} + 1)
+        #     num_inputs x num_filtered_scores x ({sequence length} + 1)
         # which contains all the sequences for which we want to compute the
         # uncertainty
         sequences_block = torch.cat((inputs_repeated, filtered_token_ids), dim=2)
 
         # Serialise these into a tensor of dimension:
-        #     (num_filtered_scores * num_inputs) x ({sequence length} + 1)
+        #     (num_inputs * num_filtered_scores) x ({sequence length} + 1)
         sequences_serialised = torch.flatten(sequences_block, 0, 1)
 
         # Compute the uncertainties of the input sequences for the classifier
