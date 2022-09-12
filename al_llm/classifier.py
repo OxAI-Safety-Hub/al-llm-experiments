@@ -666,7 +666,7 @@ class TAPTClassifier(HuggingFaceClassifier, ABC):
         """Load the TAPT classifier model afresh"""
 
         # Delete the old model to free up memory
-        del self.model
+        del self._model
 
         # load model and training args from wandb
         model, training_args = load_tapted_model(
@@ -675,7 +675,7 @@ class TAPTClassifier(HuggingFaceClassifier, ABC):
             self.parameters["dataset_name"],
             "classifier",
         )
-        self.model = model
+        self._model = model
         self.training_parameters = training_args
 
         # Setup the model
