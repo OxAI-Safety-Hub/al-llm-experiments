@@ -12,7 +12,6 @@ import wandb
 from transformers import (
     pipeline,
     LogitsProcessor,
-    TopKLogitsWarper,
     LogitsProcessorList,
     AutoModelForCausalLM,
 )
@@ -327,7 +326,6 @@ class PipelineGeneratorMixin(ABC):
             device = torch.device(self.parameters["cuda_device"])
         else:
             device = torch.device("cpu")
-            logits_processor = (logits_processor,)
 
         # Get the logits preprocessor to use
         logits_processor = self._make_logits_processor()
