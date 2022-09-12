@@ -359,7 +359,7 @@ class PipelineGeneratorMixin(ABC):
         # Create a tqdm progress bar to track the generation progress. We
         # assume that we go to the max length; if not, the bar will just end
         # early
-        with tqdm(total=self.parameters["sample_generator_max_length"]) as tqdm_bar:
+        with tqdm(total=self.parameters["sample_generator_max_length"] - 1) as tqdm_bar:
 
             self._tqdm_holder.tqdm_bar = tqdm_bar
 
