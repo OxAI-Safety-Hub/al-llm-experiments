@@ -313,7 +313,7 @@ class CLIInterface(CLIInterfaceMixin, FullLoopInterface):
             # Build first part of the message, consisting of the sample plus
             # the question
             text = "\n"
-            text += self._wrap(f"[{i}/{len(samples)}]")
+            text += self._wrap(f"[{i}/{len(samples)}]") + "\n"
             text += self._wrap(f"{sample!r}") + "\n"
             text += self._wrap("How would you classify this?") + "\n"
 
