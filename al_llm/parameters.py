@@ -21,12 +21,12 @@ class Parameters(dict):
     ----------
     dataset_name : str, default="dummy"
         The name of the hugging face dataset.
-    num_iterations : int, default=15
+    num_iterations : int, default=51
         The number of iterations over which to run the active learning.
-    refresh_every : int, default=-1
+    refresh_every : int, default=1
         How often to retrain the classifier from scratch. A value of `-1` means
         we never refresh.
-    refresh_on_last : bool, default=False
+    refresh_on_last : bool, default=True
         Whether to refresh the model on the last iteration.
     eval_every : int, default=0
         How often run an eval loop when training. A value of `0` means we only
@@ -63,7 +63,7 @@ class Parameters(dict):
     validation_proportion : float, default=0.2
         Proportion of the training data to be used for validation, if it's not
         provided by the Hugging Face dataset.
-    train_dataset_size : int, default=100
+    train_dataset_size : int, default=10
         The size of the initial set of labelled data, for training the
         classifier. A set of this size is selected from the 'train' split
         of the dataset; the rest are collected as a pool of remainder data,
@@ -80,11 +80,11 @@ class Parameters(dict):
         The name of the base model the sample generator should use.
     use_tapted_sample_generator : bool, default=False
         True if a pretrained sample generator should be used.
-    use_tbt_sample_generator : bool, default=False
-        Whether to use the token-by-token sample generator.
     use_tapted_classifier : bool, default=False
         True if a pretrained classifier should be used.
-    sample_generator_temperature : float, default=1.0
+    use_tbt_sample_generator : bool, default=False
+        Whether to use the token-by-token sample generator.
+    sample_generator_temperature : float, default=0.5
         The temperature used when generating new samples
     sample_generator_top_k : int, default=50
         The number of highest probability vocabulary tokens to keep for
@@ -126,9 +126,9 @@ class Parameters(dict):
     def __init__(
         self,
         dataset_name: str = "dummy",
-        num_iterations: int = 15,
-        refresh_every: int = -1,
-        refresh_on_last: bool = False,
+        num_iterations: int = 51,
+        refresh_every: int = 1,
+        refresh_on_last: bool = True,
         eval_every: int = 0,
         batch_size: int = 16,
         eval_batch_size: int = 128,
@@ -142,7 +142,7 @@ class Parameters(dict):
         seed: int = 459834,
         send_alerts: bool = False,
         validation_proportion: float = 0.2,
-        train_dataset_size: int = 100,
+        train_dataset_size: int = 10,
         full_loop: bool = True,
         supervised: bool = False,
         classifier_base_model: str = "dummy",
@@ -151,7 +151,7 @@ class Parameters(dict):
         use_tapted_sample_generator: bool = False,
         use_tapted_classifier: bool = False,
         use_tbt_sample_generator: bool = False,
-        sample_generator_temperature: float = 1.0,
+        sample_generator_temperature: float = 0.5,
         sample_generator_top_k: int = 50,
         sample_generator_max_length: int = 30,
         tbt_pre_top_k: int = 256,
@@ -167,7 +167,7 @@ class Parameters(dict):
     ):
 
         # If we're running supervised learning, we need to run a full loop
-        if supervised == True:
+        if supervised:
             full_loop = True
 
         # sets the parameters provided
