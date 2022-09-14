@@ -27,7 +27,7 @@ from al_llm.constants import TEXT_COLUMN_NAME
 
 
 class TqdmHolder:
-    """Helper class to holds the current tqdm instance"""
+    """Helper class to hold the current tqdm instance"""
 
     def __init__(self):
         self.tqdm_bar: Optional[tqdm] = None
