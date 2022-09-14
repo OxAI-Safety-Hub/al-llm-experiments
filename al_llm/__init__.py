@@ -33,5 +33,10 @@ from .sample_generator import (
     DummySampleGenerator,
     PlainGPT2SampleGenerator,
     PoolSampleGenerator,
+    TAPTGPT2SampleGenerator,
+    TAPTDistilGPT2SampleGenerator,
+    TokenByTokenSampleGenerator,
+    PlainGPT2TokenByTokenSampleGenerator,
+    TAPTGPT2TokenByTokenSampleGenerator,
 )
 from .parameters import Parameters

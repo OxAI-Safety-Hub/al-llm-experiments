@@ -82,11 +82,24 @@ class Parameters(dict):
         True if a pretrained sample generator should be used.
     use_tapted_classifier : bool, default=False
         True if a pretrained classifier should be used.
+    use_tbt_sample_generator : bool, default=False
+        Whether to use the token-by-token sample generator.
     sample_generator_temperature : float, default=0.5
         The temperature used when generating new samples
     sample_generator_top_k : int, default=50
         The number of highest probability vocabulary tokens to keep for
         top-k-filtering when doing sample generation
+    sample_generator_max_length : int, default=30
+        The maximum number of tokens to generate.
+    tbt_pre_top_k : int, default=256
+        When doing token-by-token generation, this is the number of tokens
+        which get selected to add the uncertainties to. We take the top k
+        tokens ordered according to the probability given by the generating
+        model. This is done for efficiency reasons, to avoid having to
+        compute the uncertainties for every token.
+    tbt_uncertainty_weighting : float, default=1
+        When doing token-by-token generation, this is the weighting to use
+        when adding the uncertainty to the logit value.
     use_automatic_labeller : bool, default=False
         Whether to use a pretrained classifier to provide the labels, instead
         of a human.
@@ -137,8 +150,12 @@ class Parameters(dict):
         sample_generator_base_model: str = "dummy",
         use_tapted_sample_generator: bool = False,
         use_tapted_classifier: bool = False,
+        use_tbt_sample_generator: bool = False,
         sample_generator_temperature: float = 0.5,
         sample_generator_top_k: int = 50,
+        sample_generator_max_length: int = 30,
+        tbt_pre_top_k: int = 256,
+        tbt_uncertainty_weighting: float = 1,
         use_automatic_labeller: bool = False,
         automatic_labeller_model_name: str = "textattack/roberta-base-rotten-tomatoes",
         ambiguity_mode: str = "only_mark",
@@ -181,8 +198,12 @@ class Parameters(dict):
             sample_generator_base_model=sample_generator_base_model,
             use_tapted_sample_generator=use_tapted_sample_generator,
             use_tapted_classifier=use_tapted_classifier,
+            use_tbt_sample_generator=use_tbt_sample_generator,
             sample_generator_temperature=sample_generator_temperature,
             sample_generator_top_k=sample_generator_top_k,
+            sample_generator_max_length=sample_generator_max_length,
+            tbt_pre_top_k=tbt_pre_top_k,
+            tbt_uncertainty_weighting=tbt_uncertainty_weighting,
             use_automatic_labeller=use_automatic_labeller,
             automatic_labeller_model_name=automatic_labeller_model_name,
             ambiguity_mode=ambiguity_mode,

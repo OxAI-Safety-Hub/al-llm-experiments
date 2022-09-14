@@ -29,6 +29,8 @@ from al_llm.sample_generator import (
     TAPTGPT2SampleGenerator,
     TAPTDistilGPT2SampleGenerator,
     PoolSampleGenerator,
+    PlainGPT2TokenByTokenSampleGenerator,
+    TAPTGPT2TokenByTokenSampleGenerator,
 )
 from al_llm.acquisition_function import (
     DummyAF,
@@ -103,6 +105,12 @@ class Experiment:
     MAP_TAPT_SAMPLE_GENERATOR = {
         "distilgpt2": TAPTDistilGPT2SampleGenerator,
         "gpt2": TAPTGPT2SampleGenerator,
+    }
+    MAP_TBT_PLAIN_SAMPLE_GENERATOR = {
+        "gpt2": PlainGPT2TokenByTokenSampleGenerator,
+    }
+    MAP_TBT_TAPT_SAMPLE_GENERATOR = {
+        "gpt2": TAPTGPT2TokenByTokenSampleGenerator,
     }
 
     def __init__(
@@ -452,18 +460,42 @@ class Experiment:
         sg_model_name = parameters["sample_generator_base_model"]
         if sg_model_name == "pool":
             sample_generator = cls.MAP_PLAIN_SAMPLE_GENERATOR[sg_model_name](
-                parameters, acquisition_function, dataset_container
+                parameters, wandb_run, acquisition_function, dataset_container
+            )
+        elif (
+            parameters["use_tbt_sample_generator"]
+            and not parameters["use_tapted_sample_generator"]
+        ):
+            sample_generator = cls.MAP_TBT_PLAIN_SAMPLE_GENERATOR[sg_model_name](
+                parameters,
+                classifier,
+                wandb_run,
+                acquisition_function=acquisition_function,
+            )
+        elif (
+            parameters["use_tbt_sample_generator"]
+            and parameters["use_tapted_sample_generator"]
+        ):
+            sample_generator = cls.MAP_TBT_TAPT_SAMPLE_GENERATOR[sg_model_name](
+                parameters,
+                classifier,
+                wandb_run,
+                acquisition_function=acquisition_function,
             )
         elif parameters["use_tapted_sample_generator"]:
             sample_generator = cls.MAP_TAPT_SAMPLE_GENERATOR[sg_model_name](
                 parameters, wandb_run, acquisition_function=acquisition_function
             )
-            tapt_parameters = sample_generator.get_training_parameters()
-            wandb.config.update({"tapt_sample_generator": tapt_parameters})
         else:
             sample_generator = cls.MAP_PLAIN_SAMPLE_GENERATOR[sg_model_name](
-                parameters, acquisition_function=acquisition_function
+                parameters, wandb_run, acquisition_function=acquisition_function
             )
+
+        # Update the W&B config with TAPT parameters, if we're using a TAPTed
+        # sample generator
+        if parameters["use_tapted_sample_generator"]:
+            tapt_parameters = sample_generator.get_training_parameters()
+            wandb.config.update({"tapt_sample_generator": tapt_parameters})
 
         # Set up the interface
         if parameters["use_automatic_labeller"]:
