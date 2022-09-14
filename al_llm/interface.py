@@ -308,15 +308,20 @@ class CLIInterface(CLIInterfaceMixin, FullLoopInterface):
         ambiguities = []
 
         # Loop over all the samples for which we need a label
-        for sample in samples:
+        for i, sample in enumerate(samples):
 
-            # Build the message with the sample plus the category selection
+            # Build first part of the message, consisting of the sample plus
+            # the question
             text = "\n"
+            text += self._wrap(f"[{i}/{len(samples)}]") + "\n"
             text += self._wrap(f"{sample!r}") + "\n"
             text += self._wrap("How would you classify this?") + "\n"
+
+            # Add the category selection
             categories = self.dataset_container.categories
             for i, cat_human_readable in enumerate(categories.values()):
                 text += self._wrap(f"[{i}] {cat_human_readable}") + "\n"
+
             # If also checking for ambiguity, add these options
             if self.parameters["ambiguity_mode"] != "none":
                 for i, cat_human_readable in enumerate(categories.values()):
@@ -330,12 +335,14 @@ class CLIInterface(CLIInterfaceMixin, FullLoopInterface):
             # Print the message
             self._output(text)
 
-            # Keep asking the user for a label until they give a valid one
+            # Build the prompt
             if self.parameters["ambiguity_mode"] == "none":
                 max_valid_label = len(categories) - 1
             else:
                 max_valid_label = 2 * len(categories) - 1
-            prompt = self._wrap(f"Enter a number (0-{max_valid_label}):")
+            prompt = self._wrap(f"Enter a number (0-{max_valid_label}): ")
+
+            # Keep asking the user for a label until they give a valid one
             valid_label = False
             while not valid_label:
                 label_str = self._input(prompt)

@@ -3,8 +3,13 @@ import tempfile
 import json
 from typing import Any, Tuple
 
-from transformers import AutoModelForSequenceClassification, AutoModelForCausalLM
+from transformers import (
+    PreTrainedModel,
+    AutoModelForSequenceClassification,
+    AutoModelForCausalLM,
+)
 import datasets
+
 import wandb
 
 from al_llm.constants import WANDB_ENTITY
@@ -69,12 +74,12 @@ def _load_json(tmp: str, file_name: str) -> Any:
         return json.load(file)
 
 
-def _save_model(model: Any, tmp: str, file_name: str):
+def _save_model(model: PreTrainedModel, tmp: str, file_name: str):
     """Save a model in a temporary directory
 
     Parameters
     ----------
-    model : Any
+    model : PreTrainedModel
         The model to save to the temporaty directory.
     tmp : str
         The temporary directory to use as an in between.
@@ -86,7 +91,7 @@ def _save_model(model: Any, tmp: str, file_name: str):
     model.save_pretrained(file_path)
 
 
-def _load_model(tmp: str, file_name: str, purpose: str) -> Any:
+def _load_model(tmp: str, file_name: str, purpose: str) -> PreTrainedModel:
     """Load a model from a temporary directory
 
     Parameters
@@ -100,7 +105,7 @@ def _load_model(tmp: str, file_name: str, purpose: str) -> Any:
 
     Returns
     ----------
-    model : Any
+    model : PreTrainedModel
         The model from the temporaty directory.
     """
 
@@ -238,7 +243,7 @@ def load_dataset_extension(
 
 def save_classifier_model(
     wandb_run: wandb.sdk.wandb_run.Run,
-    model: Any,
+    model: PreTrainedModel,
 ):
     """Save a classifier model to wandb as an artifact
 
@@ -246,7 +251,7 @@ def save_classifier_model(
     ----------
     wandb_run : wandb.sdk.wandb_run.Run
         The run that this dataset extension should be saved to.
-    model : Any
+    model : PreTrainedModel
         The classifier model to saved
     """
 
@@ -265,7 +270,7 @@ def save_classifier_model(
 
 def load_classifier_model(
     wandb_run: wandb.sdk.wandb_run.Run,
-) -> Any:
+) -> PreTrainedModel:
     """Load a classifier model from wandb
 
     Parameters
@@ -275,7 +280,7 @@ def load_classifier_model(
 
     Returns
     ----------
-    model : Any
+    model : PreTrainedModel
         The classifier model
     """
 
@@ -327,7 +332,7 @@ def save_dual_label_results(
 
 def save_tapted_model(
     wandb_run: wandb.sdk.wandb_run.Run,
-    model: Any,
+    model: PreTrainedModel,
     training_args: dict,
     base_model_name: str,
     dataset_name: str,
@@ -338,7 +343,7 @@ def save_tapted_model(
     ----------
     wandb_run : wandb.sdk.wandb_run.Run
         The run that this tapted model should be saved to.
-    model : Any
+    model : PreTrainedModel
         The tapted model to saved
     training_args : dict
         The training arguments which the tapt process used
@@ -367,7 +372,7 @@ def load_tapted_model(
     base_model_name: str,
     dataset_name: str,
     purpose: str,
-) -> Tuple[Any, dict]:
+) -> Tuple[PreTrainedModel, dict]:
     """Load a tapted model and it's parameters from wandb
 
     Parameters
@@ -383,7 +388,7 @@ def load_tapted_model(
 
     Returns
     ----------
-    model : Any
+    model : PreTrainedModel
         The loaded tapted model
     training_args : dict
         The training arguments which the tapt process used

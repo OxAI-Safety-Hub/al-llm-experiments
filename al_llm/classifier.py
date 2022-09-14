@@ -185,8 +185,6 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         The container for the datasets in this experiment
     wandb_run : wandb.sdk.wandb_run.Run
         The current wandb run
-    model_name : str
-        The name of the model, as on Hugging Face
 
     Attributes
     ----------
@@ -201,22 +199,20 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         Set to either cuda (if GPU available) or CPU
     """
 
+    MODEL_NAME = ""
+
     def __init__(
         self,
         parameters: Parameters,
         dataset_container: DatasetContainer,
         wandb_run: wandb.sdk.wandb_run.Run,
-        model_name: str,
     ):
 
         # initialises the parameters in the same way as the base class
         super().__init__(parameters, dataset_container, wandb_run)
 
-        # Set the model name
-        self.model_name = model_name
-
         # loads the tokenizer that the model will use
-        self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
+        self.tokenizer = AutoTokenizer.from_pretrained(self.MODEL_NAME)
         self.tokenizer.pad_token = self.tokenizer.eos_token
 
         # Set up the Hugging Face metric evaluator
@@ -285,7 +281,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
 
         # load a fresh version of the model
         self.model = AutoModelForSequenceClassification.from_pretrained(
-            self.model_name, num_labels=2
+            self.MODEL_NAME, num_labels=2
         )
 
         # Setup the model
@@ -586,8 +582,6 @@ class TAPTClassifier(HuggingFaceClassifier, ABC):
         The container for the datasets in this experiment
     wandb_run : wandb.sdk.wandb_run.Run
         The current wandb run
-    model_name : str
-        The name of the model, as on Hugging Face
 
     Attributes
     ----------
@@ -614,7 +608,7 @@ class TAPTClassifier(HuggingFaceClassifier, ABC):
         # load model and training args from wandb
         model, training_args = load_tapted_model(
             self.wandb_run,
-            self.model_name,
+            self.MODEL_NAME,
             self.parameters["dataset_name"],
             "classifier",
         )
@@ -660,16 +654,6 @@ class PlainGPT2Classifier(HuggingFaceClassifier):
 
     MODEL_NAME = "gpt2"
 
-    def __init__(
-        self,
-        parameters: Parameters,
-        dataset_container: DatasetContainer,
-        wandb_run: wandb.sdk.wandb_run.Run,
-    ):
-        super().__init__(
-            parameters, dataset_container, wandb_run, model_name=self.MODEL_NAME
-        )
-
 
 class PlainDistilGPT2Classifier(HuggingFaceClassifier):
     """Classifier class based on DistilGPT2 by HuggingFace
@@ -709,16 +693,6 @@ class PlainDistilGPT2Classifier(HuggingFaceClassifier):
 
     MODEL_NAME = "distilgpt2"
 
-    def __init__(
-        self,
-        parameters: Parameters,
-        dataset_container: DatasetContainer,
-        wandb_run: wandb.sdk.wandb_run.Run,
-    ):
-        super().__init__(
-            parameters, dataset_container, wandb_run, model_name=self.MODEL_NAME
-        )
-
 
 class TAPTGPT2Classifier(TAPTClassifier):
     """Classifier class based on a TAPTed GPT-2 model
@@ -755,16 +729,6 @@ class TAPTGPT2Classifier(TAPTClassifier):
 
     MODEL_NAME = "gpt2"
 
-    def __init__(
-        self,
-        parameters: Parameters,
-        dataset_container: DatasetContainer,
-        wandb_run: wandb.sdk.wandb_run.Run,
-    ):
-        super().__init__(
-            parameters, dataset_container, wandb_run, model_name=self.MODEL_NAME
-        )
-
 
 class TAPTDistilGPT2Classifier(TAPTClassifier):
     """Classifier class based on a TAPTed DistilGPT2
@@ -798,13 +762,3 @@ class TAPTDistilGPT2Classifier(TAPTClassifier):
     """
 
     MODEL_NAME = "distilgpt2"
-
-    def __init__(
-        self,
-        parameters: Parameters,
-        dataset_container: DatasetContainer,
-        wandb_run: wandb.sdk.wandb_run.Run,
-    ):
-        super().__init__(
-            parameters, dataset_container, wandb_run, model_name=self.MODEL_NAME
-        )

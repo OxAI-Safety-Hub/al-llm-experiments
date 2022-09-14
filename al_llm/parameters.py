@@ -150,7 +150,7 @@ class Parameters(dict):
     ):
 
         # If we're running supervised learning, we need to run a full loop
-        if supervised == True:
+        if supervised:
             full_loop = True
 
         # sets the parameters provided

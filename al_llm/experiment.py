@@ -95,7 +95,6 @@ class Experiment:
         "random": RandomAF,
         "max_uncertainty": MaxUncertaintyAF,
     }
-
     MAP_PLAIN_SAMPLE_GENERATOR = {
         "dummy": DummySampleGenerator,
         "gpt2": PlainGPT2SampleGenerator,
