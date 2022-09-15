@@ -118,3 +118,13 @@ class MaxUncertaintyAF(AcquisitionFunction):
         uncertain_samples = [sample_pool[i] for i in argsorted[-num_samples:]]
 
         return uncertain_samples
+
+
+class BatchBaldAF(AcquisitionFunction):
+    """An acquisition function using the batch bald algorithm
+
+    Parameters
+    ----------
+    parameters : Parameters
+        The dictionary of parameters for the present experiment
+    """
