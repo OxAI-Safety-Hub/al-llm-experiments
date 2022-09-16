@@ -315,7 +315,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
 
         # load a fresh version of the model
         self._model = AutoModelForSequenceClassification.from_pretrained(
-            self.MODEL_NAME, num_labels=2
+            self.MODEL_NAME, num_labels=len(self.dataset_container.CATEGORIES)
         )
 
         # Setup the model
