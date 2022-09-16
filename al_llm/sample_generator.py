@@ -20,6 +20,7 @@ from tqdm import tqdm
 
 from al_llm.acquisition_function import AcquisitionFunction
 from al_llm.dataset_container import DatasetContainer
+from al_llm.data_handler import DataHandler
 from al_llm.parameters import Parameters
 from al_llm.classifier import HuggingFaceClassifier
 from al_llm.utils.artifacts import load_tapted_model
@@ -371,6 +372,48 @@ class PoolSampleGenerator(SampleGenerator):
             min(len(self.remainder_sentences), self.parameters["sample_pool_size"]),
         )
         return simulated_pool
+
+
+class ReplaySampleGenerator(SampleGenerator):
+    """Retrieve samples from a previous run
+
+    Parameters
+    ----------
+    parameters : Parameters
+        The dictionary of parameters for the present experiment
+    wandb_run : wandb.sdk.wandb_run.Run
+        The current wandb run
+    data_handler : DataHandler
+        The data handler for the experiment
+    acquisition_function : AcquisitionFunction, optional
+        The acquisition function to use.
+    """
+
+    def __init__(
+        self,
+        parameters: Parameters,
+        wandb_run: wandb.sdk.wandb_run.Run,
+        data_handler: DataHandler,
+    ):
+        super().__init__(parameters, wandb_run, None)
+        self.data_handler = data_handler
+
+        # The current index in the replay dataset extension
+        self._iteration = 0
+
+    def generate(self) -> list:
+
+        # Announce what we're doing
+        print()
+        print("Getting samples from the replayed run...")
+
+        # Get the next batch of samples from the replayed run
+        samples = self.data_handler.get_replay_samples(self._iteration)
+
+        # Update the index
+        self._iteration += 1
+
+        return samples
 
 
 class HuggingFaceSampleGenerator(SampleGenerator, ABC):

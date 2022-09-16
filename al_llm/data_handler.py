@@ -1,6 +1,6 @@
 # The python abc module for making abstract base classes
 # https://docs.python.org/3.10/library/abc.html
-from typing import Union
+from typing import Union, Optional, Tuple
 
 import torch
 
@@ -42,6 +42,8 @@ class DataHandler:
     ----------
     classifier : classifier.Classifier
         The classifier instance which will be using the data.
+    replay_dataset_extension : Optional[datasets.Dataset]
+        If we're replaying a run, this is the dataset extension from that run
     """
 
     ARTIFACT_NAME = "added-data"
@@ -59,6 +61,10 @@ class DataHandler:
         self.dataset_container = dataset_container
         self.classifier = classifier
         self.wandb_run = wandb_run
+
+        # The dataset extension from the run we're replaying, if we're doing
+        # that
+        self.replay_dataset_extension: Optional[datasets.Dataset] = None
 
         # Add 'categories' to the config
         wandb.config.update({"categories": self.dataset_container.CATEGORIES})
@@ -146,3 +152,70 @@ class DataHandler:
 
         added_data = load_dataset_extension(self.wandb_run)
         return added_data
+
+    def load_replay_dataset_extension(self, replayed_run: wandb.sdk.wandb_run.Run):
+        """Load the dataset extension from a run we're replaying
+
+        Parameters
+        ----------
+        replayed_run: wandb.sdk.wandb_run.Run
+            The run which we're replaying
+        """
+
+        print("Loading data from replayed run...")
+        dataset_extension_dict = load_dataset_extension(replayed_run)
+        self.replay_dataset_extension = datasets.Dataset.from_dict(
+            dataset_extension_dict
+        )
+
+    def get_replay_samples(self, iteration: int) -> list:
+        """Get a set of samples from the replay dataset extension
+
+        Returns the set of sentences in the slice:
+            `iteration * num_samples : (iteration + 1) * num_samples`
+
+        Parameters
+        ----------
+        iteration : int
+            The iteration from which to select the samples
+
+        Returns
+        -------
+        samples : list
+            The list of sentences selected
+        """
+
+        start = iteration * self.parameters["num_samples"]
+        end = (iteration + 1) * self.parameters["num_samples"]
+        return self.replay_dataset_extension[TEXT_COLUMN_NAME][start:end]
+
+    def get_replay_labels_ambiguities(self, iteration: int) -> Tuple[list, list]:
+        """Get a set of labels and ambiguities from the replay dataset extension
+
+        Returns the set of labels and ambiguities in the slice:
+            `iteration * num_samples : (iteration + 1) * num_samples`
+
+        Parameters
+        ----------
+        iteration : int
+            The iteration from which to select the samples
+
+        Returns
+        -------
+        labels : list
+            The list of labels selected
+        ambiguities : list
+            The list of ambiguities selected
+        """
+
+        # Get the labels and ambiguities
+        start = iteration * self.parameters["num_samples"]
+        end = (iteration + 1) * self.parameters["num_samples"]
+        labels = self.replay_dataset_extension[LABEL_COLUMN_NAME][start:end]
+        ambiguities = self.replay_dataset_extension[AMBIGUITIES_COLUMN_NAME][start:end]
+
+        # Replace the labels with the corresponding category names
+        categories = self.dataset_container.CATEGORIES
+        labels = [categories.keys()[label] for label in labels]
+
+        return labels, ambiguities
