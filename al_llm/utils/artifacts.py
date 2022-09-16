@@ -211,7 +211,7 @@ def save_dataset_extension(
 
 def load_dataset_extension(
     wandb_run: wandb.sdk.wandb_run.Run,
-) -> datasets.Dataset:
+) -> dict:
     """Load a dataset extention from wandb
 
     Parameters
@@ -221,7 +221,7 @@ def load_dataset_extension(
 
     Returns
     ----------
-    added_data : datasets.Dataset
+    added_data : dict
         The dataset extension.
     """
 
