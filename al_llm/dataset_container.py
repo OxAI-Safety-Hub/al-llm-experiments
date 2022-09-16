@@ -709,30 +709,6 @@ class PubMed20kRCTDatasetContainer(HuggingFaceDatasetContainer):
         # Do any preprocessing defined by the base class
         super()._preprocess_dataset()
 
-        # Recast the 'label' column so it uses ClassLabels instead of Values
-        new_train_features = self.dataset_train.features.copy()
-        new_remainder_features = self.dataset_remainder.features.copy()
-        new_validation_features = self.dataset_validation.features.copy()
-        new_test_features = self.dataset_test.features.copy()
-
-        new_train_features["label"] = datasets.ClassLabel(
-            names=list(self.CATEGORIES.keys())
-        )
-        new_remainder_features["label"] = datasets.ClassLabel(
-            names=list(self.CATEGORIES.keys())
-        )
-        new_validation_features["label"] = datasets.ClassLabel(
-            names=list(self.CATEGORIES.keys())
-        )
-        new_test_features["label"] = datasets.ClassLabel(
-            names=list(self.CATEGORIES.keys())
-        )
-
-        self.dataset_train = self.dataset_train.cast(new_train_features)
-        self.dataset_remainder = self.dataset_remainder.cast(new_remainder_features)
-        self.dataset_validation = self.dataset_validation.cast(new_validation_features)
-        self.dataset_test = self.dataset_test.cast(new_test_features)
-
         # Rename the 'label' column
         self.dataset_train = self.dataset_train.rename_column(
             "label", LABEL_COLUMN_NAME
