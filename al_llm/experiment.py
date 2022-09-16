@@ -36,6 +36,7 @@ from al_llm.acquisition_function import (
     DummyAF,
     MaxUncertaintyAF,
     RandomAF,
+    BatchBaldAF,
 )
 from al_llm.interface import (
     CLIBrokenLoopInterface,
@@ -96,6 +97,7 @@ class Experiment:
         "dummy": DummyAF,
         "random": RandomAF,
         "max_uncertainty": MaxUncertaintyAF,
+        "batch_bald": BatchBaldAF,
     }
     MAP_PLAIN_SAMPLE_GENERATOR = {
         "dummy": DummySampleGenerator,
@@ -451,7 +453,7 @@ class Experiment:
         af_class = cls.MAP_ACQUISITION_FUNCTION[af_name]
         if af_class is None:
             acquisition_function = None
-        elif af_name == "max_uncertainty":
+        elif af_name == "max_uncertainty" or af_name == "batch_bald":
             acquisition_function = af_class(parameters, classifier)
         else:
             acquisition_function = af_class(parameters)

@@ -6,7 +6,7 @@ import random
 from typing import Tuple, List
 from toma import toma
 import torch
-import tqdm
+from tqdm.auto import tqdm
 
 from al_llm.classifier import Classifier, UncertaintyMixin
 from al_llm.parameters import Parameters
@@ -163,6 +163,9 @@ class BatchBaldAF(AcquisitionFunction):
             for i in tqdm(
                 range(len(sample_pool)), desc="Evaluating Acquisition Set", leave=False
             ):
+                # Following code doesn't work. The sample pool needs to be tokenized 
+                # and ideally put into a dataloader if we wanted to match the original
+                # code.
                 data = sample_pool[i].to(device=self.classifier.device)
                 logits_N_K_C[i : i + 1].copy_(
                     self.classifier._model(data, num_inference_samples).double(),
