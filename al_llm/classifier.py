@@ -348,6 +348,12 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
             batch_size=self.parameters["eval_batch_size"],
         )
 
+        # The test dataloader
+        test_dataloader = DataLoader(
+            self.dataset_container.tokenized_test,
+            batch_size=self.parameters["eval_batch_size"],
+        )
+
         # create a learning rate scheduler
         num_training_steps = num_epochs * len(train_dataloader)
         lr_scheduler = get_scheduler(
@@ -379,21 +385,30 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
                 "train": train_metrics,
             }
 
-            # If the eval loop should run this epoch, or if it is the last epoch
-            run_eval = (
-                self.parameters["eval_every"] > 0
-                and (epoch + 1) % self.parameters["eval_every"] == 0
-            )
-            run_eval = run_eval or epoch == num_epochs - 1
-            if run_eval:
-                # Run the evaluation loop, obtaining the metrics
-                print("- Running eval loop")
-                eval_metrics = self._eval_epoch(eval_dataloader)
-                print(
-                    f"Eval loss: {eval_metrics['loss']:.8}; "
-                    f"eval accuracy: {eval_metrics['accuracy']:.6%}"
+            # Run eval and test loops, if required
+            for split, dataloader in [
+                ("eval", eval_dataloader),
+                ("test", test_dataloader),
+            ]:
+
+                # If the eval loop should run this epoch, or if it is the last epoch
+                run_eval = (
+                    self.parameters[f"{split}_every"] > 0
+                    and (epoch + 1) % self.parameters[f"{split}_every"] == 0
                 )
-                results_to_log["eval"] = eval_metrics
+                run_eval = run_eval or (
+                    self.parameters[f"{split}_every"] >= 0 and epoch == num_epochs - 1
+                )
+
+                if run_eval:
+                    # Run the evaluation loop, obtaining the metrics
+                    print(f"- Running {split} loop")
+                    eval_metrics = self._eval_epoch(dataloader)
+                    print(
+                        f"{split.capitalize()} loss: {eval_metrics['loss']:.8}; "
+                        f"{split.capitalize()} f1: {eval_metrics['f1']:.6%}"
+                    )
+                    results_to_log[split] = eval_metrics
 
             # Record the metrics with W&B
             self.wandb_run.log(results_to_log)
