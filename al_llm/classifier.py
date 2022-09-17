@@ -802,6 +802,7 @@ class TAPTClassifier(HuggingFaceClassifier, ABC):
             self.MODEL_NAME,
             self.parameters["dataset_name"],
             "classifier",
+            num_categories=len(self.dataset_container.CATEGORIES),
             tapted_model_version=self.parameters["tapted_model_version"],
         )
         self._model = model

@@ -396,6 +396,8 @@ def load_tapted_model(
     base_model_name: str,
     dataset_name: str,
     purpose: str,
+    *,
+    num_categories: Optional[int] = None,
     tapted_model_version: str = "latest",
 ) -> Tuple[PreTrainedModel, dict]:
     """Load a tapted model and it's parameters from wandb
@@ -410,6 +412,8 @@ def load_tapted_model(
         The name of the dataset used for tapting
     purpose : str
         What will this model be used for. "sample_generator" or "classifier"
+    num_categories : int, optional
+        The number of class labels, when usings the model as a classifier.
     tapted_model_version : str, default="latest"
         The artifact version of the tapted model to load. By default it will
         load the most recent version
@@ -435,5 +439,7 @@ def load_tapted_model(
         )
 
         training_args = _load_json(tmp, TAPT_PARAMETERS_FILE_NAME)
-        model = _load_model(tmp, TAPT_MODEL_FILE_NAME, purpose)
+        model = _load_model(
+            tmp, TAPT_MODEL_FILE_NAME, purpose, num_categories=num_categories
+        )
         return model, training_args
