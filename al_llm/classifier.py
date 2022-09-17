@@ -800,6 +800,7 @@ class TAPTClassifier(HuggingFaceClassifier, ABC):
             self.MODEL_NAME,
             self.parameters["dataset_name"],
             "classifier",
+            tapted_model_version=self.parameters["tapted_model_version"],
         )
         self._model = model
         self.training_parameters = training_args
