@@ -218,6 +218,6 @@ class DataHandler:
 
         # Replace the labels with the corresponding category names
         categories = self.dataset_container.CATEGORIES
-        labels = [categories.keys()[label] for label in labels]
+        labels = [list(categories.keys())[label] for label in labels]
 
         return labels, ambiguities
