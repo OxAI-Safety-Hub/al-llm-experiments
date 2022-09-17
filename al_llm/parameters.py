@@ -51,7 +51,7 @@ class Parameters(dict):
         the number of samples which will be sent to the human every iteration.
     num_warmup_steps : int, default=0
         The number of warmup steps to use in the learning rate scheduler
-    sample_pool_size : int, default=50
+    sample_pool_size : int, default=1024
         When using an acquisition function, this is the number of samples
         to generate first, from which the function selects the appropriate
         number.
@@ -149,7 +149,7 @@ class Parameters(dict):
         num_epochs_afresh: int = 10,
         num_samples: int = 10,
         num_warmup_steps: int = 0,
-        sample_pool_size: int = 50,
+        sample_pool_size: int = 1024,
         learning_rate: float = 5e-5,
         dev_mode: bool = False,
         seed: int = 459834,
