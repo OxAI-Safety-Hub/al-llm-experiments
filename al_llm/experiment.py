@@ -411,11 +411,11 @@ class Experiment:
             # not already specified
             replay_run_path = parameters["replay_run"]
             if replay_run_path.count("/") == 0:
-                replay_run_path = (WANDB_ENTITY, project_name, replay_run_path).join(
-                    "/"
+                replay_run_path = "/".join(
+                    [WANDB_ENTITY, project_name, replay_run_path]
                 )
             elif replay_run_path.count("/") == 1:
-                replay_run_path = (WANDB_ENTITY, replay_run_path).join("/")
+                replay_run_path = "/".join([WANDB_ENTITY, replay_run_path])
 
             # Print a message to say that we're replaying a run
             print()
