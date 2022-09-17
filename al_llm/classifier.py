@@ -1,7 +1,7 @@
 # The python abc module for making abstract base classes
 # https://docs.python.org/3.10/library/abc.html
 from abc import ABC, abstractmethod
-from typing import Union, Any
+from typing import Union, Any, Optional
 
 import torch
 from torch.utils.data import DataLoader
@@ -29,7 +29,113 @@ from al_llm.utils.artifacts import (
     load_classifier_model,
     load_tapted_model,
 )
-from al_llm.constants import LABEL_COLUMN_NAME, EVALUATE_METRICS
+from al_llm.constants import LABEL_COLUMN_NAME
+
+
+class MetricEvaluator:
+    """Storage and maintainence of evalutation metrics
+
+    Determines which metrics to use based on the number of classes
+    (categories).
+
+    In the multiclass setting, f1, precision and recall use the weighted
+    average, but we also the unweighted versions, using '-unweighted' as a
+    suffix.
+
+    Parameters
+    ----------
+    dataset_container : DatasetContainer
+        The dataset container for this experiment. We use it to determine how
+        many classes there are.
+    """
+
+    UNWEIGHTED_SUFFIX = "-unweighted"
+
+    def __init__(self, dataset_container: DatasetContainer):
+
+        self.num_categories = len(dataset_container.CATEGORIES)
+
+        # The metrics common to all classifiers
+        self._metrics = {
+            "accuracy": evaluate.load("accuracy"),
+            "f1": evaluate.load("f1"),
+            "precision": evaluate.load("precision"),
+            "recall": evaluate.load("recall"),
+        }
+
+        # In the multiclass case, also record the unweighted version
+        if self.num_categories != 2:
+            self._metrics["f1" + self.UNWEIGHTED_SUFFIX] = evaluate.load("f1")
+            self._metrics["precision" + self.UNWEIGHTED_SUFFIX] = evaluate.load(
+                "precision"
+            )
+            self._metrics["recall" + self.UNWEIGHTED_SUFFIX] = evaluate.load("recall")
+
+    def add_batch(
+        self,
+        *,
+        predictions: Union[list, torch.Tensor],
+        references: Union[list, torch.Tensor],
+    ):
+        """Add a batch of predictions and references for each metric
+
+        Parameters
+        ----------
+        predictions : list or torch.Tensor
+            The predicted values.
+        references: list or torch.Tensor
+            The true values
+        """
+        for metric in self._metrics.values():
+            metric.add_batch(predictions=predictions, references=references)
+
+    def compute(
+        self,
+        *,
+        predictions: Optional[Union[list, torch.Tensor]] = None,
+        references: Optional[Union[list, torch.Tensor]] = None,
+    ):
+        """Compute each metric
+
+        Parameters
+        ----------
+        predictions : list or torch.Tensor, optional
+            The predicted values.
+        references: list or torch.Tensor, optional
+            The true values
+
+        Returns
+        -------
+        results : dict
+            A dictionary of the results of computing each metric
+        """
+
+        results = {}
+
+        for name, metric in self._metrics.items():
+
+            # For accuracy, just compute it
+            if name == "accuracy":
+                results[name] = metric.compute(
+                    predictions=predictions, references=references
+                )
+
+            else:
+
+                # Determine which type of average to use
+                if name.endswith(self.UNWEIGHTED_SUFFIX):
+                    average = "macro"
+                elif self.num_categories == 2:
+                    average = "binary"
+                else:
+                    average = "weighted"
+
+                # Compute the metric using this average
+                results[name] = metric.compute(
+                    predictions=predictions, references=references, average=average
+                )
+
+        return results
 
 
 class Classifier(ABC):
@@ -249,9 +355,8 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         )
         self.tokenizer.pad_token = self.tokenizer.eos_token
 
-        # Set up the Hugging Face metric evaluator
-        metrics = EVALUATE_METRICS
-        self.evaluator = evaluate.combine(metrics)
+        # Set up the metric evaluator
+        self.evaluator = MetricEvaluator(dataset_container)
 
         # model not required until a call to `train_afresh`
         self._model = None
