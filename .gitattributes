@@ -1,6 +1,0 @@
-local_datasets/wiki_toxic/evaluation.csv filter=lfs diff=lfs merge=lfs -text
-local_datasets/wiki_toxic/orig_test.csv filter=lfs diff=lfs merge=lfs -text
-local_datasets/wiki_toxic/orig_test_labels.csv filter=lfs diff=lfs merge=lfs -text
-local_datasets/wiki_toxic/orig_train.csv filter=lfs diff=lfs merge=lfs -text
-local_datasets/wiki_toxic/test.csv filter=lfs diff=lfs merge=lfs -text
-local_datasets/wiki_toxic/train.csv filter=lfs diff=lfs merge=lfs -text
