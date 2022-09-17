@@ -375,7 +375,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
             train_metrics = self._train_epoch(train_dataloader, optimizer, lr_scheduler)
             print(
                 f"Train loss: {train_metrics['loss']:.8}; "
-                f"train accuracy: {train_metrics['accuracy']:.6%}"
+                f"train f1: {train_metrics['f1']:.6%}"
             )
 
             # The results to log to weights and biases for this epoch
