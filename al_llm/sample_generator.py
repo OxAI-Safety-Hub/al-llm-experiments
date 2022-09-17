@@ -415,6 +415,9 @@ class ReplaySampleGenerator(SampleGenerator):
 
         return samples
 
+    def _generate_sample_pool(self, pool_size: int) -> list:
+        return []
+
 
 class HuggingFaceSampleGenerator(SampleGenerator, ABC):
     """Base class for sample generators using Hugging Face models
