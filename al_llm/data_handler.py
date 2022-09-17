@@ -163,7 +163,9 @@ class DataHandler:
         """
 
         print("Loading data from replayed run...")
-        dataset_extension_dict = load_dataset_extension(replayed_run)
+        dataset_extension_dict = load_dataset_extension(
+            self.wandb_run, dataset_wandb_run=replayed_run
+        )
         self.replay_dataset_extension = datasets.Dataset.from_dict(
             dataset_extension_dict
         )
