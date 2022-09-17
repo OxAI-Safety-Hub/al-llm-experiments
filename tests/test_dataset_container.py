@@ -1,17 +1,11 @@
-import configparser
-
 import datasets
 
 import torch
 
 from al_llm.parameters import Parameters
-from al_llm.dataset_container import DummyDatasetContainer, DummyLocalDatasetContainer
+from al_llm.dataset_container import DummyDatasetContainer
 from al_llm.classifier import DummyClassifier
-
-
-# Load the configuration
-config = configparser.ConfigParser()
-config.read("config.ini")
+from al_llm.constants import LABEL_COLUMN_NAME, AMBIGUITIES_COLUMN_NAME
 
 
 def _basic_dataset_container_tests(dataset_container, tokenize):
@@ -54,8 +48,8 @@ def _basic_dataset_container_tests(dataset_container, tokenize):
     # Add some more items, this time in a batch
     items = {
         "text": ["This is another test sentence", "As it this one"],
-        config["Data Handling"]["LabelColumnName"]: [0, 0],
-        config["Data Handling"]["AmbiguitiesColumnName"]: [0, 0],
+        LABEL_COLUMN_NAME: [0, 0],
+        AMBIGUITIES_COLUMN_NAME: [0, 0],
     }
     items_len = len(items["text"])
     dataset_container.add_items(items, tokenize)
@@ -82,19 +76,6 @@ def test_dummy_dataset_container():
     assert isinstance(dataset_container.dataset_remainder, datasets.Dataset)
     assert isinstance(dataset_container.dataset_validation, datasets.Dataset)
     assert isinstance(dataset_container.dataset_test, datasets.Dataset)
-
-    # The tokenize function, is the dummy one from DummyClassifier
-    def tokenize(text):
-        return DummyClassifier.tokenize(None, text)
-
-    _basic_dataset_container_tests(dataset_container, tokenize)
-
-
-def test_local_dataset_container():
-
-    # Set up the dummy dataset container
-    parameters = Parameters()
-    dataset_container = DummyLocalDatasetContainer(parameters)
 
     # The tokenize function, is the dummy one from DummyClassifier
     def tokenize(text):

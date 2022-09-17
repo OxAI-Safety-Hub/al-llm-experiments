@@ -2,19 +2,18 @@
 # https://docs.python.org/3.10/library/abc.html
 from abc import ABC, abstractmethod
 from typing import Callable, Tuple
-import configparser
-import os
 from collections import OrderedDict
 
 import datasets
 
 from al_llm.parameters import Parameters
 from al_llm.utils.fake_data import FakeSentenceGenerator, FakeLabelGenerator
-
-
-# Load the configuration
-config = configparser.ConfigParser()
-config.read("config.ini")
+from al_llm.constants import (
+    TEXT_COLUMN_NAME,
+    LABEL_COLUMN_NAME,
+    AMBIGUITIES_COLUMN_NAME,
+    PREPROCESSING_SEED,
+)
 
 
 class DatasetContainer(ABC):
@@ -117,7 +116,7 @@ class DatasetContainer(ABC):
 
         # The function to apply to each datapoint
         def tokenize_function(examples):
-            return tokenizer(examples[config["Data Handling"]["TextColumnName"]])
+            return tokenizer(examples[TEXT_COLUMN_NAME])
 
         # Tokenize the dataset
         tokenized = dataset.map(tokenize_function, batched=batched)
@@ -128,7 +127,7 @@ class DatasetContainer(ABC):
             columns=[
                 "input_ids",
                 "attention_mask",
-                config["Data Handling"]["LabelColumnName"],
+                LABEL_COLUMN_NAME,
             ],
         )
 
@@ -163,7 +162,7 @@ class DatasetContainer(ABC):
             )
 
         # Shuffle the train split
-        seed = int(config["Data Handling"]["PreprocessingSeed"])
+        seed = int(PREPROCESSING_SEED)
         train_split = train_split.shuffle(seed=seed)
 
         # Select the train and remainder datasets
@@ -239,7 +238,7 @@ class DatasetContainer(ABC):
         # Add an ambiguities column to the train dataset
         #   All of this data will not be ambiguous
         self.dataset_train = self.dataset_train.add_column(
-            config["Data Handling"]["AmbiguitiesColumnName"],
+            AMBIGUITIES_COLUMN_NAME,
             [0] * len(self.dataset_train),
         )
 
@@ -255,8 +254,8 @@ class DatasetContainer(ABC):
         label_type = datasets.ClassLabel(names=list(self.categories.keys()))
         features = datasets.Features(
             {
-                config["Data Handling"]["TextColumnName"]: text_type,
-                config["Data Handling"]["LabelColumnName"]: label_type,
+                TEXT_COLUMN_NAME: text_type,
+                LABEL_COLUMN_NAME: label_type,
             }
         )
         return features
@@ -274,9 +273,9 @@ class DatasetContainer(ABC):
         ambiguity_type = datasets.Value(dtype="int64")
         features = datasets.Features(
             {
-                config["Data Handling"]["TextColumnName"]: text_type,
-                config["Data Handling"]["LabelColumnName"]: label_type,
-                config["Data Handling"]["AmbiguitiesColumnName"]: ambiguity_type,
+                TEXT_COLUMN_NAME: text_type,
+                LABEL_COLUMN_NAME: label_type,
+                AMBIGUITIES_COLUMN_NAME: ambiguity_type,
             }
         )
         return features
@@ -357,22 +356,22 @@ class DummyDatasetContainer(DatasetContainer):
         # Compose everything to make the datasets
         train_split = datasets.Dataset.from_dict(
             {
-                config["Data Handling"]["TextColumnName"]: train_sentences,
-                config["Data Handling"]["LabelColumnName"]: train_labels,
+                TEXT_COLUMN_NAME: train_sentences,
+                LABEL_COLUMN_NAME: train_labels,
             },
             features=features,
         )
         self.dataset_validation = datasets.Dataset.from_dict(
             {
-                config["Data Handling"]["TextColumnName"]: validation_sentences,
-                config["Data Handling"]["LabelColumnName"]: validation_labels,
+                TEXT_COLUMN_NAME: validation_sentences,
+                LABEL_COLUMN_NAME: validation_labels,
             },
             features=features,
         )
         self.dataset_test = datasets.Dataset.from_dict(
             {
-                config["Data Handling"]["TextColumnName"]: test_sentences,
-                config["Data Handling"]["LabelColumnName"]: test_labels,
+                TEXT_COLUMN_NAME: test_sentences,
+                LABEL_COLUMN_NAME: test_labels,
             },
             features=features,
         )
@@ -385,7 +384,7 @@ class DummyDatasetContainer(DatasetContainer):
         # Add an ambiguities column to the train dataset
         #   All of this data will not be ambiguous
         self.dataset_train = self.dataset_train.add_column(
-            config["Data Handling"]["AmbiguitiesColumnName"],
+            AMBIGUITIES_COLUMN_NAME,
             [0] * len(self.dataset_train),
         )
 
@@ -456,88 +455,7 @@ class HuggingFaceDatasetContainer(DatasetContainer, ABC):
         pass
 
 
-class LocalDatasetContainer(DatasetContainer, ABC):
-    """A base dataset container for local datasets
-
-    A dataset container which stores the various dataset splits and their
-    tokenized versions.
-
-    Parameters
-    ----------
-    parameters : Parameters
-        The parameters for the current experiment
-
-    Attributes
-    ----------
-    categories : OrderedDict
-        A dictionary of the classes in the data. The keys are the names of the
-        categories as understood by the model, and the values are the
-        human-readable names.
-    dataset_train : datasets.Dataset
-        The raw dataset consisting of labelled sentences used for training, as
-        a Hugging Face Dataset. This is separated from the 'train' split of
-        the dataset by selecting `parameters["train_dataset_size"]` datapoints.
-    dataset_remainder : datasets.Dataset
-        The remainder of the 'train' split after `dataset_train` has been
-        selected. Used by the pool-based simulator.
-    dataset_validation : datasets.Dataset
-        The raw dataset consisting of labelled sentences used for validation, as
-        a Hugging Face Dataset.
-    dataset_test : datasets.Dataset
-        The raw dataset consisting of labelled sentences used for testing, as
-        a Hugging Face Dataset.
-    tokenized_train : datasets.Dataset
-        A tokenized version of `dataset_train`, consisting of PyTorch tensors.
-    tokenized_remainder : datasets.Dataset
-        A tokenized version of `dataset_remainder`, consisting of PyTorch
-        tensors.
-    tokenized_validation : datasets.Dataset
-        A tokenized version of `dataset_validation`, consisting of PyTorch
-        tensors.
-    tokenized_test : datasets.Dataset
-        A tokenized version of `dataset_test`, consisting of PyTorch tensors.
-    """
-
-    DATASET_NAME = ""
-    CATEGORIES = OrderedDict()
-
-    def __init__(self, parameters: Parameters):
-        super().__init__(parameters)
-
-        # Get the required structure of the datasets as a datasets.Features object
-        features = self._get_dataset_features()
-
-        # load the local dataset, splitting by the data file names
-        data_files = {
-            "train": "train.csv",
-            "validation": "evaluation.csv",
-            "test": "test.csv",
-        }
-        dataset_path = os.path.join(
-            config["Data Handling"]["LocalDatasetDir"], self.DATASET_NAME
-        )
-        dataset_dictionary = datasets.load_dataset(
-            dataset_path, data_files=data_files, features=features
-        )
-
-        # use this split to get the raw datasets
-        train_split = dataset_dictionary["train"]
-        self.dataset_validation = dataset_dictionary["validation"]
-        self.dataset_test = dataset_dictionary["test"]
-
-        # Divide the train split into train and remainder datasets
-        self.dataset_train, self.dataset_remainder = self._train_remainder_split(
-            train_split
-        )
-
-        # Do any preprocessing on the dataset
-        self._preprocess_dataset()
-
-    def save(self):
-        pass
-
-
-class RottenTomatoesDatasetHandler(HuggingFaceDatasetContainer):
+class RottenTomatoesDatasetContainer(HuggingFaceDatasetContainer):
     """A dataset container for the rotten tomatoes dataset
 
     A dataset container which stores the various dataset splits and their
@@ -589,67 +507,19 @@ class RottenTomatoesDatasetHandler(HuggingFaceDatasetContainer):
 
         # Rename the 'label' column
         self.dataset_train = self.dataset_train.rename_column(
-            "label", config["Data Handling"]["LabelColumnName"]
+            "label", LABEL_COLUMN_NAME
         )
         self.dataset_remainder = self.dataset_remainder.rename_column(
-            "label", config["Data Handling"]["LabelColumnName"]
+            "label", LABEL_COLUMN_NAME
         )
         self.dataset_validation = self.dataset_validation.rename_column(
-            "label", config["Data Handling"]["LabelColumnName"]
+            "label", LABEL_COLUMN_NAME
         )
-        self.dataset_test = self.dataset_test.rename_column(
-            "label", config["Data Handling"]["LabelColumnName"]
-        )
+        self.dataset_test = self.dataset_test.rename_column("label", LABEL_COLUMN_NAME)
 
 
-class DummyLocalDatasetContainer(LocalDatasetContainer):
-    """A dataset container for a dummy local dataset
-
-    A dataset container which stores the various dataset splits and their
-    tokenized versions.
-
-    Parameters
-    ----------
-    parameters : Parameters
-        The parameters for the current experiment
-
-    Attributes
-    ----------
-    categories : OrderedDict
-        A dictionary of the classes in the data. The keys are the names of the
-        categories as understood by the model, and the values are the
-        human-readable names.
-    dataset_train : datasets.Dataset
-        The raw dataset consisting of labelled sentences used for training, as
-        a Hugging Face Dataset. This is separated from the 'train' split of
-        the dataset by selecting `parameters["train_dataset_size"]` datapoints.
-    dataset_remainder : datasets.Dataset
-        The remainder of the 'train' split after `dataset_train` has been
-        selected. Used by the pool-based simulator.
-    dataset_validation : datasets.Dataset
-        The raw dataset consisting of labelled sentences used for validation, as
-        a Hugging Face Dataset.
-    dataset_test : datasets.Dataset
-        The raw dataset consisting of labelled sentences used for testing, as
-        a Hugging Face Dataset.
-    tokenized_train : datasets.Dataset
-        A tokenized version of `dataset_train`, consisting of PyTorch tensors.
-    tokenized_remainder : datasets.Dataset
-        A tokenized version of `dataset_remainder`, consisting of PyTorch
-        tensors.
-    tokenized_validation : datasets.Dataset
-        A tokenized version of `dataset_validation`, consisting of PyTorch
-        tensors.
-    tokenized_test : datasets.Dataset
-        A tokenized version of `dataset_test`, consisting of PyTorch tensors.
-    """
-
-    DATASET_NAME = "dummy_local_dataset"
-    CATEGORIES = OrderedDict([("neg", "Negative"), ("pos", "Positive")])
-
-
-class WikiToxicDatasetContainer(LocalDatasetContainer):
-    """A container Jigsaw Toxic Comment Challenge dataset
+class WikiToxicDatasetContainer(HuggingFaceDatasetContainer):
+    """A container for the Jigsaw Toxic Comment Challenge dataset
 
     This dataset was the basis of a Kaggle competition run by Jigsaw. [1]_
 
@@ -701,8 +571,138 @@ class WikiToxicDatasetContainer(LocalDatasetContainer):
     2019
     """
 
-    DATASET_NAME = "wiki_toxic"
+    DATASET_NAME = "OxAISH-AL-LLM/wiki_toxic"
     CATEGORIES = OrderedDict([("non", "Non-toxic"), ("tox", "Toxic")])
+
+    def _preprocess_dataset(self):
+
+        # Do any preprocessing defined by the base class
+        super()._preprocess_dataset()
+
+        # Remove the 'id' column
+        self.dataset_train = self.dataset_train.remove_columns("id")
+        self.dataset_remainder = self.dataset_remainder.remove_columns("id")
+        self.dataset_validation = self.dataset_validation.remove_columns("id")
+        self.dataset_test = self.dataset_test.remove_columns("id")
+
+        # Rename the 'comment_text' column
+        self.dataset_train = self.dataset_train.rename_column(
+            "comment_text", TEXT_COLUMN_NAME
+        )
+        self.dataset_remainder = self.dataset_remainder.rename_column(
+            "comment_text", TEXT_COLUMN_NAME
+        )
+        self.dataset_validation = self.dataset_validation.rename_column(
+            "comment_text", TEXT_COLUMN_NAME
+        )
+        self.dataset_test = self.dataset_test.rename_column(
+            "comment_text", TEXT_COLUMN_NAME
+        )
+
+        # Recast the 'label' column so it uses ClassLabels instead of Values
+        new_train_features = self.dataset_train.features.copy()
+        new_remainder_features = self.dataset_remainder.features.copy()
+        new_validation_features = self.dataset_validation.features.copy()
+        new_test_features = self.dataset_test.features.copy()
+
+        new_train_features["label"] = datasets.ClassLabel(
+            names=list(self.CATEGORIES.keys())
+        )
+        new_remainder_features["label"] = datasets.ClassLabel(
+            names=list(self.CATEGORIES.keys())
+        )
+        new_validation_features["label"] = datasets.ClassLabel(
+            names=list(self.CATEGORIES.keys())
+        )
+        new_test_features["label"] = datasets.ClassLabel(
+            names=list(self.CATEGORIES.keys())
+        )
+
+        self.dataset_train = self.dataset_train.cast(new_train_features)
+        self.dataset_remainder = self.dataset_remainder.cast(new_remainder_features)
+        self.dataset_validation = self.dataset_validation.cast(new_validation_features)
+        self.dataset_test = self.dataset_test.cast(new_test_features)
+
+        # Rename the 'label' column
+        self.dataset_train = self.dataset_train.rename_column(
+            "label", LABEL_COLUMN_NAME
+        )
+        self.dataset_remainder = self.dataset_remainder.rename_column(
+            "label", LABEL_COLUMN_NAME
+        )
+        self.dataset_validation = self.dataset_validation.rename_column(
+            "label", LABEL_COLUMN_NAME
+        )
+        self.dataset_test = self.dataset_test.rename_column("label", LABEL_COLUMN_NAME)
+
+
+class PubMed20kRCTDatasetContainer(HuggingFaceDatasetContainer):
+    """A container for the PubMed 20k RCT dataset
+
+    This dataset was created by taking abstracts from medical journal
+    publications and classifying each sentence as either background, objective,
+    methods, results or conclusions. [1]_
+
+    The dataset has been modified in the following ways.
+    - A paired <span> html tag has been removed from one datapoint in the
+    train dataset
+    - The datapoints have been shuffled, and are thus no longer grouped by
+    abstract.
+
+    Parameters
+    ----------
+    parameters : Parameters
+        The parameters for the current experiment
+
+    Attributes
+    ----------
+    categories : OrderedDict
+        A dictionary of the classes in the data. The keys are the names of the
+        categories as understood by the model, and the values are the
+        human-readable names.
+    dataset_train : datasets.Dataset
+        The raw dataset consisting of labelled sentences used for training, as
+        a Hugging Face Dataset. This is separated from the 'train' split of
+        the dataset by selecting `parameters["train_dataset_size"]` datapoints.
+    dataset_remainder : datasets.Dataset
+        The remainder of the 'train' split after `dataset_train` has been
+        selected. Used by the pool-based simulator.
+    dataset_validation : datasets.Dataset
+        The raw dataset consisting of labelled sentences used for validation, as
+        a Hugging Face Dataset.
+    dataset_test : datasets.Dataset
+        The raw dataset consisting of labelled sentences used for testing, as
+        a Hugging Face Dataset.
+    tokenized_train : datasets.Dataset
+        A tokenized version of `dataset_train`, consisting of PyTorch tensors.
+    tokenized_remainder : datasets.Dataset
+        A tokenized version of `dataset_remainder`, consisting of PyTorch
+        tensors.
+    tokenized_validation : datasets.Dataset
+        A tokenized version of `dataset_validation`, consisting of PyTorch
+        tensors.
+    tokenized_test : datasets.Dataset
+        A tokenized version of `dataset_test`, consisting of PyTorch tensors.
+
+    References
+    ----------
+    [1] Franck Dernoncourt and Ji Young Lee, "PubMed 200k RCT: a Dataset for
+    Sequential Sentence Classification in Medical Abstracts", Proceedings of
+    the Eighth International Joint Conference on Natural Language Processing
+    (Volume 2: Short Papers), Asian Federation of Natural Language Processing,
+    2017
+    """
+
+    DATASET_NAME = "OxAISH-AL-LLM/pubmed_20k_rct"
+    CATEGORIES = OrderedDict(
+        [
+            ("bac", "Background"),
+            ("obj", "Objective"),
+            ("met", "Methods"),
+            ("res", "Results"),
+            ("con", "Conclusions"),
+        ]
+    )
 
     def _preprocess_dataset(self):
 
@@ -711,14 +711,12 @@ class WikiToxicDatasetContainer(LocalDatasetContainer):
 
         # Rename the 'label' column
         self.dataset_train = self.dataset_train.rename_column(
-            "label", config["Data Handling"]["LabelColumnName"]
+            "label", LABEL_COLUMN_NAME
         )
         self.dataset_remainder = self.dataset_remainder.rename_column(
-            "label", config["Data Handling"]["LabelColumnName"]
+            "label", LABEL_COLUMN_NAME
         )
         self.dataset_validation = self.dataset_validation.rename_column(
-            "label", config["Data Handling"]["LabelColumnName"]
+            "label", LABEL_COLUMN_NAME
         )
-        self.dataset_test = self.dataset_test.rename_column(
-            "label", config["Data Handling"]["LabelColumnName"]
-        )
+        self.dataset_test = self.dataset_test.rename_column("label", LABEL_COLUMN_NAME)

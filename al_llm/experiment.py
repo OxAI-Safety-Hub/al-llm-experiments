@@ -1,6 +1,4 @@
 from typing import Union
-import configparser
-from enum import Enum
 
 import torch
 
@@ -13,8 +11,9 @@ from al_llm.data_handler import DataHandler
 from al_llm.dataset_container import (
     DatasetContainer,
     DummyDatasetContainer,
-    RottenTomatoesDatasetHandler,
+    RottenTomatoesDatasetContainer,
     WikiToxicDatasetContainer,
+    PubMed20kRCTDatasetContainer,
 )
 from al_llm.classifier import (
     Classifier,
@@ -31,6 +30,9 @@ from al_llm.sample_generator import (
     TAPTGPT2SampleGenerator,
     TAPTDistilGPT2SampleGenerator,
     PoolSampleGenerator,
+    ReplaySampleGenerator,
+    PlainGPT2TokenByTokenSampleGenerator,
+    TAPTGPT2TokenByTokenSampleGenerator,
 )
 from al_llm.acquisition_function import (
     DummyAF,
@@ -42,19 +44,17 @@ from al_llm.interface import (
     Interface,
     CLIInterface,
     PoolSimulatorInterface,
+    AutomaticLabellerInterface,
+    ReplayInterface,
 )
 from al_llm.parameters import Parameters
-
-
-# Load the configuration
-config = configparser.ConfigParser()
-config.read("config.ini")
-
-
-class ProjectOption(Enum):
-    Sandbox = "Sandbox"
-    HyperparameterTuning = "Hyperparameter-Tuning"
-    Experiment = "Experiments"
+from al_llm.constants import (
+    TEXT_COLUMN_NAME,
+    LABEL_COLUMN_NAME,
+    AMBIGUITIES_COLUMN_NAME,
+    WANDB_ENTITY,
+    CACHE_SIZE,
+)
 
 
 class Experiment:
@@ -82,8 +82,9 @@ class Experiment:
 
     MAP_DATASET_CONTAINER = {
         "dummy": DummyDatasetContainer,
-        "rotten_tomatoes": RottenTomatoesDatasetHandler,
+        "rotten_tomatoes": RottenTomatoesDatasetContainer,
         "wiki_toxic": WikiToxicDatasetContainer,
+        "pubmed_20k_rct": PubMed20kRCTDatasetContainer,
     }
     MAP_PLAIN_CLASSIFIER = {
         "dummy": DummyClassifier,
@@ -100,7 +101,6 @@ class Experiment:
         "random": RandomAF,
         "max_uncertainty": MaxUncertaintyAF,
     }
-
     MAP_PLAIN_SAMPLE_GENERATOR = {
         "dummy": DummySampleGenerator,
         "gpt2": PlainGPT2SampleGenerator,
@@ -109,6 +109,12 @@ class Experiment:
     MAP_TAPT_SAMPLE_GENERATOR = {
         "distilgpt2": TAPTDistilGPT2SampleGenerator,
         "gpt2": TAPTGPT2SampleGenerator,
+    }
+    MAP_TBT_PLAIN_SAMPLE_GENERATOR = {
+        "gpt2": PlainGPT2TokenByTokenSampleGenerator,
+    }
+    MAP_TBT_TAPT_SAMPLE_GENERATOR = {
+        "gpt2": TAPTGPT2TokenByTokenSampleGenerator,
     }
 
     def __init__(
@@ -134,6 +140,10 @@ class Experiment:
         self.already_finetuned = already_finetuned
 
     def run(self):
+
+        # Clean up to stop the wandb cache from overfilling
+        self._clear_cache()
+
         if self.parameters["full_loop"]:
             self._run_full()
         else:
@@ -147,18 +157,24 @@ class Experiment:
 
         for iteration in range(self.parameters["num_iterations"]):
 
-            # Perform a single iteration of model update, obtaining new samples
-            # to label
-            samples = self._train_and_get_samples(iteration)
+            # Perform a single iteration of model update,
+            self._train(iteration)
 
-            # Get the labels from the human
-            labels, ambiguities = self.interface.prompt(samples)
+            # If this is not the last iteration
+            if iteration != self.parameters["num_iterations"] - 1:
 
-            # Add these samples to the dataset
-            self.data_handler.new_labelled(samples, labels, ambiguities)
+                # Obtain new samples to label
+                samples = self._get_samples()
+
+                if not self.parameters["supervised"]:
+                    # Get the labels from the human
+                    labels, ambiguities = self.interface.prompt(samples)
+
+                    # Add these samples to the dataset
+                    self.data_handler.new_labelled(samples, labels, ambiguities)
 
             # Save the current version of the classifier and dataset
-            self._save()
+            self._save(iteration)
 
         # End the interface
         self.interface.end()
@@ -194,18 +210,19 @@ class Experiment:
 
             # add the additional data into the local training datasets
             self.data_handler.new_labelled(
-                added_data[config["Data Handling"]["TextColumnName"]],
-                added_data[config["Data Handling"]["LabelColumnName"]],
-                added_data[config["Data Handling"]["AmbiguitiesColumnName"]],
+                added_data[TEXT_COLUMN_NAME],
+                added_data[LABEL_COLUMN_NAME],
+                added_data[AMBIGUITIES_COLUMN_NAME],
             )
 
         # Perform a single iteration of model update, obtaining new samples
         # to label
-        samples = self._train_and_get_samples(iteration)
+        self._train(iteration)
+        samples = self._get_samples()
 
         # Save the current version of the classifier and dataset, including
         # the new samples awaiting labels from the human
-        self._save(samples)
+        self._save(iteration, samples)
 
         # Alert the slack channel that the iteration is complete
         if self.parameters["send_alerts"]:
@@ -232,7 +249,7 @@ class Experiment:
 
         # Get the unlabelled sentences saved to WandB by taking the
         # last `num_samples` items from added_data's 'text' column
-        unlabelled_added = added_data[config["Data Handling"]["TextColumnName"]][
+        unlabelled_added = added_data[TEXT_COLUMN_NAME][
             -self.parameters["num_samples"] :
         ]
 
@@ -240,24 +257,26 @@ class Experiment:
         labels, ambiguities = self.interface.prompt(unlabelled_added)
 
         # Append these labels onto the end of the added_data
-        added_data[config["Data Handling"]["LabelColumnName"]].extend(labels)
-        added_data[config["Data Handling"]["AmbiguitiesColumnName"]].extend(ambiguities)
+        added_data[LABEL_COLUMN_NAME].extend(labels)
+        added_data[AMBIGUITIES_COLUMN_NAME].extend(ambiguities)
 
         # Return the added_data dataset
         return added_data
 
-    def _train_and_get_samples(self, iteration: int) -> list:
-        """Train the classifier with the latest datapoints, and get new samples
+    def _clear_cache(self):
+        """Clear some space in the Weights and Biases cache"""
+
+        # Get the artifacts cache and clear it down to a size of 5GB
+        c = wandb.wandb_sdk.wandb_artifacts.get_artifacts_cache()
+        c.cleanup(wandb.util.from_human_size(CACHE_SIZE))
+
+    def _train(self, iteration: int):
+        """Train the classifier with the latest datapoints
 
         Parameters
         ----------
         iteration : int
             The index of the current iteration number, starting with 0
-
-        Returns
-        -------
-        samples : list
-            The latest samples for labelling
         """
 
         # Set the random number seed, so that the experiment is
@@ -266,11 +285,36 @@ class Experiment:
 
         dataset_samples = self.data_handler.get_latest_tokenized_datapoints()
 
-        # Produce the latest classifier
-        if iteration % self.parameters["refresh_every"] == 0:
+        # Train either a fresh model or update the existing one. If this is
+        # the last iteration of this experiment, it will end on a call to
+        # _train_afresh.
+        if (
+            iteration == 0
+            or (
+                self.parameters["refresh_every"] != -1
+                and iteration % self.parameters["refresh_every"] == 0
+            )
+            or (
+                iteration + 1 == self.parameters["num_iterations"]
+                and self.parameters["refresh_on_last"]
+            )
+        ):
             self._train_afresh(iteration)
         else:
             self._train_update(dataset_samples, iteration)
+
+    def _get_samples(self) -> list:
+        """Get new samples from the sample generator
+
+        Returns
+        -------
+        samples : list
+            The latest samples for labelling
+        """
+
+        # If performing supervised learning, skip the sample generation
+        if self.parameters["supervised"]:
+            return []
 
         # Generate some new samples to query
         samples = self.sample_generator.generate()
@@ -297,18 +341,31 @@ class Experiment:
             iteration,
         )
 
-    def _save(self, unlabelled_samples: list = []):
+    def _save(self, iteration: int, unlabelled_samples: list = []):
         """Save the current classifier and dataset"""
-        self.classifier.save()
+
+        # Only save the classifier if we are at the correct iteration according
+        # to the 'save_classifier_every' parameter
+        save_classifier_every = self.parameters["save_classifier_every"]
+        iteration_max = self.parameters["num_iterations"] - 1
+        if (
+            not self.parameters["full_loop"]
+            or (save_classifier_every > 0 and iteration % save_classifier_every == 0)
+            or (save_classifier_every >= 0 and iteration == iteration_max)
+        ):
+            self.classifier.save()
+
+        # Always save the new samples though
         self.data_handler.save(unlabelled_samples)
 
     @classmethod
     def make_experiment(
         cls,
         parameters: Parameters,
-        project: ProjectOption,
+        project_name: str,
         run_id: str,
-    ):
+        tags: list = [],
+    ) -> dict:
         """Get experiment instances to feed into the constructor
 
         Default setup expects Rotten Tomatoes dataset, and uses a classifier built
@@ -320,10 +377,12 @@ class Experiment:
         ----------
         parameters : Parameters
             The dictionary of parameters for the present experiment
-        project : ProjectOption
+        project_name : str
             The wandb project which this experiment should be logged to
         run_id : str
             The ID of the current run
+        tags : list, default=[]
+            A list of tags to associate to the W&B run
 
         Returns
         -------
@@ -345,19 +404,63 @@ class Experiment:
         >>> experiment = Experiment(**args)
         """
 
+        # Whether we're doing a replay run
+        do_replay_run = parameters["replay_run"] != ""
+
+        if do_replay_run:
+
+            # Build up the full path, using the entity and project name, if
+            # not already specified
+            replay_run_path = parameters["replay_run"]
+            if replay_run_path.count("/") == 0:
+                replay_run_path = "/".join(
+                    [WANDB_ENTITY, project_name, replay_run_path]
+                )
+            elif replay_run_path.count("/") == 1:
+                replay_run_path = "/".join([WANDB_ENTITY, replay_run_path])
+
+            # Print a message to say that we're replaying a run
+            print()
+            print("+" * 79)
+            text = f"+ Replaying run: {replay_run_path}"
+            print(text + " " * max(0, 78 - len(text)) + "+")
+            print("+" * 79)
+            print()
+
+            # Get the run to replay
+            api = wandb.Api()
+            replayed_run = api.run(replay_run_path)
+
+            # Update the parameters to match
+            print("Updating parameters to match replayed run...")
+            parameters.update_from_dict(replayed_run.config, skip_keys=["replay_run"])
+
         # initialise weights and biases
         #   Set resume to allow which resumes the previous run if there is already
         #   a run with the id `run_id`.
         #   Set mode to disabled when running pytests so that a login is not required
         #   for the program to run.
         wandb_run = wandb.init(
-            project=project.value,
-            entity=config["Wandb"]["Entity"],
+            project=project_name,
+            entity=WANDB_ENTITY,
             resume="allow",
             id=run_id,
+            tags=tags,
             mode="disabled" if parameters["is_running_pytests"] else "online",
-            config=parameters,
         )
+
+        # Ensure that if a run is being resumed, it is intentional
+        if wandb_run.resumed:
+            print("WARNING: Resuming an already existent run.")
+            if do_replay_run:
+                print("Moreover, this is a replay run.")
+            happy_to_continue = False
+            while not happy_to_continue:
+                choice = input("Do you want to continue? (Y/n): ")
+                if choice.lower() == "n":
+                    return None
+                elif choice.lower() == "y" or choice.lower() == "":
+                    happy_to_continue = True
 
         # Set the seed now, because the data handler may do some shuffling
         set_seed(parameters["seed"])
@@ -380,10 +483,14 @@ class Experiment:
         # Set up the data handler
         data_handler = DataHandler(parameters, dataset_container, classifier, wandb_run)
 
+        # Load the dataset extension from the replayed run, if we're doing that
+        if do_replay_run:
+            data_handler.load_replay_dataset_extension(replayed_run)
+
         # Set up the acquisition function (could be None)
         af_name = parameters["acquisition_function"]
         af_class = cls.MAP_ACQUISITION_FUNCTION[af_name]
-        if af_class is None:
+        if af_class is None or do_replay_run:
             acquisition_function = None
         elif af_name == "max_uncertainty":
             acquisition_function = af_class(parameters, classifier)
@@ -392,28 +499,71 @@ class Experiment:
 
         # Set up the sample generator
         sg_model_name = parameters["sample_generator_base_model"]
-        if sg_model_name == "pool":
+        if do_replay_run:
+            sample_generator = ReplaySampleGenerator(
+                parameters, wandb_run, data_handler
+            )
+        elif sg_model_name == "pool":
             sample_generator = cls.MAP_PLAIN_SAMPLE_GENERATOR[sg_model_name](
-                parameters, acquisition_function, dataset_container
+                parameters, wandb_run, acquisition_function, dataset_container
+            )
+        elif (
+            parameters["use_tbt_sample_generator"]
+            and not parameters["use_tapted_sample_generator"]
+        ):
+            sample_generator = cls.MAP_TBT_PLAIN_SAMPLE_GENERATOR[sg_model_name](
+                parameters,
+                classifier,
+                wandb_run,
+                acquisition_function=acquisition_function,
+            )
+        elif (
+            parameters["use_tbt_sample_generator"]
+            and parameters["use_tapted_sample_generator"]
+        ):
+            sample_generator = cls.MAP_TBT_TAPT_SAMPLE_GENERATOR[sg_model_name](
+                parameters,
+                classifier,
+                wandb_run,
+                acquisition_function=acquisition_function,
             )
         elif parameters["use_tapted_sample_generator"]:
             sample_generator = cls.MAP_TAPT_SAMPLE_GENERATOR[sg_model_name](
                 parameters, wandb_run, acquisition_function=acquisition_function
             )
-            tapt_parameters = sample_generator.get_training_parameters()
-            wandb.config.update({"tapt_sample_generator": tapt_parameters})
         else:
             sample_generator = cls.MAP_PLAIN_SAMPLE_GENERATOR[sg_model_name](
-                parameters, acquisition_function=acquisition_function
+                parameters, wandb_run, acquisition_function=acquisition_function
             )
 
+        # Update the W&B config with TAPT parameters, if we're using a TAPTed
+        # sample generator
+        if parameters["use_tapted_sample_generator"] and not do_replay_run:
+            tapt_parameters = sample_generator.get_training_parameters()
+            wandb.config.update({"tapt_sample_generator": tapt_parameters})
+
         # Set up the interface
-        if sg_model_name == "pool":
+        if do_replay_run:
+            interface = ReplayInterface(
+                parameters, dataset_container, wandb_run, data_handler
+            )
+        elif parameters["use_automatic_labeller"]:
+            interface = AutomaticLabellerInterface(
+                parameters,
+                dataset_container,
+                wandb_run,
+                parameters["automatic_labeller_model_name"],
+            )
+        elif sg_model_name == "pool":
             interface = PoolSimulatorInterface(parameters, dataset_container, wandb_run)
         elif parameters["full_loop"]:
             interface = CLIInterface(parameters, dataset_container, wandb_run)
         else:
             interface = CLIBrokenLoopInterface(parameters, dataset_container, wandb_run)
+
+        # Log the parameters to the run as it's config. If resuming the run and the
+        #   parameters do not match, it will correctly throw an error.
+        wandb.config.update(parameters)
 
         experiment_args = {
             "parameters": parameters,

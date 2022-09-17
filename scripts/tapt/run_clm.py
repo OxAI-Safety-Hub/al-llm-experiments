@@ -28,7 +28,6 @@ import sys
 from dataclasses import dataclass, field
 from itertools import chain
 from typing import Optional
-import configparser
 
 import datasets
 from datasets import load_dataset
@@ -55,7 +54,8 @@ from transformers.utils import check_min_version, send_example_telemetry
 from transformers.utils.versions import require_version
 
 sys.path.append("../../")
-from al_llm.utils.artifacts import save_tapted_model, TAPT_PROJECT
+from al_llm.utils.artifacts import save_tapted_model, TAPT_PROJECT_NAME
+from al_llm.constants import WANDB_ENTITY
 
 
 # Will error if the minimal version of Transformers is not installed. Remove at your own risks.
@@ -72,10 +72,8 @@ logger = logging.getLogger(__name__)
 MODEL_CONFIG_CLASSES = list(MODEL_FOR_CAUSAL_LM_MAPPING.keys())
 MODEL_TYPES = tuple(conf.model_type for conf in MODEL_CONFIG_CLASSES)
 
-
-# Load the configuration
-al_llm_config = configparser.ConfigParser()
-al_llm_config.read("../../config.ini")
+WIKI_TOXIC_DATASET_NAME = "OxAISH-AL-LLM/wiki_toxic"
+PUBMED_20K_RCT_DATASET_NAME = "OxAISH-AL-LLM/pubmed_20k_rct"
 
 
 @dataclass
@@ -259,8 +257,8 @@ class DataTrainingArguments:
 def main():
 
     run = wandb.init(
-        project=TAPT_PROJECT,
-        entity=al_llm_config["Wandb"]["Entity"],
+        project=TAPT_PROJECT_NAME,
+        entity=WANDB_ENTITY,
     )
 
     # See all possible arguments in src/transformers/training_args.py
@@ -337,24 +335,31 @@ def main():
     #
     # In distributed training, the load_dataset function guarantee that only one local process can concurrently
     # download the dataset.
-    if data_args.dataset_name is not None:
+
+    real_dataset_name = data_args.dataset_name
+    if real_dataset_name == "wiki_toxic":
+        real_dataset_name = WIKI_TOXIC_DATASET_NAME
+    elif real_dataset_name == "pubmed_20k_rct":
+        real_dataset_name = PUBMED_20K_RCT_DATASET_NAME
+
+    if real_dataset_name is not None:
         # Downloading and loading a dataset from the hub.
         raw_datasets = load_dataset(
-            data_args.dataset_name,
+            real_dataset_name,
             data_args.dataset_config_name,
             cache_dir=model_args.cache_dir,
             use_auth_token=True if model_args.use_auth_token else None,
         )
         if "validation" not in raw_datasets.keys():
             raw_datasets["validation"] = load_dataset(
-                data_args.dataset_name,
+                real_dataset_name,
                 data_args.dataset_config_name,
                 split=f"train[:{data_args.validation_split_percentage}%]",
                 cache_dir=model_args.cache_dir,
                 use_auth_token=True if model_args.use_auth_token else None,
             )
             raw_datasets["train"] = load_dataset(
-                data_args.dataset_name,
+                real_dataset_name,
                 data_args.dataset_config_name,
                 split=f"train[{data_args.validation_split_percentage}%:]",
                 cache_dir=model_args.cache_dir,
@@ -476,6 +481,8 @@ def main():
     else:
         column_names = raw_datasets["validation"].column_names
     text_column_name = "text" if "text" in column_names else column_names[0]
+    if data_args.dataset_name == "wiki_toxic":
+        text_column_name = "comment_text"
 
     # since this will be pickled to avoid _LazyModule error in Hasher force logger loading before tokenize_function
     tok_logger = transformers.utils.logging.get_logger(
@@ -650,15 +657,13 @@ def main():
         "finetuned_from": model_args.model_name_or_path,
         "tasks": "text-generation",
     }
-    if data_args.dataset_name is not None:
-        kwargs["dataset_tags"] = data_args.dataset_name
+    if real_dataset_name is not None:
+        kwargs["dataset_tags"] = real_dataset_name
         if data_args.dataset_config_name is not None:
             kwargs["dataset_args"] = data_args.dataset_config_name
-            kwargs[
-                "dataset"
-            ] = f"{data_args.dataset_name} {data_args.dataset_config_name}"
+            kwargs["dataset"] = f"{real_dataset_name} {data_args.dataset_config_name}"
         else:
-            kwargs["dataset"] = data_args.dataset_name
+            kwargs["dataset"] = real_dataset_name
 
     if training_args.push_to_hub:
         trainer.push_to_hub(**kwargs)

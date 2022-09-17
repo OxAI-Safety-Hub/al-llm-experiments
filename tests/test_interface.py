@@ -1,5 +1,6 @@
 from al_llm.parameters import Parameters
-from al_llm.experiment import Experiment, ProjectOption
+from al_llm.experiment import Experiment
+from al_llm.constants import WANDB_PROJECTS
 
 
 def test_pool_simulator_interface():
@@ -8,7 +9,7 @@ def test_pool_simulator_interface():
     parameters = Parameters(
         sample_generator_base_model="pool", full_loop=True, is_running_pytests=True
     )
-    args = Experiment.make_experiment(parameters, ProjectOption.Sandbox, "test")
+    args = Experiment.make_experiment(parameters, WANDB_PROJECTS["sandbox"], "test")
     experiment = Experiment(**args)
 
     # Run it, to make sure there are no errors

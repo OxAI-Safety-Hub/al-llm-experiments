@@ -1,8 +1,9 @@
 import sys
 import io
 
-from al_llm.experiment import Experiment, ProjectOption
+from al_llm.experiment import Experiment
 from al_llm.parameters import Parameters
+from al_llm.constants import WANDB_PROJECTS
 
 
 class ZeroStringIO(io.TextIOBase):
@@ -18,7 +19,7 @@ class TestFullLoopDummyExperiment:
     def test_dummy_experiment(self):
         parameters = Parameters(full_loop=True, is_running_pytests=True)
         dummy_args = Experiment.make_experiment(
-            parameters, ProjectOption.Sandbox, "test"
+            parameters, WANDB_PROJECTS["sandbox"], "test"
         )
         experiment = Experiment(**dummy_args)
         sys.stdin = ZeroStringIO()
