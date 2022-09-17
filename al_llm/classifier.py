@@ -116,9 +116,10 @@ class MetricEvaluator:
 
             # For accuracy, just compute it
             if name == "accuracy":
-                results[name] = metric.compute(
+                computed = metric.compute(
                     predictions=predictions, references=references
                 )
+                results[name] = next(iter(computed.values()))
 
             else:
 
@@ -131,9 +132,10 @@ class MetricEvaluator:
                     average = "weighted"
 
                 # Compute the metric using this average
-                results[name] = metric.compute(
+                computed = metric.compute(
                     predictions=predictions, references=references, average=average
                 )
+                results[name] = next(iter(computed.values()))
 
         return results
 
