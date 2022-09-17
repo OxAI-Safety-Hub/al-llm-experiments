@@ -112,8 +112,8 @@ class Parameters(dict):
         allows the human to mark data as ambiguous but the experiment will
         run as if it isn't. "none" means the user does not have the choice of
         marking it as ambiguous.
-    replay_run : str | None, default=None
-        If not `None`, we replay the run with this ID, using the samples and
+    replay_run : str, default=""
+        If non-empty, we replay the run with this ID, using the samples and
         labels generated there. Useful to redo the evaluation or testing on a
         particular run.
     cuda_device : str, default="cuda:0"
@@ -163,7 +163,7 @@ class Parameters(dict):
         use_automatic_labeller: bool = False,
         automatic_labeller_model_name: str = "textattack/roberta-base-rotten-tomatoes",
         ambiguity_mode: str = "only_mark",
-        replay_run: Optional[str] = None,
+        replay_run: str = "",
         cuda_device: str = "cuda:0",
         is_running_pytests: bool = False,
         save_classifier_every: int = 0,
