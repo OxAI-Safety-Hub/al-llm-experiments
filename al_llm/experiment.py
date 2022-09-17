@@ -403,7 +403,7 @@ class Experiment:
         """
 
         # Whether we're doing a replay run
-        do_replay_run = parameters["replay_run"] is not None
+        do_replay_run = parameters["replay_run"] != ""
 
         if do_replay_run:
 
