@@ -432,7 +432,9 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         """Load the classifier using the wandb_run"""
 
         # load and setup the model
-        self._model = load_classifier_model(self.wandb_run)
+        self._model = load_classifier_model(
+            self.wandb_run, len(self.dataset_container.CATEGORIES)
+        )
         self._setup_model()
 
     def _setup_model(self):
@@ -800,6 +802,7 @@ class TAPTClassifier(HuggingFaceClassifier, ABC):
             self.MODEL_NAME,
             self.parameters["dataset_name"],
             "classifier",
+            num_categories=len(self.dataset_container.CATEGORIES),
             tapted_model_version=self.parameters["tapted_model_version"],
         )
         self._model = model

@@ -91,7 +91,9 @@ def _save_model(model: PreTrainedModel, tmp: str, file_name: str):
     model.save_pretrained(file_path)
 
 
-def _load_model(tmp: str, file_name: str, purpose: str) -> PreTrainedModel:
+def _load_model(
+    tmp: str, file_name: str, purpose: str, *, num_categories: Optional[int] = None
+) -> PreTrainedModel:
     """Load a model from a temporary directory
 
     Parameters
@@ -102,6 +104,8 @@ def _load_model(tmp: str, file_name: str, purpose: str) -> PreTrainedModel:
         The file name the model is stored in.
     purpose : str
         Which head should we load the model with
+    num_categories : int, optional
+        The number of class labels, when usings the model as a classifier.
 
     Returns
     ----------
@@ -112,8 +116,12 @@ def _load_model(tmp: str, file_name: str, purpose: str) -> PreTrainedModel:
     model_file_path = os.path.join(tmp, file_name)
     # add the correct head depending on the purpose
     if purpose == "classifier":
+        if num_categories is None:
+            raise ValueError(
+                "`num_categories` can't be none when loading a model as a classifier"
+            )
         return AutoModelForSequenceClassification.from_pretrained(
-            model_file_path, num_labels=2
+            model_file_path, num_labels=num_categories
         )
     elif purpose == "sample_generator":
         return AutoModelForCausalLM.from_pretrained(model_file_path)
@@ -281,7 +289,7 @@ def save_classifier_model(
 
 
 def load_classifier_model(
-    wandb_run: wandb.sdk.wandb_run.Run,
+    wandb_run: wandb.sdk.wandb_run.Run, num_categories: int
 ) -> PreTrainedModel:
     """Load a classifier model from wandb
 
@@ -289,6 +297,8 @@ def load_classifier_model(
     ----------
     wandb_run : wandb.sdk.wandb_run.Run
         The run with which to load the model
+    num_categories : int
+        The number of categories in the classification task
 
     Returns
     ----------
@@ -307,7 +317,9 @@ def load_classifier_model(
             tmp=tmp,
         )
 
-        model = _load_model(tmp, CLASSIFIER_MODEL_FILE_NAME, "classifier")
+        model = _load_model(
+            tmp, CLASSIFIER_MODEL_FILE_NAME, "classifier", num_categories=num_categories
+        )
         return model
 
 
@@ -384,6 +396,8 @@ def load_tapted_model(
     base_model_name: str,
     dataset_name: str,
     purpose: str,
+    *,
+    num_categories: Optional[int] = None,
     tapted_model_version: str = "latest",
 ) -> Tuple[PreTrainedModel, dict]:
     """Load a tapted model and it's parameters from wandb
@@ -398,6 +412,8 @@ def load_tapted_model(
         The name of the dataset used for tapting
     purpose : str
         What will this model be used for. "sample_generator" or "classifier"
+    num_categories : int, optional
+        The number of class labels, when usings the model as a classifier.
     tapted_model_version : str, default="latest"
         The artifact version of the tapted model to load. By default it will
         load the most recent version
@@ -423,5 +439,7 @@ def load_tapted_model(
         )
 
         training_args = _load_json(tmp, TAPT_PARAMETERS_FILE_NAME)
-        model = _load_model(tmp, TAPT_MODEL_FILE_NAME, purpose)
+        model = _load_model(
+            tmp, TAPT_MODEL_FILE_NAME, purpose, num_categories=num_categories
+        )
         return model, training_args
