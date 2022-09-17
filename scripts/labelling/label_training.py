@@ -31,7 +31,9 @@ args = parser.parse_args()
 
 # Create a dataset container for the dataset
 dummy_parameters = Parameters(train_dataset_size=1000)
-dataset_container = Experiment.MAP_DATASET_CONTAINER[args.dataset_name](dummy_parameters)
+dataset_container = Experiment.MAP_DATASET_CONTAINER[args.dataset_name](
+    dummy_parameters
+)
 
 # Create a sub dataset to use for labelling
 dataset = dataset_container.dataset_train

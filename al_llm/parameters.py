@@ -87,7 +87,7 @@ class Parameters(dict):
         True if a pretrained sample generator should be used.
     use_tapted_classifier : bool, default=False
         True if a pretrained classifier should be used.
-    tapted_model_version : int, default=None
+    tapted_model_version : str, default="latest"
         The artifact version of the tapted model to use. By default this
         will use the latest version.
     use_tbt_sample_generator : bool, default=False
@@ -163,7 +163,7 @@ class Parameters(dict):
         sample_generator_base_model: str = "dummy",
         use_tapted_sample_generator: bool = False,
         use_tapted_classifier: bool = False,
-        tapted_model_version: int = None,
+        tapted_model_version: str = "latest",
         use_tbt_sample_generator: bool = False,
         sample_generator_temperature: float = 0.5,
         sample_generator_top_k: int = 50,
