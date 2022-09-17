@@ -14,6 +14,7 @@ from .dataset_container import (
     DummyDatasetContainer,
     RottenTomatoesDatasetContainer,
     WikiToxicDatasetContainer,
+    PubMed20kRCTDatasetContainer,
 )
 from .experiment import Experiment
 from .interface import (
