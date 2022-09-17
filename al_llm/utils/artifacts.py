@@ -152,6 +152,7 @@ def _download_artifact(
     artifact_name: str,
     artifact_type: str,
     tmp: str,
+    artifact_version: str = "latest",
 ):
     """Download a wandb artifact into a temporary directory
 
@@ -167,12 +168,15 @@ def _download_artifact(
         The type of the artifact.
     tmp : str
         The temporary directory to use as an in between.
+    artifact_version : str, default="latest"
+        The artifact version to load. By default it will load the most
+        recent version.
     """
 
     artifact_path_components = (
         WANDB_ENTITY,
         project,
-        artifact_name + ":latest",
+        artifact_name + ":" + artifact_version,
     )
     artifact_path = "/".join(artifact_path_components)
     artifact = wandb_run.use_artifact(
@@ -380,6 +384,7 @@ def load_tapted_model(
     base_model_name: str,
     dataset_name: str,
     purpose: str,
+    tapted_model_version: str = "latest",
 ) -> Tuple[PreTrainedModel, dict]:
     """Load a tapted model and it's parameters from wandb
 
@@ -393,6 +398,9 @@ def load_tapted_model(
         The name of the dataset used for tapting
     purpose : str
         What will this model be used for. "sample_generator" or "classifier"
+    tapted_model_version : str, default="latest"
+        The artifact version of the tapted model to load. By default it will
+        load the most recent version
 
     Returns
     ----------
@@ -411,6 +419,7 @@ def load_tapted_model(
             artifact_name=base_model_name + "---" + dataset_name,
             artifact_type=TAPT_ARTIFACT_TYPE,
             tmp=tmp,
+            artifact_version=tapted_model_version,
         )
 
         training_args = _load_json(tmp, TAPT_PARAMETERS_FILE_NAME)

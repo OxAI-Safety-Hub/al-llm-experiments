@@ -630,6 +630,7 @@ class TAPTMixin(ABC):
             self.GENERATOR_MODEL_NAME,
             self.parameters["dataset_name"],
             "sample_generator",
+            tapted_model_version=self.parameters["tapted_model_version"],
         )
         self.generator_model = model
         self.training_parameters = training_args

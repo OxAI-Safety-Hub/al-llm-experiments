@@ -34,9 +34,11 @@ if not os.path.exists("venv"):
     create("venv", with_pip=True)
 
 # Install the requirements
+os.system("venv/bin/pip install --upgrade pip")
 os.system("venv/bin/pip install -r requirements.txt")
+os.system("venv/bin/pip uninstall torch")
 os.system(
-    "venv/bin/pip install torch==1.12.1+cu116 --extra-index-url https://download.pytorch.org/whl/cu116"
+    "venv/bin/pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu113"
 )
 
 # Form the command that calls the run_clm.py script with our
