@@ -1,7 +1,7 @@
 import os
 import tempfile
 import json
-from typing import Any, Tuple
+from typing import Any, Tuple, Optional
 
 from transformers import (
     PreTrainedModel,
@@ -211,27 +211,35 @@ def save_dataset_extension(
 
 def load_dataset_extension(
     wandb_run: wandb.sdk.wandb_run.Run,
-) -> datasets.Dataset:
+    *,
+    dataset_wandb_run: Optional[wandb.sdk.wandb_run.Run] = None,
+) -> dict:
     """Load a dataset extention from wandb
 
     Parameters
     ----------
     wandb_run : wandb.sdk.wandb_run.Run
-        The run where this dataset extension is saved.
+        The current run.
+    dataset_wandb_run : wandb.sdk.wandb_run.Run, optional
+        The run where the dataset extension artifact is located. If `None`, we
+        take it to be the current run.
 
     Returns
     ----------
-    added_data : datasets.Dataset
+    added_data : dict
         The dataset extension.
     """
+
+    if dataset_wandb_run is None:
+        dataset_wandb_run = wandb_run
 
     # use a temporary directory as an inbetween
     with tempfile.TemporaryDirectory() as tmp:
 
         _download_artifact(
             wandb_run=wandb_run,
-            project=wandb_run.project,
-            artifact_name=f"de_{wandb_run.name}",
+            project=dataset_wandb_run.project,
+            artifact_name=f"de_{dataset_wandb_run.name}",
             artifact_type=DATASET_EXT_ARTIFACT_TYPE,
             tmp=tmp,
         )

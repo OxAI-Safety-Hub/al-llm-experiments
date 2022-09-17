@@ -29,8 +29,13 @@ class Parameters(dict):
     refresh_on_last : bool, default=True
         Whether to refresh the model on the last iteration.
     eval_every : int, default=0
-        How often run an eval loop when training. A value of `0` means we only
-        do it on the last epoch per iteration.
+        How often run an eval loop when training. A value of `-1` means we
+        never run the eval loop. A value of `0` means we only do it on the
+        last epoch per iteration.
+    test_every : int, default=-1
+        How often run an test loop when training. A value of `-1` means we
+        never run the test loop. A value of `0` means we only do it on the
+        last epoch per iteration.
     batch_size : int, default=16
         Batch size of the dataloader which the classifier trains from.
     eval_batch_size : int, default=128
@@ -112,6 +117,10 @@ class Parameters(dict):
         allows the human to mark data as ambiguous but the experiment will
         run as if it isn't. "none" means the user does not have the choice of
         marking it as ambiguous.
+    replay_run : str, default=""
+        If non-empty, we replay the run with this ID, using the samples and
+        labels generated there. Useful to redo the evaluation or testing on a
+        particular run.
     cuda_device : str, default="cuda:0"
         The string specifying the CUDA device to use
     is_running_pytests : bool, default=False
@@ -130,6 +139,7 @@ class Parameters(dict):
         refresh_every: int = 1,
         refresh_on_last: bool = True,
         eval_every: int = 0,
+        test_every: int = -1,
         batch_size: int = 16,
         eval_batch_size: int = 128,
         num_epochs_update: int = 3,
@@ -159,6 +169,7 @@ class Parameters(dict):
         use_automatic_labeller: bool = False,
         automatic_labeller_model_name: str = "textattack/roberta-base-rotten-tomatoes",
         ambiguity_mode: str = "only_mark",
+        replay_run: str = "",
         cuda_device: str = "cuda:0",
         is_running_pytests: bool = False,
         save_classifier_every: int = 0,
@@ -177,6 +188,7 @@ class Parameters(dict):
             num_iterations=1 if supervised else num_iterations,
             refresh_every=refresh_every,
             refresh_on_last=refresh_on_last,
+            test_every=test_every,
             eval_every=eval_every,
             batch_size=batch_size,
             eval_batch_size=eval_batch_size,
@@ -207,12 +219,34 @@ class Parameters(dict):
             use_automatic_labeller=use_automatic_labeller,
             automatic_labeller_model_name=automatic_labeller_model_name,
             ambiguity_mode=ambiguity_mode,
+            replay_run=replay_run,
             cuda_device=cuda_device,
             is_running_pytests=is_running_pytests,
             save_classifier_every=save_classifier_every,
             *args,
             **kwargs,
         )
+
+    def update_from_dict(self, dictionary: dict, *, skip_keys: list = []):
+        """Update the parameters using a dictionary
+
+        Parameters
+        ----------
+        dictionary : dict
+            The dictionary of parameters to use to update the values
+        skip_keys : list, default = []
+            A list of keys in `dictionary` to ignore
+        """
+
+        # Get the method signature for the constructor
+        signature = inspect.signature(self.__init__)
+
+        # Loop over all the parameters in the signature, and add the
+        # corresponding value from `dictionary` if it exists, and it is
+        # permitted by `skip_keys` to do so
+        for name in dict(signature.parameters).keys():
+            if name in dictionary and name not in skip_keys:
+                self.__setitem__(name, dictionary[name])
 
     @classmethod
     def add_to_arg_parser(cls, parser: ArgumentParser, defaults: Optional[dict] = None):

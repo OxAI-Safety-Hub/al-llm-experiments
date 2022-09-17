@@ -1,7 +1,7 @@
 # The python abc module for making abstract base classes
 # https://docs.python.org/3.10/library/abc.html
 from abc import ABC, abstractmethod
-from typing import Union, Any
+from typing import Union, Any, Optional
 
 import torch
 from torch.utils.data import DataLoader
@@ -29,7 +29,115 @@ from al_llm.utils.artifacts import (
     load_classifier_model,
     load_tapted_model,
 )
-from al_llm.constants import LABEL_COLUMN_NAME, EVALUATE_METRICS
+from al_llm.constants import LABEL_COLUMN_NAME
+
+
+class MetricEvaluator:
+    """Storage and maintainence of evalutation metrics
+
+    Determines which metrics to use based on the number of classes
+    (categories).
+
+    In the multiclass setting, f1, precision and recall use the weighted
+    average, but we also the unweighted versions, using '-unweighted' as a
+    suffix.
+
+    Parameters
+    ----------
+    dataset_container : DatasetContainer
+        The dataset container for this experiment. We use it to determine how
+        many classes there are.
+    """
+
+    UNWEIGHTED_SUFFIX = "-unweighted"
+
+    def __init__(self, dataset_container: DatasetContainer):
+
+        self.num_categories = len(dataset_container.CATEGORIES)
+
+        # The metrics common to all classifiers
+        self._metrics = {
+            "accuracy": evaluate.load("accuracy"),
+            "f1": evaluate.load("f1"),
+            "precision": evaluate.load("precision"),
+            "recall": evaluate.load("recall"),
+        }
+
+        # In the multiclass case, also record the unweighted version
+        if self.num_categories != 2:
+            self._metrics["f1" + self.UNWEIGHTED_SUFFIX] = evaluate.load("f1")
+            self._metrics["precision" + self.UNWEIGHTED_SUFFIX] = evaluate.load(
+                "precision"
+            )
+            self._metrics["recall" + self.UNWEIGHTED_SUFFIX] = evaluate.load("recall")
+
+    def add_batch(
+        self,
+        *,
+        predictions: Union[list, torch.Tensor],
+        references: Union[list, torch.Tensor],
+    ):
+        """Add a batch of predictions and references for each metric
+
+        Parameters
+        ----------
+        predictions : list or torch.Tensor
+            The predicted values.
+        references: list or torch.Tensor
+            The true values
+        """
+        for metric in self._metrics.values():
+            metric.add_batch(predictions=predictions, references=references)
+
+    def compute(
+        self,
+        *,
+        predictions: Optional[Union[list, torch.Tensor]] = None,
+        references: Optional[Union[list, torch.Tensor]] = None,
+    ):
+        """Compute each metric
+
+        Parameters
+        ----------
+        predictions : list or torch.Tensor, optional
+            The predicted values.
+        references: list or torch.Tensor, optional
+            The true values
+
+        Returns
+        -------
+        results : dict
+            A dictionary of the results of computing each metric
+        """
+
+        results = {}
+
+        for name, metric in self._metrics.items():
+
+            # For accuracy, just compute it
+            if name == "accuracy":
+                computed = metric.compute(
+                    predictions=predictions, references=references
+                )
+                results[name] = next(iter(computed.values()))
+
+            else:
+
+                # Determine which type of average to use
+                if name.endswith(self.UNWEIGHTED_SUFFIX):
+                    average = "macro"
+                elif self.num_categories == 2:
+                    average = "binary"
+                else:
+                    average = "weighted"
+
+                # Compute the metric using this average
+                computed = metric.compute(
+                    predictions=predictions, references=references, average=average
+                )
+                results[name] = next(iter(computed.values()))
+
+        return results
 
 
 class Classifier(ABC):
@@ -249,9 +357,8 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         )
         self.tokenizer.pad_token = self.tokenizer.eos_token
 
-        # Set up the Hugging Face metric evaluator
-        metrics = EVALUATE_METRICS
-        self.evaluator = evaluate.combine(metrics)
+        # Set up the metric evaluator
+        self.evaluator = MetricEvaluator(dataset_container)
 
         # model not required until a call to `train_afresh`
         self._model = None
@@ -315,7 +422,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
 
         # load a fresh version of the model
         self._model = AutoModelForSequenceClassification.from_pretrained(
-            self.MODEL_NAME, num_labels=2
+            self.MODEL_NAME, num_labels=len(self.dataset_container.CATEGORIES)
         )
 
         # Setup the model
@@ -348,6 +455,12 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
             batch_size=self.parameters["eval_batch_size"],
         )
 
+        # The test dataloader
+        test_dataloader = DataLoader(
+            self.dataset_container.tokenized_test,
+            batch_size=self.parameters["eval_batch_size"],
+        )
+
         # create a learning rate scheduler
         num_training_steps = num_epochs * len(train_dataloader)
         lr_scheduler = get_scheduler(
@@ -369,7 +482,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
             train_metrics = self._train_epoch(train_dataloader, optimizer, lr_scheduler)
             print(
                 f"Train loss: {train_metrics['loss']:.8}; "
-                f"train accuracy: {train_metrics['accuracy']:.6%}"
+                f"train f1: {train_metrics['f1']:.6%}"
             )
 
             # The results to log to weights and biases for this epoch
@@ -379,21 +492,30 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
                 "train": train_metrics,
             }
 
-            # If the eval loop should run this epoch, or if it is the last epoch
-            run_eval = (
-                self.parameters["eval_every"] > 0
-                and (epoch + 1) % self.parameters["eval_every"] == 0
-            )
-            run_eval = run_eval or epoch == num_epochs - 1
-            if run_eval:
-                # Run the evaluation loop, obtaining the metrics
-                print("- Running eval loop")
-                eval_metrics = self._eval_epoch(eval_dataloader)
-                print(
-                    f"Eval loss: {eval_metrics['loss']:.8}; "
-                    f"eval accuracy: {eval_metrics['accuracy']:.6%}"
+            # Run eval and test loops, if required
+            for split, dataloader in [
+                ("eval", eval_dataloader),
+                ("test", test_dataloader),
+            ]:
+
+                # If the eval loop should run this epoch, or if it is the last epoch
+                run_eval = (
+                    self.parameters[f"{split}_every"] > 0
+                    and (epoch + 1) % self.parameters[f"{split}_every"] == 0
                 )
-                results_to_log["eval"] = eval_metrics
+                run_eval = run_eval or (
+                    self.parameters[f"{split}_every"] >= 0 and epoch == num_epochs - 1
+                )
+
+                if run_eval:
+                    # Run the evaluation loop, obtaining the metrics
+                    print(f"- Running {split} loop")
+                    eval_metrics = self._eval_epoch(dataloader)
+                    print(
+                        f"{split.capitalize()} loss: {eval_metrics['loss']:.8}; "
+                        f"{split.capitalize()} f1: {eval_metrics['f1']:.6%}"
+                    )
+                    results_to_log[split] = eval_metrics
 
             # Record the metrics with W&B
             self.wandb_run.log(results_to_log)

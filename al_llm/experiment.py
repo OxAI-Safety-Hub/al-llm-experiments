@@ -13,6 +13,7 @@ from al_llm.dataset_container import (
     DummyDatasetContainer,
     RottenTomatoesDatasetContainer,
     WikiToxicDatasetContainer,
+    PubMed20kRCTDatasetContainer,
 )
 from al_llm.classifier import (
     Classifier,
@@ -29,6 +30,7 @@ from al_llm.sample_generator import (
     TAPTGPT2SampleGenerator,
     TAPTDistilGPT2SampleGenerator,
     PoolSampleGenerator,
+    ReplaySampleGenerator,
     PlainGPT2TokenByTokenSampleGenerator,
     TAPTGPT2TokenByTokenSampleGenerator,
 )
@@ -43,6 +45,7 @@ from al_llm.interface import (
     CLIInterface,
     PoolSimulatorInterface,
     AutomaticLabellerInterface,
+    ReplayInterface,
 )
 from al_llm.parameters import Parameters
 from al_llm.constants import (
@@ -81,6 +84,7 @@ class Experiment:
         "dummy": DummyDatasetContainer,
         "rotten_tomatoes": RottenTomatoesDatasetContainer,
         "wiki_toxic": WikiToxicDatasetContainer,
+        "pubmed_20k_rct": PubMed20kRCTDatasetContainer,
     }
     MAP_PLAIN_CLASSIFIER = {
         "dummy": DummyClassifier,
@@ -400,6 +404,37 @@ class Experiment:
         >>> experiment = Experiment(**args)
         """
 
+        # Whether we're doing a replay run
+        do_replay_run = parameters["replay_run"] != ""
+
+        if do_replay_run:
+
+            # Build up the full path, using the entity and project name, if
+            # not already specified
+            replay_run_path = parameters["replay_run"]
+            if replay_run_path.count("/") == 0:
+                replay_run_path = "/".join(
+                    [WANDB_ENTITY, project_name, replay_run_path]
+                )
+            elif replay_run_path.count("/") == 1:
+                replay_run_path = "/".join([WANDB_ENTITY, replay_run_path])
+
+            # Print a message to say that we're replaying a run
+            print()
+            print("+" * 79)
+            text = f"+ Replaying run: {replay_run_path}"
+            print(text + " " * max(0, 78 - len(text)) + "+")
+            print("+" * 79)
+            print()
+
+            # Get the run to replay
+            api = wandb.Api()
+            replayed_run = api.run(replay_run_path)
+
+            # Update the parameters to match
+            print("Updating parameters to match replayed run...")
+            parameters.update_from_dict(replayed_run.config, skip_keys=["replay_run"])
+
         # initialise weights and biases
         #   Set resume to allow which resumes the previous run if there is already
         #   a run with the id `run_id`.
@@ -417,6 +452,8 @@ class Experiment:
         # Ensure that if a run is being resumed, it is intentional
         if wandb_run.resumed:
             print("WARNING: Resuming an already existent run.")
+            if do_replay_run:
+                print("Moreover, this is a replay run.")
             happy_to_continue = False
             while not happy_to_continue:
                 choice = input("Do you want to continue? (Y/n): ")
@@ -446,10 +483,14 @@ class Experiment:
         # Set up the data handler
         data_handler = DataHandler(parameters, dataset_container, classifier, wandb_run)
 
+        # Load the dataset extension from the replayed run, if we're doing that
+        if do_replay_run:
+            data_handler.load_replay_dataset_extension(replayed_run)
+
         # Set up the acquisition function (could be None)
         af_name = parameters["acquisition_function"]
         af_class = cls.MAP_ACQUISITION_FUNCTION[af_name]
-        if af_class is None:
+        if af_class is None or do_replay_run:
             acquisition_function = None
         elif af_name == "max_uncertainty":
             acquisition_function = af_class(parameters, classifier)
@@ -458,7 +499,11 @@ class Experiment:
 
         # Set up the sample generator
         sg_model_name = parameters["sample_generator_base_model"]
-        if sg_model_name == "pool":
+        if do_replay_run:
+            sample_generator = ReplaySampleGenerator(
+                parameters, wandb_run, data_handler
+            )
+        elif sg_model_name == "pool":
             sample_generator = cls.MAP_PLAIN_SAMPLE_GENERATOR[sg_model_name](
                 parameters, wandb_run, acquisition_function, dataset_container
             )
@@ -493,12 +538,16 @@ class Experiment:
 
         # Update the W&B config with TAPT parameters, if we're using a TAPTed
         # sample generator
-        if parameters["use_tapted_sample_generator"]:
+        if parameters["use_tapted_sample_generator"] and not do_replay_run:
             tapt_parameters = sample_generator.get_training_parameters()
             wandb.config.update({"tapt_sample_generator": tapt_parameters})
 
         # Set up the interface
-        if parameters["use_automatic_labeller"]:
+        if do_replay_run:
+            interface = ReplayInterface(
+                parameters, dataset_container, wandb_run, data_handler
+            )
+        elif parameters["use_automatic_labeller"]:
             interface = AutomaticLabellerInterface(
                 parameters,
                 dataset_container,
