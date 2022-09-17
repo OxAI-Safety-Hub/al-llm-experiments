@@ -427,7 +427,7 @@ class Experiment:
 
             # Get the run to replay
             api = wandb.Api()
-            replayed_run = api.run(parameters["replay_run"])
+            replayed_run = api.run(replay_run_path)
 
             # Update the parameters to match
             print("Updating parameters to match replayed run...")
