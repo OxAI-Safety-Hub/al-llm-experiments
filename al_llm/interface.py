@@ -14,6 +14,7 @@ import wandb
 
 from al_llm.dataset_container import DatasetContainer
 from al_llm.parameters import Parameters
+from al_llm.data_handler import DataHandler
 
 
 class Interface(ABC):
@@ -628,3 +629,53 @@ class AutomaticLabellerInterface(SimpleCLIInterfaceMixin, Interface):
             return self.CLASS_LABEL_MAPPING[self.model_name][label]
         else:
             return label
+
+
+class ReplayInterface(SimpleCLIInterfaceMixin, Interface):
+    """Interface for replaying a run, using already obtained labels
+
+    Parameters
+    ----------
+    parameters : Parameters
+        The dictionary of parameters for the present experiment
+    dataset_container : DatasetContainer
+        The dataset container for this experiment
+    wandb_run : wandb.sdk.wandb_run.Run
+        The current wandb run
+    data_handler : DataHandler
+        The data handler for this experiment
+    line_width : int, default=70
+        The width of the lines to wrap the output.
+    """
+
+    def __init__(
+        self,
+        parameters: Parameters,
+        dataset_container: DatasetContainer,
+        wandb_run: wandb.sdk.wandb_run.Run,
+        data_handler: DataHandler,
+        *,
+        line_width: int = 70,
+    ):
+        super().__init__(parameters, dataset_container, wandb_run)
+        self.data_handler = data_handler
+        self.line_width = line_width
+
+        # The current index in the replay dataset extension
+        self._iteration = 0
+
+    def prompt(self, samples: list) -> Tuple[list, list]:
+
+        # Announce what we're doing
+        print()
+        print("Getting labels from the replayed run...")
+
+        # Get the next batch of samples from the replayed run
+        labels, ambiguities = self.data_handler.get_replay_labels_ambiguities(
+            self._iteration
+        )
+
+        # Update the index
+        self._iteration += 1
+
+        return labels, ambiguities

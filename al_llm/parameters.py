@@ -117,6 +117,10 @@ class Parameters(dict):
         allows the human to mark data as ambiguous but the experiment will
         run as if it isn't. "none" means the user does not have the choice of
         marking it as ambiguous.
+    replay_run : str, default=""
+        If non-empty, we replay the run with this ID, using the samples and
+        labels generated there. Useful to redo the evaluation or testing on a
+        particular run.
     cuda_device : str, default="cuda:0"
         The string specifying the CUDA device to use
     is_running_pytests : bool, default=False
@@ -165,6 +169,7 @@ class Parameters(dict):
         use_automatic_labeller: bool = False,
         automatic_labeller_model_name: str = "textattack/roberta-base-rotten-tomatoes",
         ambiguity_mode: str = "only_mark",
+        replay_run: str = "",
         cuda_device: str = "cuda:0",
         is_running_pytests: bool = False,
         save_classifier_every: int = 0,
@@ -214,12 +219,34 @@ class Parameters(dict):
             use_automatic_labeller=use_automatic_labeller,
             automatic_labeller_model_name=automatic_labeller_model_name,
             ambiguity_mode=ambiguity_mode,
+            replay_run=replay_run,
             cuda_device=cuda_device,
             is_running_pytests=is_running_pytests,
             save_classifier_every=save_classifier_every,
             *args,
             **kwargs,
         )
+
+    def update_from_dict(self, dictionary: dict, *, skip_keys: list = []):
+        """Update the parameters using a dictionary
+
+        Parameters
+        ----------
+        dictionary : dict
+            The dictionary of parameters to use to update the values
+        skip_keys : list, default = []
+            A list of keys in `dictionary` to ignore
+        """
+
+        # Get the method signature for the constructor
+        signature = inspect.signature(self.__init__)
+
+        # Loop over all the parameters in the signature, and add the
+        # corresponding value from `dictionary` if it exists, and it is
+        # permitted by `skip_keys` to do so
+        for name in dict(signature.parameters).keys():
+            if name in dictionary and name not in skip_keys:
+                self.__setitem__(name, dictionary[name])
 
     @classmethod
     def add_to_arg_parser(cls, parser: ArgumentParser, defaults: Optional[dict] = None):
