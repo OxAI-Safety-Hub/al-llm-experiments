@@ -29,8 +29,13 @@ class Parameters(dict):
     refresh_on_last : bool, default=True
         Whether to refresh the model on the last iteration.
     eval_every : int, default=0
-        How often run an eval loop when training. A value of `0` means we only
-        do it on the last epoch per iteration.
+        How often run an eval loop when training. A value of `-1` means we
+        never run the eval loop. A value of `0` means we only do it on the
+        last epoch per iteration.
+    test_every : int, default=-1
+        How often run an test loop when training. A value of `-1` means we
+        never run the test loop. A value of `0` means we only do it on the
+        last epoch per iteration.
     batch_size : int, default=16
         Batch size of the dataloader which the classifier trains from.
     eval_batch_size : int, default=128
@@ -130,6 +135,7 @@ class Parameters(dict):
         refresh_every: int = 1,
         refresh_on_last: bool = True,
         eval_every: int = 0,
+        test_every: int = -1,
         batch_size: int = 16,
         eval_batch_size: int = 128,
         num_epochs_update: int = 3,
@@ -177,6 +183,7 @@ class Parameters(dict):
             num_iterations=1 if supervised else num_iterations,
             refresh_every=refresh_every,
             refresh_on_last=refresh_on_last,
+            test_every=test_every,
             eval_every=eval_every,
             batch_size=batch_size,
             eval_batch_size=eval_batch_size,
