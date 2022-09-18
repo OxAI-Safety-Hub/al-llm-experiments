@@ -12,6 +12,13 @@ parser.add_argument("--dataset-name", type=str, help="The dataset name or path."
 parser.add_argument(
     "--batch-size", type=int, help="The batch size for training.", default=4, nargs="?"
 )
+parser.add_argument(
+    "--block-size",
+    type=int,
+    help="Number of tokens to truncate longer training samples to",
+    default=128,
+    nargs="?",
+)
 parser.add_argument("--seed", type=int, help="The seed.", default=327532, nargs="?")
 parser.add_argument(
     "--output-dir",
@@ -48,6 +55,7 @@ command_args = [
     f"--model_name_or_path {args.model_name}",
     f"--dataset_name {args.dataset_name}",
     f"--dataset_config_name {args.dataset_name}",
+    f"--block_size {args.block_size}",
     f"--per_device_train_batch_size {args.batch_size}",
     f"--per_device_eval_batch_size {args.batch_size}",
     f"--seed {args.seed}",
