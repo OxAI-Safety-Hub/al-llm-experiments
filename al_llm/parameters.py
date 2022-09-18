@@ -97,8 +97,10 @@ class Parameters(dict):
     sample_generator_top_k : int, default=50
         The number of highest probability vocabulary tokens to keep for
         top-k-filtering when doing sample generation
-    sample_generator_max_length : int, default=30
-        The maximum number of tokens to generate.
+    sample_generator_max_length : int, default=-1
+        The maximum length of sentences to generate, in number of tokes. A
+        value of -1 means that we use the upper quartile value for the length
+        of the tokenized training sentences from the current dataset.
     tbt_pre_top_k : int, default=256
         When doing token-by-token generation, this is the number of tokens
         which get selected to add the uncertainties to. We take the top k
@@ -167,7 +169,7 @@ class Parameters(dict):
         use_tbt_sample_generator: bool = False,
         sample_generator_temperature: float = 0.5,
         sample_generator_top_k: int = 50,
-        sample_generator_max_length: int = 30,
+        sample_generator_max_length: int = -1,
         tbt_pre_top_k: int = 256,
         tbt_uncertainty_weighting: float = 1,
         use_automatic_labeller: bool = False,
