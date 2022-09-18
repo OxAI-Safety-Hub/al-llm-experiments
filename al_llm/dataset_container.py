@@ -432,6 +432,7 @@ class HuggingFaceDatasetContainer(DatasetContainer, ABC):
 
     DATASET_NAME = ""
     CATEGORIES = OrderedDict()
+    TOKENIZED_LENGTH_UPPER_QUARTILE = 0
 
     def __init__(self, parameters: Parameters):
         super().__init__(parameters)
@@ -499,6 +500,7 @@ class RottenTomatoesDatasetContainer(HuggingFaceDatasetContainer):
 
     DATASET_NAME = "rotten_tomatoes"
     CATEGORIES = OrderedDict([("neg", "Negative"), ("pos", "Positive")])
+    TOKENIZED_LENGTH_UPPER_QUARTILE = 32
 
     def _preprocess_dataset(self):
 
@@ -573,6 +575,7 @@ class WikiToxicDatasetContainer(HuggingFaceDatasetContainer):
 
     DATASET_NAME = "OxAISH-AL-LLM/wiki_toxic"
     CATEGORIES = OrderedDict([("non", "Non-toxic"), ("tox", "Toxic")])
+    TOKENIZED_LENGTH_UPPER_QUARTILE = 102
 
     def _preprocess_dataset(self):
 
@@ -703,6 +706,7 @@ class PubMed20kRCTDatasetContainer(HuggingFaceDatasetContainer):
             ("con", "Conclusions"),
         ]
     )
+    TOKENIZED_LENGTH_UPPER_QUARTILE = 42
 
     def _preprocess_dataset(self):
 
