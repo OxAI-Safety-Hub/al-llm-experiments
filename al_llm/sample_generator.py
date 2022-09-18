@@ -223,6 +223,9 @@ class SampleGenerator(ABC):
     ----------
     parameters : Parameters
         The dictionary of parameters for the present experiment
+    dataset_container : DatasetContainer
+        The dataset container for the experiment, which holds the remainder
+        dataset
     wandb_run : wandb.sdk.wandb_run.Run
         The current wandb run
     acquisition_function : AcquisitionFunction, optional
@@ -233,10 +236,12 @@ class SampleGenerator(ABC):
     def __init__(
         self,
         parameters: Parameters,
+        dataset_container: DatasetContainer,
         wandb_run: wandb.sdk.wandb_run.Run,
         acquisition_function: Optional[AcquisitionFunction] = None,
     ):
         self.parameters = parameters
+        self.dataset_container = dataset_container
         self.wandb_run = wandb_run
         self.acquisition_function = acquisition_function
 
@@ -301,6 +306,9 @@ class DummySampleGenerator(SampleGenerator):
     ----------
     parameters : Parameters
         The dictionary of parameters for the present experiment
+    dataset_container : DatasetContainer
+        The dataset container for the experiment, which holds the remainder
+        dataset
     wandb_run : wandb.sdk.wandb_run.Run
         The current wandb run
     acquisition_function : AcquisitionFunction, optional
@@ -331,23 +339,23 @@ class PoolSampleGenerator(SampleGenerator):
     ----------
     parameters : Parameters
         The dictionary of parameters for the present experiment
+    dataset_container : DatasetContainer
+        The dataset container for the experiment, which holds the remainder
+        dataset
     wandb_run : wandb.sdk.wandb_run.Run
         The current wandb run
     acquisition_function : AcquisitionFunction
         The acquisition function to use.
-    dataset_container : DatasetContainer
-        The dataset container for the experiment, which holds the remainder
-        dataset
     """
 
     def __init__(
         self,
         parameters: Parameters,
+        dataset_container: DatasetContainer,
         wandb_run: wandb.sdk.wandb_run.Run,
         acquisition_function: AcquisitionFunction,
-        dataset_container: DatasetContainer,
     ):
-        super().__init__(parameters, wandb_run, acquisition_function)
+        super().__init__(parameters, dataset_container, wandb_run, acquisition_function)
 
         # Get the list of sentences in the remainder dataset, as a list
         remainder_python = dataset_container.dataset_remainder.with_format(None)
@@ -381,6 +389,9 @@ class ReplaySampleGenerator(SampleGenerator):
     ----------
     parameters : Parameters
         The dictionary of parameters for the present experiment
+    dataset_container : DatasetContainer
+        The dataset container for the experiment, which holds the remainder
+        dataset
     wandb_run : wandb.sdk.wandb_run.Run
         The current wandb run
     data_handler : DataHandler
@@ -392,10 +403,11 @@ class ReplaySampleGenerator(SampleGenerator):
     def __init__(
         self,
         parameters: Parameters,
+        dataset_container: DatasetContainer,
         wandb_run: wandb.sdk.wandb_run.Run,
         data_handler: DataHandler,
     ):
-        super().__init__(parameters, wandb_run, None)
+        super().__init__(parameters, dataset_container, wandb_run, None)
         self.data_handler = data_handler
 
         # The current index in the replay dataset extension
@@ -426,6 +438,8 @@ class HuggingFaceSampleGenerator(SampleGenerator, ABC):
     ----------
     parameters : Parameters
         The dictionary of parameters for the present experiment
+    dataset_container : DatasetContainer
+        The dataset container for the current experiment.
     wandb_run : wandb.sdk.wandb_run.Run
         The current wandb run
     acquisition_function : AcquisitionFunction, optional
@@ -438,11 +452,18 @@ class HuggingFaceSampleGenerator(SampleGenerator, ABC):
     def __init__(
         self,
         parameters: Parameters,
+        dataset_container: DatasetContainer,
         wandb_run: wandb.sdk.wandb_run.Run,
         acquisition_function: Optional[AcquisitionFunction] = None,
     ):
 
-        super().__init__(parameters, wandb_run, acquisition_function)
+        super().__init__(parameters, dataset_container, wandb_run, acquisition_function)
+
+        # Set the max sentence length to generate, in tokens
+        if self.parameters["sample_generator_max_length"] == -1:
+            self._max_length = dataset_container.TOKENIZED_LENGTH_UPPER_QUARTILE
+        else:
+            self._max_length = self.parameters["sample_generator_max_length"]
 
         # Load the model we'll use for generating
         self._load_generator_model()
@@ -532,14 +553,14 @@ class HuggingFaceSampleGenerator(SampleGenerator, ABC):
         # Create a tqdm progress bar to track the generation progress. We
         # assume that we go to the max length; if not, the bar will just end
         # early
-        with tqdm(total=self.parameters["sample_generator_max_length"] - 1) as tqdm_bar:
+        with tqdm(total=self._max_length - 1) as tqdm_bar:
 
             self._tqdm_holder.tqdm_bar = tqdm_bar
 
             # Use the pipeline to generate real sentences
             sentence_dicts = self.generator(
                 "",
-                max_length=self.parameters["sample_generator_max_length"],
+                max_length=self._max_length,
                 num_return_sequences=pool_size,
             )
 
@@ -558,6 +579,8 @@ class TokenByTokenSampleGenerator(HuggingFaceSampleGenerator, ABC):
     classifier : HuggingFaceClassifier
         The classifier used in the current experiment, for which we maximise
         uncertainty.
+    dataset_container : DatasetContainer
+        The dataset container for the current experiment.
     wandb_run : wandb.sdk.wandb_run.Run
         The current wandb run
     acquisition_function : AcquisitionFunction, optional
@@ -569,14 +592,22 @@ class TokenByTokenSampleGenerator(HuggingFaceSampleGenerator, ABC):
         self,
         parameters: Parameters,
         classifier: HuggingFaceClassifier,
+        dataset_container: DatasetContainer,
         wandb_run: wandb.sdk.wandb_run.Run,
         acquisition_function: Optional[AcquisitionFunction] = None,
     ):
 
         self.parameters = parameters
         self.classifier = classifier
+        self.dataset_container = dataset_container
         self.wandb_run = wandb_run
         self.acquisition_function = acquisition_function
+
+        # Set the max sentence length to generate, in tokens
+        if self.parameters["sample_generator_max_length"] == -1:
+            self._max_length = dataset_container.TOKENIZED_LENGTH_UPPER_QUARTILE
+        else:
+            self._max_length = self.parameters["sample_generator_max_length"]
 
         # Load the base sample generator model
         self._load_generator_model()
@@ -662,6 +693,8 @@ class PlainGPT2SampleGenerator(HuggingFaceSampleGenerator):
     ----------
     parameters : Parameters
         The dictionary of parameters for the present experiment
+    dataset_container : DatasetContainer
+        The dataset container for the current experiment.
     wandb_run : wandb.sdk.wandb_run.Run
         The current wandb run
     acquisition_function : AcquisitionFunction, optional
@@ -683,6 +716,8 @@ class TAPTDistilGPT2SampleGenerator(TAPTMixin, HuggingFaceSampleGenerator):
     ----------
     parameters : Parameters
         The dictionary of parameters for the present experiment
+    dataset_container : DatasetContainer
+        The dataset container for the current experiment.
     wandb_run : wandb.sdk.wandb_run.Run
         The current wandb run
     acquisition_function : acquisition_function.AcquisitionFunction, optional
@@ -704,6 +739,8 @@ class TAPTGPT2SampleGenerator(TAPTMixin, HuggingFaceSampleGenerator):
     ----------
     parameters : Parameters
         The dictionary of parameters for the present experiment
+    dataset_container : DatasetContainer
+        The dataset container for the current experiment.
     wandb_run : wandb.sdk.wandb_run.Run
         The current wandb run
     acquisition_function : acquisition_function.AcquisitionFunction, optional
