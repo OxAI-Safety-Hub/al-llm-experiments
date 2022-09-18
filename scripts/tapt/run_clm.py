@@ -675,6 +675,7 @@ def main():
         "seed": training_args.seed,
         "batch_size": training_args.per_device_train_batch_size,
         "num_epochs": training_args.num_train_epochs,
+        "block_size": block_size,
     }
 
     # Saves the tapted model and training_args to wandb
