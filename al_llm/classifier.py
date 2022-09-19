@@ -133,7 +133,10 @@ class MetricEvaluator:
 
                 # Compute the metric using this average
                 computed = metric.compute(
-                    predictions=predictions, references=references, average=average
+                    predictions=predictions,
+                    references=references,
+                    average=average,
+                    zero_division=0,
                 )
                 results[name] = next(iter(computed.values()))
 
