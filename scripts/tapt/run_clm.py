@@ -678,9 +678,18 @@ def main():
         "block_size": block_size,
     }
 
+    # Extract the last part of the model and dataset paths, to name the tatped
+    # model
+    base_model_name = model_args.model_name_or_path
+    if "/" in base_model_name:
+        base_model_name = base_model_name[base_model_name.rindex("/") + 1:]
+    dataset_name = data_args.dataset_name
+    if "/" in dataset_name:
+        dataset_name = dataset_name[dataset_name.rindex("/") + 1:]
+
     # Saves the tapted model and training_args to wandb
     save_tapted_model(
-        run, model, training_args, model_args.model_name_or_path, data_args.dataset_name
+        run, model, training_args, base_model_name, dataset_name
     )
 
 

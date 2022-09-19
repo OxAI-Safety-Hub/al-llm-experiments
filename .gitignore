@@ -139,3 +139,6 @@ dmypy.json
 
 # Local notebooks
 notebooks/local/*
+
+# TAPT output directory
+scripts/tapt/output_dir/*

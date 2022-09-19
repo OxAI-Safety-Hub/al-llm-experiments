@@ -7,8 +7,8 @@ import argparse
 parser = argparse.ArgumentParser(
     description="Pretrain the model on the unlabelled data."
 )
-parser.add_argument("--model-name", type=str, help="The hugging face model name.")
-parser.add_argument("--dataset-name", type=str, help="The dataset name or path.")
+parser.add_argument("--model-name", type=str, help="The hugging face model name.", required=True)
+parser.add_argument("--dataset-name", type=str, help="The dataset name or path.", required=True)
 parser.add_argument(
     "--batch-size", type=int, help="The batch size for training.", default=4, nargs="?"
 )
@@ -43,7 +43,7 @@ if not os.path.exists("venv"):
 # Install the requirements
 os.system("venv/bin/pip install --upgrade pip")
 os.system("venv/bin/pip install -r requirements.txt")
-os.system("venv/bin/pip uninstall torch")
+os.system("venv/bin/pip uninstall -y torch")
 os.system(
     "venv/bin/pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu113"
 )
