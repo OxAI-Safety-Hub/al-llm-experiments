@@ -12,7 +12,9 @@ test = pd.read_csv("test_orig.csv")
 
 # Replace `` and '' by "
 def replace_marks(text: str):
-    return text.replace("``", "\"").replace("''", "\"")
+    return text.replace("``", '"').replace("''", '"')
+
+
 train_orig["text"] = train_orig["text"].map(replace_marks)
 test["text"] = test["text"].map(replace_marks)
 
