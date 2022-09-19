@@ -7,8 +7,8 @@ import argparse
 parser = argparse.ArgumentParser(
     description="Pretrain the model on the unlabelled data."
 )
-parser.add_argument("--model-name", type=str, help="The hugging face model name.")
-parser.add_argument("--dataset-name", type=str, help="The dataset name or path.")
+parser.add_argument("--model-name", type=str, help="The hugging face model name.", required=True)
+parser.add_argument("--dataset-name", type=str, help="The dataset name or path.", required=True)
 parser.add_argument(
     "--batch-size", type=int, help="The batch size for training.", default=4, nargs="?"
 )
