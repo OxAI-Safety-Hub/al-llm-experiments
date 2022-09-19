@@ -43,7 +43,7 @@ if not os.path.exists("venv"):
 # Install the requirements
 os.system("venv/bin/pip install --upgrade pip")
 os.system("venv/bin/pip install -r requirements.txt")
-os.system("venv/bin/pip uninstall torch")
+os.system("venv/bin/pip uninstall -y torch")
 os.system(
     "venv/bin/pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu113"
 )
