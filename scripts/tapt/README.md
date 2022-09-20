@@ -36,4 +36,6 @@ There are various parameters you can define in line after the call to the functi
 
 - `--num-epochs` : The number of epochs to use in the train loop. ***Default=3***
 
+- `--use-balanced-dataset` : Whether to use a training dataset which has been modified so that the classes are balanced.
+
 - `--seed` : The seed to use for this process. ***Default=327532***
