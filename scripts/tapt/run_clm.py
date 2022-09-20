@@ -72,8 +72,11 @@ logger = logging.getLogger(__name__)
 MODEL_CONFIG_CLASSES = list(MODEL_FOR_CAUSAL_LM_MAPPING.keys())
 MODEL_TYPES = tuple(conf.model_type for conf in MODEL_CONFIG_CLASSES)
 
-WIKI_TOXIC_DATASET_NAME = "OxAISH-AL-LLM/wiki_toxic"
-PUBMED_20K_RCT_DATASET_NAME = "OxAISH-AL-LLM/pubmed_20k_rct"
+DATASET_NAME_MAP = {
+    "wiki_toxic": "OxAISH-AL-LLM/wiki_toxic",
+    "pubmed_20k_rct": "OxAISH-AL-LLM/pubmed_20k_rct",
+    "trec6": "OxAISH-AL-LLM/trec6",
+}
 
 
 @dataclass
@@ -347,10 +350,8 @@ def main():
     # download the dataset.
 
     real_dataset_name = data_args.dataset_name
-    if real_dataset_name == "wiki_toxic":
-        real_dataset_name = WIKI_TOXIC_DATASET_NAME
-    elif real_dataset_name == "pubmed_20k_rct":
-        real_dataset_name = PUBMED_20K_RCT_DATASET_NAME
+    if real_dataset_name in DATASET_NAME_MAP:
+        real_dataset_name = DATASET_NAME_MAP[real_dataset_name]
 
     if real_dataset_name is not None:
         # Downloading and loading a dataset from the hub.
