@@ -12,7 +12,7 @@ import datasets
 
 import wandb
 
-from al_llm.constants import WANDB_ENTITY
+from al_llm.constants import WANDB_ENTITY, TAPTED_MODEL_DEFAULT_TAG
 
 
 # Saving and loading constants: Dataset Extensions
@@ -160,7 +160,7 @@ def _download_artifact(
     artifact_name: str,
     artifact_type: str,
     tmp: str,
-    artifact_version: str = "latest",
+    artifact_version: str = TAPTED_MODEL_DEFAULT_TAG,
 ):
     """Download a wandb artifact into a temporary directory
 
@@ -176,7 +176,7 @@ def _download_artifact(
         The type of the artifact.
     tmp : str
         The temporary directory to use as an in between.
-    artifact_version : str, default="latest"
+    artifact_version : str, default=TAPTED_MODEL_DEFAULT_TAG
         The artifact version to load. By default it will load the most
         recent version.
     """
@@ -398,7 +398,7 @@ def load_tapted_model(
     purpose: str,
     *,
     num_categories: Optional[int] = None,
-    tapted_model_version: str = "latest",
+    tapted_model_version: str = TAPTED_MODEL_DEFAULT_TAG,
 ) -> Tuple[PreTrainedModel, dict]:
     """Load a tapted model and it's parameters from wandb
 
@@ -414,7 +414,7 @@ def load_tapted_model(
         What will this model be used for. "sample_generator" or "classifier"
     num_categories : int, optional
         The number of class labels, when usings the model as a classifier.
-    tapted_model_version : str, default="latest"
+    tapted_model_version : str, default=TAPTED_MODEL_DEFAULT_TAG
         The artifact version of the tapted model to load. By default it will
         load the most recent version
 
