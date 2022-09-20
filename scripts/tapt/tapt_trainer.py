@@ -27,7 +27,7 @@ parser.add_argument("--seed", type=int, help="The seed.", default=327532, nargs=
 parser.add_argument(
     "--use-balanced-dataset",
     help="Whether to use a balanced version of the training dataset for tapting",
-    action="store_true"
+    action="store_true",
 )
 parser.add_argument(
     "--output-dir",

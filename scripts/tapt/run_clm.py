@@ -276,7 +276,7 @@ def main():
     parser.add_argument(
         "--use-balanced-dataset",
         help="Whether to use a balanced version of the training dataset for tapting",
-        action="store_true"
+        action="store_true",
     )
 
     if len(sys.argv) == 2 and sys.argv[1].endswith(".json"):
@@ -287,7 +287,12 @@ def main():
         )
         use_balanced_dataset = False
     else:
-        model_args, data_args, training_args, remaining_args = parser.parse_args_into_dataclasses()
+        (
+            model_args,
+            data_args,
+            training_args,
+            remaining_args,
+        ) = parser.parse_args_into_dataclasses()
         use_balanced_dataset = remaining_args.use_balanced_dataset
 
     # Sending telemetry. Tracking the example usage helps us better allocate resources to maintain them. The
