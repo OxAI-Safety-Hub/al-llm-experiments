@@ -123,20 +123,25 @@ class MetricEvaluator:
 
             else:
 
+                # The extra arguments passed to `compute`
+                compute_args = {}
+
                 # Determine which type of average to use
                 if name.endswith(self.UNWEIGHTED_SUFFIX):
-                    average = "macro"
+                    compute_args["average"] = "macro"
                 elif self.num_categories == 2:
-                    average = "binary"
+                    compute_args["average"] = "binary"
                 else:
-                    average = "weighted"
+                    compute_args["average"] = "weighted"
+
+                # For precision and recall we need to set this value to prevent
+                # warnings from appearing
+                if name in ["precision", "recall"]:
+                    compute_args["zero_division"] = 0
 
                 # Compute the metric using this average
                 computed = metric.compute(
-                    predictions=predictions,
-                    references=references,
-                    average=average,
-                    zero_division=0,
+                    predictions=predictions, references=references, **compute_args
                 )
                 results[name] = next(iter(computed.values()))
 
