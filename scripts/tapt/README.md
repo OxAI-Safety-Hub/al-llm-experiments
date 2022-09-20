@@ -32,6 +32,10 @@ There are various parameters you can define in line after the call to the functi
 
 - `--batch-size` : The batch size for training and evaluation. ***Default=4***
 
+- `--block-size` : The max length of sequences to TAPT with. The dataset examples are truncated to this length. ***Default=128***
+
 - `--num-epochs` : The number of epochs to use in the train loop. ***Default=3***
+
+- `--use-balanced-dataset` : Whether to use a training dataset which has been modified so that the classes are balanced.
 
 - `--seed` : The seed to use for this process. ***Default=327532***
