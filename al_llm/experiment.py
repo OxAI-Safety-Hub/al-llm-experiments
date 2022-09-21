@@ -505,7 +505,10 @@ class Experiment:
         sg_model_name = parameters["sample_generator_base_model"]
         if do_replay_run:
             sample_generator = ReplaySampleGenerator(
-                parameters, wandb_run, data_handler
+                parameters=parameters,
+                dataset_container=dataset_container,
+                wandb_run=wandb_run,
+                data_handler=data_handler,
             )
         elif sg_model_name == "pool":
             sample_generator = PoolSampleGenerator(
