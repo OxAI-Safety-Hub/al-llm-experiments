@@ -14,9 +14,17 @@ from .dataset_container import (
     DummyDatasetContainer,
     RottenTomatoesDatasetContainer,
     WikiToxicDatasetContainer,
+    PubMed20kRCTDatasetContainer,
+    Trec6DatasetContainer,
 )
 from .experiment import Experiment
-from .interface import Interface, CLIInterface, PoolSimulatorInterface
+from .interface import (
+    Interface,
+    CLIInterface,
+    PoolSimulatorInterface,
+    AutomaticLabellerInterface,
+    ReplayInterface,
+)
 from .acquisition_function import (
     AcquisitionFunction,
     DummyAF,
@@ -28,5 +36,11 @@ from .sample_generator import (
     DummySampleGenerator,
     PlainGPT2SampleGenerator,
     PoolSampleGenerator,
+    ReplaySampleGenerator,
+    TAPTGPT2SampleGenerator,
+    TAPTDistilGPT2SampleGenerator,
+    TokenByTokenSampleGenerator,
+    PlainGPT2TokenByTokenSampleGenerator,
+    TAPTGPT2TokenByTokenSampleGenerator,
 )
 from .parameters import Parameters

@@ -50,11 +50,13 @@ else:
 
 for i, seed in enumerate(seeds):
 
+    run_id = f"{cmd_args.run_id}_{seed}"
+
     print()
     print()
     print("=" * 79)
-    title = f"| EXPERIMENT: {i}  |  seed={seed}"
-    title += (" " * (78 - len(title))) + "|"
+    title = f"| EXPERIMENT: {i} | seed: {seed} | Run ID: {run_id} "
+    title += (" " * max(0, 78 - len(title))) + "|"
     print(title)
     print("=" * 79)
     print()
@@ -66,7 +68,7 @@ for i, seed in enumerate(seeds):
     # Make the experiment
     args = Experiment.make_experiment(
         parameters=parameters,
-        run_id=f"{cmd_args.run_id}_{seed}",
+        run_id=run_id,
         project_name=cmd_args.project_name,
     )
     experiment = Experiment(**args)

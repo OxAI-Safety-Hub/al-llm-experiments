@@ -2,11 +2,19 @@
 # https://docs.python.org/3.10/library/abc.html
 from abc import ABC, abstractmethod
 from typing import Any, Tuple
-
 import textwrap
+
+import torch
+
+from transformers import pipeline
+from transformers.pipelines.pt_utils import KeyDataset
+import datasets
+
 import wandb
-from .dataset_container import DatasetContainer
+
+from al_llm.dataset_container import DatasetContainer
 from al_llm.parameters import Parameters
+from al_llm.data_handler import DataHandler
 
 
 class Interface(ABC):
@@ -301,15 +309,20 @@ class CLIInterface(CLIInterfaceMixin, FullLoopInterface):
         ambiguities = []
 
         # Loop over all the samples for which we need a label
-        for sample in samples:
+        for i, sample in enumerate(samples):
 
-            # Build the message with the sample plus the category selection
+            # Build first part of the message, consisting of the sample plus
+            # the question
             text = "\n"
+            text += self._wrap(f"[{i}/{len(samples)}]") + "\n"
             text += self._wrap(f"{sample!r}") + "\n"
             text += self._wrap("How would you classify this?") + "\n"
+
+            # Add the category selection
             categories = self.dataset_container.categories
             for i, cat_human_readable in enumerate(categories.values()):
                 text += self._wrap(f"[{i}] {cat_human_readable}") + "\n"
+
             # If also checking for ambiguity, add these options
             if self.parameters["ambiguity_mode"] != "none":
                 for i, cat_human_readable in enumerate(categories.values()):
@@ -323,12 +336,14 @@ class CLIInterface(CLIInterfaceMixin, FullLoopInterface):
             # Print the message
             self._output(text)
 
-            # Keep asking the user for a label until they give a valid one
+            # Build the prompt
             if self.parameters["ambiguity_mode"] == "none":
                 max_valid_label = len(categories) - 1
             else:
                 max_valid_label = 2 * len(categories) - 1
-            prompt = self._wrap(f"Enter a number (0-{max_valid_label}):")
+            prompt = self._wrap(f"Enter a number (0-{max_valid_label}): ")
+
+            # Keep asking the user for a label until they give a valid one
             valid_label = False
             while not valid_label:
                 label_str = self._input(prompt)
@@ -455,12 +470,12 @@ class PoolSimulatorInterface(SimpleCLIInterfaceMixin, Interface):
         self.line_width = line_width
 
     def prompt(self, samples: list) -> Tuple[list, list]:
-        """Prompt the human for labels and ambiguities for the samples
+        """Prompt the data for labels and ambiguities for the samples
 
         Parameters
         ----------
         samples : list
-            A list of samples to query the human
+            A list of samples to query the data
 
         Returns
         -------
@@ -494,5 +509,173 @@ class PoolSimulatorInterface(SimpleCLIInterfaceMixin, Interface):
             # Append this the label to `labels` with no ambiguity
             labels.append(matching_row.iloc[0]["labels"])
             ambiguities.append(0)
+
+        return labels, ambiguities
+
+
+class AutomaticLabellerInterface(SimpleCLIInterfaceMixin, Interface):
+    """Interface for obtaining labels from a pretrained model on Hugging Face
+
+    Loads a Hugging Face classifier model from the online repository by its
+    name, and uses it as an oracle to provide labels for the sentences.
+
+    Parameters
+    ----------
+    parameters : Parameters
+        The dictionary of parameters for the present experiment
+    dataset_container : DatasetContainer
+        The dataset container for this experiment
+    wandb_run : wandb.sdk.wandb_run.Run
+        The current wandb run
+    model_name : str
+        The name of the Hugging Face model to load
+    line_width : int, default=70
+        The width of the lines to wrap the output.
+
+    Attributes
+    ----------
+    pipeline : transformers.Pipeline
+        The Hugging Face pipeline used for text classification
+    """
+
+    # For each model we use, a mapping translating labels understood by the
+    # automatic labeller to the labels given by the dataset.
+    # This is only necessary for models which output labels which are different
+    # from those of the dataset.
+    CLASS_LABEL_MAPPING = {
+        "textattack/roberta-base-rotten-tomatoes": {
+            "LABEL_0": "neg",
+            "LABEL_1": "pos",
+        }
+    }
+
+    def __init__(
+        self,
+        parameters: Parameters,
+        dataset_container: DatasetContainer,
+        wandb_run: wandb.sdk.wandb_run.Run,
+        model_name: str,
+        *,
+        line_width: int = 70,
+    ):
+        super().__init__(parameters, dataset_container, wandb_run)
+        self.model_name = model_name
+        self.line_width = line_width
+
+        # Set the device
+        if torch.cuda.is_available():
+            device = torch.device(self.parameters["cuda_device"])
+        else:
+            device = torch.device("cpu")
+
+        # Make the classification pipeline
+        self.pipeline = pipeline(
+            "text-classification",
+            model=model_name,
+            tokenizer=model_name,
+            device=device,
+        )
+
+    def prompt(self, samples: list) -> Tuple[list, list]:
+        """Prompt the machine for labels and ambiguities for the samples
+
+        Parameters
+        ----------
+        samples : list
+            A list of samples to query the machine
+
+        Returns
+        -------
+        labels : list
+            A list of labels, one for each element in `samples`
+        ambiguities : list
+            A list of ambiguities, one for each element in `samples`
+            stored as integers (0=non-ambiguous, 1=ambiguous).
+        """
+
+        # Make a dataset out of the samples
+        # Somewhat roundabout way of making a simple `Dataset` where
+        # `__getitem__` returns the values of `samples`
+        samples_dataset = KeyDataset(
+            datasets.Dataset.from_dict({"text": samples}), "text"
+        )
+
+        # Announce what we're doing
+        print()
+        print("Getting labels from the automatic labeller...")
+
+        # Get the outputs of the model
+        outputs = self.pipeline(
+            samples_dataset, batch_size=self.parameters["eval_batch_size"]
+        )
+
+        # Get the actual labels from these
+        labels = [self._map_class_label(output["label"]) for output in outputs]
+
+        # For now we don't mark ambiguities with the automatic labeller
+        ambiguities = [0] * len(samples)
+
+        return labels, ambiguities
+
+    def _map_class_label(self, label: str) -> str:
+        """Map a label given by the automatic labeller to a dataset label
+
+        If we haven't explicitly specified a mapping for the current model,
+        returns the label unchanged. In this case we simply assume that the
+        model outputs the correct label name (as it really ought to).
+        """
+
+        if self.model_name in self.CLASS_LABEL_MAPPING:
+            return self.CLASS_LABEL_MAPPING[self.model_name][label]
+        else:
+            return label
+
+
+class ReplayInterface(SimpleCLIInterfaceMixin, Interface):
+    """Interface for replaying a run, using already obtained labels
+
+    Parameters
+    ----------
+    parameters : Parameters
+        The dictionary of parameters for the present experiment
+    dataset_container : DatasetContainer
+        The dataset container for this experiment
+    wandb_run : wandb.sdk.wandb_run.Run
+        The current wandb run
+    data_handler : DataHandler
+        The data handler for this experiment
+    line_width : int, default=70
+        The width of the lines to wrap the output.
+    """
+
+    def __init__(
+        self,
+        parameters: Parameters,
+        dataset_container: DatasetContainer,
+        wandb_run: wandb.sdk.wandb_run.Run,
+        data_handler: DataHandler,
+        *,
+        line_width: int = 70,
+    ):
+        super().__init__(parameters, dataset_container, wandb_run)
+        self.data_handler = data_handler
+        self.line_width = line_width
+
+        # The current index in the replay dataset extension
+        self._iteration = 0
+
+    def prompt(self, samples: list) -> Tuple[list, list]:
+
+        # Announce what we're doing
+        print()
+        print("Getting labels from the replayed run...")
+
+        # Get the next batch of samples from the replayed run
+        labels, ambiguities = self.data_handler.get_replay_labels_ambiguities(
+            self._iteration
+        )
+
+        # Update the index
+        self._iteration += 1
 
         return labels, ambiguities

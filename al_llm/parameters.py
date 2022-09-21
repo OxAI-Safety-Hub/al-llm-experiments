@@ -4,6 +4,8 @@ from typing import Optional
 import inspect
 from argparse import ArgumentParser, Namespace
 
+from al_llm.constants import TAPTED_MODEL_DEFAULT_TAG
+
 
 class Parameters(dict):
     """A sub-class of dict storing the parameters for this experiment.
@@ -21,16 +23,21 @@ class Parameters(dict):
     ----------
     dataset_name : str, default="dummy"
         The name of the hugging face dataset.
-    num_iterations : int, default=15
+    num_iterations : int, default=51
         The number of iterations over which to run the active learning.
-    refresh_every : int, default=-1
+    refresh_every : int, default=1
         How often to retrain the classifier from scratch. A value of `-1` means
         we never refresh.
-    refresh_on_last : bool, default=False
+    refresh_on_last : bool, default=True
         Whether to refresh the model on the last iteration.
     eval_every : int, default=0
-        How often run an eval loop when training. A value of `0` means we only
-        do it on the last epoch per iteration.
+        How often run an eval loop when training. A value of `-1` means we
+        never run the eval loop. A value of `0` means we only do it on the
+        last epoch per iteration.
+    test_every : int, default=-1
+        How often run an test loop when training. A value of `-1` means we
+        never run the test loop. A value of `0` means we only do it on the
+        last epoch per iteration.
     batch_size : int, default=16
         Batch size of the dataloader which the classifier trains from.
     eval_batch_size : int, default=128
@@ -38,7 +45,7 @@ class Parameters(dict):
     num_epochs_update : int, default=3
         The number of epochs to train for when updating the classifier
         model with new datapoints
-    num_epochs_afresh : int, default=10
+    num_epochs_afresh : int, default=5
         The number of epochs to train for when training the classifier
         model afresh, starting from scratch
     num_samples : int, default=10
@@ -46,7 +53,7 @@ class Parameters(dict):
         the number of samples which will be sent to the human every iteration.
     num_warmup_steps : int, default=0
         The number of warmup steps to use in the learning rate scheduler
-    sample_pool_size : int, default=50
+    sample_pool_size : int, default=1024
         When using an acquisition function, this is the number of samples
         to generate first, from which the function selects the appropriate
         number.
@@ -63,7 +70,7 @@ class Parameters(dict):
     validation_proportion : float, default=0.2
         Proportion of the training data to be used for validation, if it's not
         provided by the Hugging Face dataset.
-    train_dataset_size : int, default=100
+    train_dataset_size : int, default=10
         The size of the initial set of labelled data, for training the
         classifier. A set of this size is selected from the 'train' split
         of the dataset; the rest are collected as a pool of remainder data,
@@ -82,16 +89,44 @@ class Parameters(dict):
         True if a pretrained sample generator should be used.
     use_tapted_classifier : bool, default=False
         True if a pretrained classifier should be used.
-    sample_generator_temperature : float, default=1.0
+    tapted_model_version : str, default=TAPTED_MODEL_DEFAULT_TAG
+        The artifact version of the tapted model to use.
+    use_tbt_sample_generator : bool, default=False
+        Whether to use the token-by-token sample generator.
+    sample_generator_temperature : float, default=0.5
         The temperature used when generating new samples
     sample_generator_top_k : int, default=50
         The number of highest probability vocabulary tokens to keep for
         top-k-filtering when doing sample generation
+    sample_generator_max_length : int, default=-1
+        The maximum length of sentences to generate, in number of tokes. A
+        value of -1 means that we use the upper quartile value for the length
+        of the tokenized training sentences from the current dataset.
+    tbt_pre_top_k : int, default=256
+        When doing token-by-token generation, this is the number of tokens
+        which get selected to add the uncertainties to. We take the top k
+        tokens ordered according to the probability given by the generating
+        model. This is done for efficiency reasons, to avoid having to
+        compute the uncertainties for every token.
+    tbt_uncertainty_weighting : float, default=1
+        When doing token-by-token generation, this is the weighting to use
+        when adding the uncertainty to the logit value.
+    use_automatic_labeller : bool, default=False
+        Whether to use a pretrained classifier to provide the labels, instead
+        of a human.
+    automatic_labeller_model_name : str,
+    default="textattack/roberta-base-rotten-tomatoes"
+        The name of the Hugging Face model to use as the automatical labeller.
+        This is a model hosted in the Hugging Face repository of models.
     ambiguity_mode : str, default="only_mark"
         How the experiment treat ambiguous data. Default is "only_mark" which
         allows the human to mark data as ambiguous but the experiment will
         run as if it isn't. "none" means the user does not have the choice of
         marking it as ambiguous.
+    replay_run : str, default=""
+        If non-empty, we replay the run with this ID, using the samples and
+        labels generated there. Useful to redo the evaluation or testing on a
+        particular run.
     cuda_device : str, default="cuda:0"
         The string specifying the CUDA device to use
     is_running_pytests : bool, default=False
@@ -106,23 +141,24 @@ class Parameters(dict):
     def __init__(
         self,
         dataset_name: str = "dummy",
-        num_iterations: int = 15,
-        refresh_every: int = -1,
-        refresh_on_last: bool = False,
+        num_iterations: int = 51,
+        refresh_every: int = 1,
+        refresh_on_last: bool = True,
         eval_every: int = 0,
+        test_every: int = -1,
         batch_size: int = 16,
         eval_batch_size: int = 128,
         num_epochs_update: int = 3,
-        num_epochs_afresh: int = 10,
+        num_epochs_afresh: int = 5,
         num_samples: int = 10,
         num_warmup_steps: int = 0,
-        sample_pool_size: int = 50,
+        sample_pool_size: int = 1024,
         learning_rate: float = 5e-5,
         dev_mode: bool = False,
         seed: int = 459834,
         send_alerts: bool = False,
         validation_proportion: float = 0.2,
-        train_dataset_size: int = 100,
+        train_dataset_size: int = 10,
         full_loop: bool = True,
         supervised: bool = False,
         classifier_base_model: str = "dummy",
@@ -130,9 +166,17 @@ class Parameters(dict):
         sample_generator_base_model: str = "dummy",
         use_tapted_sample_generator: bool = False,
         use_tapted_classifier: bool = False,
-        sample_generator_temperature: float = 1.0,
+        tapted_model_version: str = TAPTED_MODEL_DEFAULT_TAG,
+        use_tbt_sample_generator: bool = False,
+        sample_generator_temperature: float = 0.5,
         sample_generator_top_k: int = 50,
+        sample_generator_max_length: int = -1,
+        tbt_pre_top_k: int = 256,
+        tbt_uncertainty_weighting: float = 1,
+        use_automatic_labeller: bool = False,
+        automatic_labeller_model_name: str = "textattack/roberta-base-rotten-tomatoes",
         ambiguity_mode: str = "only_mark",
+        replay_run: str = "",
         cuda_device: str = "cuda:0",
         is_running_pytests: bool = False,
         save_classifier_every: int = 0,
@@ -141,7 +185,7 @@ class Parameters(dict):
     ):
 
         # If we're running supervised learning, we need to run a full loop
-        if supervised == True:
+        if supervised:
             full_loop = True
 
         # sets the parameters provided
@@ -151,6 +195,7 @@ class Parameters(dict):
             num_iterations=1 if supervised else num_iterations,
             refresh_every=refresh_every,
             refresh_on_last=refresh_on_last,
+            test_every=test_every,
             eval_every=eval_every,
             batch_size=batch_size,
             eval_batch_size=eval_batch_size,
@@ -172,15 +217,44 @@ class Parameters(dict):
             sample_generator_base_model=sample_generator_base_model,
             use_tapted_sample_generator=use_tapted_sample_generator,
             use_tapted_classifier=use_tapted_classifier,
+            tapted_model_version=tapted_model_version,
+            use_tbt_sample_generator=use_tbt_sample_generator,
             sample_generator_temperature=sample_generator_temperature,
             sample_generator_top_k=sample_generator_top_k,
+            sample_generator_max_length=sample_generator_max_length,
+            tbt_pre_top_k=tbt_pre_top_k,
+            tbt_uncertainty_weighting=tbt_uncertainty_weighting,
+            use_automatic_labeller=use_automatic_labeller,
+            automatic_labeller_model_name=automatic_labeller_model_name,
             ambiguity_mode=ambiguity_mode,
+            replay_run=replay_run,
             cuda_device=cuda_device,
             is_running_pytests=is_running_pytests,
             save_classifier_every=save_classifier_every,
             *args,
             **kwargs,
         )
+
+    def update_from_dict(self, dictionary: dict, *, skip_keys: list = []):
+        """Update the parameters using a dictionary
+
+        Parameters
+        ----------
+        dictionary : dict
+            The dictionary of parameters to use to update the values
+        skip_keys : list, default = []
+            A list of keys in `dictionary` to ignore
+        """
+
+        # Get the method signature for the constructor
+        signature = inspect.signature(self.__init__)
+
+        # Loop over all the parameters in the signature, and add the
+        # corresponding value from `dictionary` if it exists, and it is
+        # permitted by `skip_keys` to do so
+        for name in dict(signature.parameters).keys():
+            if name in dictionary and name not in skip_keys:
+                self.__setitem__(name, dictionary[name])
 
     @classmethod
     def add_to_arg_parser(cls, parser: ArgumentParser, defaults: Optional[dict] = None):

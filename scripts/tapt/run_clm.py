@@ -72,7 +72,11 @@ logger = logging.getLogger(__name__)
 MODEL_CONFIG_CLASSES = list(MODEL_FOR_CAUSAL_LM_MAPPING.keys())
 MODEL_TYPES = tuple(conf.model_type for conf in MODEL_CONFIG_CLASSES)
 
-WIKI_TOXIC_DATASET_NAME = "OxAISH-AL-LLM/wiki_toxic"
+DATASET_NAME_MAP = {
+    "wiki_toxic": "OxAISH-AL-LLM/wiki_toxic",
+    "pubmed_20k_rct": "OxAISH-AL-LLM/pubmed_20k_rct",
+    "trec6": "OxAISH-AL-LLM/trec6",
+}
 
 
 @dataclass
@@ -267,14 +271,29 @@ def main():
     parser = HfArgumentParser(
         (ModelArguments, DataTrainingArguments, TrainingArguments)
     )
+
+    # Add the option to used the balanced version of a dataset
+    parser.add_argument(
+        "--use-balanced-dataset",
+        help="Whether to use a balanced version of the training dataset for tapting",
+        action="store_true",
+    )
+
     if len(sys.argv) == 2 and sys.argv[1].endswith(".json"):
         # If we pass only one argument to the script and it's the path to a json file,
         # let's parse it to get our arguments.
         model_args, data_args, training_args = parser.parse_json_file(
             json_file=os.path.abspath(sys.argv[1])
         )
+        use_balanced_dataset = False
     else:
-        model_args, data_args, training_args = parser.parse_args_into_dataclasses()
+        (
+            model_args,
+            data_args,
+            training_args,
+            remaining_args,
+        ) = parser.parse_args_into_dataclasses()
+        use_balanced_dataset = remaining_args.use_balanced_dataset
 
     # Sending telemetry. Tracking the example usage helps us better allocate resources to maintain them. The
     # information sent is the one passed as arguments along with your Python/PyTorch versions.
@@ -336,8 +355,8 @@ def main():
     # download the dataset.
 
     real_dataset_name = data_args.dataset_name
-    if real_dataset_name == "wiki_toxic":
-        real_dataset_name = WIKI_TOXIC_DATASET_NAME
+    if real_dataset_name in DATASET_NAME_MAP:
+        real_dataset_name = DATASET_NAME_MAP[real_dataset_name]
 
     if real_dataset_name is not None:
         # Downloading and loading a dataset from the hub.
@@ -402,6 +421,12 @@ def main():
                 use_auth_token=True if model_args.use_auth_token else None,
                 **dataset_args,
             )
+
+    # If we're using the balanced dataset, replace the train split with the
+    # balanced train split.
+    # Quite hacky, but does the job
+    if use_balanced_dataset:
+        raw_datasets["train"] = raw_datasets["balanced_train"]
 
     # See more about loading any type of standard or custom dataset (from files, python dict, pandas DataFrame, etc) at
     # https://huggingface.co/docs/datasets/loading_datasets.html.
@@ -672,6 +697,8 @@ def main():
         "seed": training_args.seed,
         "batch_size": training_args.per_device_train_batch_size,
         "num_epochs": training_args.num_train_epochs,
+        "block_size": block_size,
+        "use_balanced_dataset": use_balanced_dataset,
     }
 
     # Saves the tapted model and training_args to wandb

@@ -432,6 +432,7 @@ class HuggingFaceDatasetContainer(DatasetContainer, ABC):
 
     DATASET_NAME = ""
     CATEGORIES = OrderedDict()
+    TOKENIZED_LENGTH_UPPER_QUARTILE = 0
 
     def __init__(self, parameters: Parameters):
         super().__init__(parameters)
@@ -499,6 +500,7 @@ class RottenTomatoesDatasetContainer(HuggingFaceDatasetContainer):
 
     DATASET_NAME = "rotten_tomatoes"
     CATEGORIES = OrderedDict([("neg", "Negative"), ("pos", "Positive")])
+    TOKENIZED_LENGTH_UPPER_QUARTILE = 32
 
     def _preprocess_dataset(self):
 
@@ -573,6 +575,7 @@ class WikiToxicDatasetContainer(HuggingFaceDatasetContainer):
 
     DATASET_NAME = "OxAISH-AL-LLM/wiki_toxic"
     CATEGORIES = OrderedDict([("non", "Non-toxic"), ("tox", "Toxic")])
+    TOKENIZED_LENGTH_UPPER_QUARTILE = 102
 
     def _preprocess_dataset(self):
 
@@ -622,6 +625,179 @@ class WikiToxicDatasetContainer(HuggingFaceDatasetContainer):
         self.dataset_remainder = self.dataset_remainder.cast(new_remainder_features)
         self.dataset_validation = self.dataset_validation.cast(new_validation_features)
         self.dataset_test = self.dataset_test.cast(new_test_features)
+
+        # Rename the 'label' column
+        self.dataset_train = self.dataset_train.rename_column(
+            "label", LABEL_COLUMN_NAME
+        )
+        self.dataset_remainder = self.dataset_remainder.rename_column(
+            "label", LABEL_COLUMN_NAME
+        )
+        self.dataset_validation = self.dataset_validation.rename_column(
+            "label", LABEL_COLUMN_NAME
+        )
+        self.dataset_test = self.dataset_test.rename_column("label", LABEL_COLUMN_NAME)
+
+
+class PubMed20kRCTDatasetContainer(HuggingFaceDatasetContainer):
+    """A container for the PubMed 20k RCT dataset
+
+    This dataset was created by taking abstracts from medical journal
+    publications and classifying each sentence as either background, objective,
+    methods, results or conclusions. [1]_
+
+    The dataset has been modified in the following ways.
+    - A paired <span> html tag has been removed from one datapoint in the
+    train dataset
+    - The datapoints have been shuffled, and are thus no longer grouped by
+    abstract.
+
+    Parameters
+    ----------
+    parameters : Parameters
+        The parameters for the current experiment
+
+    Attributes
+    ----------
+    categories : OrderedDict
+        A dictionary of the classes in the data. The keys are the names of the
+        categories as understood by the model, and the values are the
+        human-readable names.
+    dataset_train : datasets.Dataset
+        The raw dataset consisting of labelled sentences used for training, as
+        a Hugging Face Dataset. This is separated from the 'train' split of
+        the dataset by selecting `parameters["train_dataset_size"]` datapoints.
+    dataset_remainder : datasets.Dataset
+        The remainder of the 'train' split after `dataset_train` has been
+        selected. Used by the pool-based simulator.
+    dataset_validation : datasets.Dataset
+        The raw dataset consisting of labelled sentences used for validation, as
+        a Hugging Face Dataset.
+    dataset_test : datasets.Dataset
+        The raw dataset consisting of labelled sentences used for testing, as
+        a Hugging Face Dataset.
+    tokenized_train : datasets.Dataset
+        A tokenized version of `dataset_train`, consisting of PyTorch tensors.
+    tokenized_remainder : datasets.Dataset
+        A tokenized version of `dataset_remainder`, consisting of PyTorch
+        tensors.
+    tokenized_validation : datasets.Dataset
+        A tokenized version of `dataset_validation`, consisting of PyTorch
+        tensors.
+    tokenized_test : datasets.Dataset
+        A tokenized version of `dataset_test`, consisting of PyTorch tensors.
+
+    References
+    ----------
+    [1] Franck Dernoncourt and Ji Young Lee, "PubMed 200k RCT: a Dataset for
+    Sequential Sentence Classification in Medical Abstracts", Proceedings of
+    the Eighth International Joint Conference on Natural Language Processing
+    (Volume 2: Short Papers), Asian Federation of Natural Language Processing,
+    2017
+    """
+
+    DATASET_NAME = "OxAISH-AL-LLM/pubmed_20k_rct"
+    CATEGORIES = OrderedDict(
+        [
+            ("bac", "Background"),
+            ("obj", "Objective"),
+            ("met", "Methods"),
+            ("res", "Results"),
+            ("con", "Conclusions"),
+        ]
+    )
+    TOKENIZED_LENGTH_UPPER_QUARTILE = 42
+
+    def _preprocess_dataset(self):
+
+        # Do any preprocessing defined by the base class
+        super()._preprocess_dataset()
+
+        # Rename the 'label' column
+        self.dataset_train = self.dataset_train.rename_column(
+            "label", LABEL_COLUMN_NAME
+        )
+        self.dataset_remainder = self.dataset_remainder.rename_column(
+            "label", LABEL_COLUMN_NAME
+        )
+        self.dataset_validation = self.dataset_validation.rename_column(
+            "label", LABEL_COLUMN_NAME
+        )
+        self.dataset_test = self.dataset_test.rename_column("label", LABEL_COLUMN_NAME)
+
+
+class Trec6DatasetContainer(HuggingFaceDatasetContainer):
+    """A dataset container for the TREC-6 dataset
+
+    The Text REtrieval Conference (TREC) Question Classification dataset [1]_
+    [2]_ is composed of a number of questions categorised by question type.
+    This is the courser-grained version, which uses 6 classes.
+
+    The original train dataset split has been divided into a new train split
+    and a validation split, taking 10% for the latter.
+
+    Parameters
+    ----------
+    parameters : Parameters
+        The parameters for the current experiment
+
+    Attributes
+    ----------
+    categories : OrderedDict
+        A dictionary of the classes in the data. The keys are the names of the
+        categories as understood by the model, and the values are the
+        human-readable names.
+    dataset_train : datasets.Dataset
+        The raw dataset consisting of labelled sentences used for training, as
+        a Hugging Face Dataset. This is separated from the 'train' split of
+        the dataset by selecting `parameters["train_dataset_size"]` datapoints.
+    dataset_remainder : datasets.Dataset
+        The remainder of the 'train' split after `dataset_train` has been
+        selected. Used by the pool-based simulator.
+    dataset_validation : datasets.Dataset
+        The raw dataset consisting of labelled sentences used for validation, as
+        a Hugging Face Dataset.
+    dataset_test : datasets.Dataset
+        The raw dataset consisting of labelled sentences used for testing, as
+        a Hugging Face Dataset.
+    tokenized_train : datasets.Dataset
+        A tokenized version of `dataset_train`, consisting of PyTorch tensors.
+    tokenized_remainder : datasets.Dataset
+        A tokenized version of `dataset_remainder`, consisting of PyTorch
+        tensors.
+    tokenized_validation : datasets.Dataset
+        A tokenized version of `dataset_validation`, consisting of PyTorch
+        tensors.
+    tokenized_test : datasets.Dataset
+        A tokenized version of `dataset_test`, consisting of PyTorch tensors.
+
+
+    References
+    ----------
+    [1] Xin Li and Dan Roth, "Learning Question Classifiers", COLING 2002: The
+    19th International Conference on Computational Linguistics, 2002
+    [2] Eduard et al., "Toward Semantics-Based Answer Pinpointing",
+    Proceedings of the First International Conference on Human Language
+    Technology Research, 2001
+    """
+
+    DATASET_NAME = "OxAISH-AL-LLM/trec6"
+    CATEGORIES = OrderedDict(
+        [
+            ("ABBR", "Abbreviation"),
+            ("ENTY", "Entity"),
+            ("DESC", "Description and abstract concept"),
+            ("HUM", "Human being"),
+            ("LOC", "Location"),
+            ("NUM", "Numeric value"),
+        ]
+    )
+    TOKENIZED_LENGTH_UPPER_QUARTILE = 14
+
+    def _preprocess_dataset(self):
+
+        # Do any preprocessing defined by the base class
+        super()._preprocess_dataset()
 
         # Rename the 'label' column
         self.dataset_train = self.dataset_train.rename_column(

@@ -26,5 +26,6 @@ WANDB_PROJECTS = {
 # The maximum size to clear the W&B cache down to
 CACHE_SIZE = "10GB"
 
-# The metrics to use to evaluate the performance of the classifier
-EVALUATE_METRICS = ["accuracy", "f1", "precision", "recall"]
+# The default tag for loading tapted models from W&B. Set to "latest" to always
+# load the latest model
+TAPTED_MODEL_DEFAULT_TAG = "default"
