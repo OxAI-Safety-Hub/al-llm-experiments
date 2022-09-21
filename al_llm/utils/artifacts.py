@@ -225,6 +225,7 @@ def load_dataset_extension(
     wandb_run: wandb.sdk.wandb_run.Run,
     *,
     dataset_wandb_run: Optional[wandb.sdk.wandb_run.Run] = None,
+    dataset_extension_version: str = "latest",
 ) -> dict:
     """Load a dataset extention from wandb
 
@@ -235,6 +236,8 @@ def load_dataset_extension(
     dataset_wandb_run : wandb.sdk.wandb_run.Run, optional
         The run where the dataset extension artifact is located. If `None`, we
         take it to be the current run.
+    dataset_extension_version : str, default="latest"
+        The version of the dataset extension to use
 
     Returns
     ----------
@@ -254,6 +257,7 @@ def load_dataset_extension(
             artifact_name=f"de_{dataset_wandb_run.name}",
             artifact_type=DATASET_EXT_ARTIFACT_TYPE,
             tmp=tmp,
+            artifact_version=dataset_extension_version,
         )
 
         added_data = _load_json(tmp, DATASET_EXT_DATASET_FILE_NAME)
