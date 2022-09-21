@@ -434,7 +434,10 @@ class Experiment:
 
             # Update the parameters to match
             print("Updating parameters to match replayed run...")
-            parameters.update_from_dict(replayed_run.config, skip_keys=["replay_run"])
+            parameters.update_from_dict(
+                replayed_run.config,
+                skip_keys=["replay_run", "eval_every", "test_every"],
+            )
 
         # initialise weights and biases
         #   Set resume to allow which resumes the previous run if there is already
