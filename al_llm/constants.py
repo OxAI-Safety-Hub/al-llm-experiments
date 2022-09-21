@@ -33,6 +33,7 @@ TAPTED_MODEL_DEFAULT_TAG = "default"
 # Saving and loading constants: Dataset Extensions
 DATASET_EXT_ARTIFACT_TYPE = "dataset-extension"
 DATASET_EXT_DATASET_FILE_NAME = "added_data.json"
+DATASET_EXT_PREFIX = "de_"
 
 # Saving and loading constants: Classifier Models
 CLASSIFIER_ARTIFACT_TYPE = "classifier-model"

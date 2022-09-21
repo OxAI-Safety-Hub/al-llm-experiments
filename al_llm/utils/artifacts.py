@@ -12,27 +12,22 @@ import datasets
 
 import wandb
 
-from al_llm.constants import WANDB_ENTITY, TAPTED_MODEL_DEFAULT_TAG
-
-
-# Saving and loading constants: Dataset Extensions
-DATASET_EXT_ARTIFACT_TYPE = "dataset-extension"
-DATASET_EXT_DATASET_FILE_NAME = "added_data.json"
-
-# Saving and loading constants: Classifier Models
-CLASSIFIER_ARTIFACT_TYPE = "classifier-model"
-CLASSIFIER_MODEL_FILE_NAME = "model_home.pt"
-
-# Saving and loading constants: Dual Labelling Results
-DUAL_LAB_ARTIFACT_TYPE = "dual-label-results"
-DUAL_LAB_LABELS_FILE_NAME = "labels.json"
-DUAL_LAB_RESULTS_FILE_NAME = "results.json"
-
-# Saving and loading constants: TAPT Models
-TAPT_PROJECT_NAME = "TAPT-Models"
-TAPT_ARTIFACT_TYPE = "TAPT-model"
-TAPT_MODEL_FILE_NAME = "model_home.pt"
-TAPT_PARAMETERS_FILE_NAME = "parameters_home.json"
+from al_llm.constants import (
+    WANDB_ENTITY,
+    TAPTED_MODEL_DEFAULT_TAG,
+    DATASET_EXT_ARTIFACT_TYPE,
+    DATASET_EXT_DATASET_FILE_NAME,
+    DATASET_EXT_PREFIX,
+    CLASSIFIER_ARTIFACT_TYPE,
+    CLASSIFIER_MODEL_FILE_NAME,
+    DUAL_LAB_ARTIFACT_TYPE,
+    DUAL_LAB_LABELS_FILE_NAME,
+    DUAL_LAB_RESULTS_FILE_NAME,
+    TAPT_PROJECT_NAME,
+    TAPT_ARTIFACT_TYPE,
+    TAPT_MODEL_FILE_NAME,
+    TAPT_PARAMETERS_FILE_NAME,
+)
 
 
 def _save_json(data: Any, tmp: str, file_name: str):
@@ -215,7 +210,7 @@ def save_dataset_extension(
 
         _upload_artifact(
             wandb_run=wandb_run,
-            artifact_name=f"de_{wandb_run.name}",
+            artifact_name=f"{DATASET_EXT_PREFIX}{wandb_run.name}",
             artifact_type=DATASET_EXT_ARTIFACT_TYPE,
             tmp=tmp,
         )
@@ -251,7 +246,7 @@ def load_dataset_extension(
         _download_artifact(
             wandb_run=wandb_run,
             project=dataset_wandb_run.project,
-            artifact_name=f"de_{dataset_wandb_run.name}",
+            artifact_name=f"{DATASET_EXT_PREFIX}{dataset_wandb_run.name}",
             artifact_type=DATASET_EXT_ARTIFACT_TYPE,
             tmp=tmp,
         )
