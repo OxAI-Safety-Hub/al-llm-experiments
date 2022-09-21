@@ -436,7 +436,7 @@ class Experiment:
             print("Updating parameters to match replayed run...")
             parameters.update_from_dict(
                 replayed_run.config,
-                skip_keys=["replay_run", "eval_every", "test_every"],
+                skip_keys=["replay_run", "eval_every", "test_every", "cuda_device"],
             )
 
         # initialise weights and biases
