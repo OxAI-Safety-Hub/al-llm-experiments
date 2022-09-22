@@ -57,6 +57,12 @@ parser.add_argument(
     type=str,
     help=("The title to give the output chart"),
 )
+parser.add_argument(
+    "--colormap",
+    type=str,
+    help=("The matplotlib colormap from which to select the colours"),
+    default="cividis",
+)
 
 # Get the arguments
 cmd_args = parser.parse_args()
@@ -117,7 +123,7 @@ if cmd_args.task == "class_proportion":
     class_props_df = pd.DataFrame(class_props)
 
     # Plot the area chart
-    ax = class_props_df.plot.area()
+    ax = class_props_df.plot.area(colormap=cmd_args.colormap)
 
 elif cmd_args.task == "ambiguities_proportion":
 
@@ -139,7 +145,7 @@ elif cmd_args.task == "ambiguities_proportion":
     ambiguities_props_df = pd.DataFrame(ambiguities_props)
 
     # Plot the area chart
-    ax = ambiguities_props_df.plot.area()
+    ax = ambiguities_props_df.plot.area(colormap=cmd_args.colormap)
 
 if cmd_args.chart_title is not None:
     ax.set_title(cmd_args.chart_title, wrap=True)
