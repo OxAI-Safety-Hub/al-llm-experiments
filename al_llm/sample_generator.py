@@ -107,7 +107,7 @@ class UncertaintyLogitsProcessor(LogitsProcessor):
         self,
         parameters: Parameters,
         classifier: HuggingFaceClassifier,
-        max_length : int,
+        max_length: int,
         filter_value: float = -float("Inf"),
     ):
         super().__init__()
