@@ -81,6 +81,10 @@ class Parameters(dict):
         Run this experiment using standard supervised learning.
     classifier_base_model : str, default="dummy"
         The name of the base model the classifier should use.
+    num_classifier_models : int, default=1
+        The number of models to use in the classifier ensemble. The output
+        probabilities are the averages of the output probabilities of each
+        model.
     acquisition_function : str, default="dummy"
         The name of the acquisition function to use.
     sample_generator_base_model : str, default="dummy"

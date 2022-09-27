@@ -368,7 +368,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         # Set up the metric evaluator
         self.evaluator = MetricEvaluator(dataset_container)
 
-        # model not required until a call to `train_afresh`
+        # The models are not required until a call to `train_afresh`
         self._model = None
 
         # set device
@@ -384,7 +384,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
     ):
 
         # Get a fresh version of the model
-        self._load_fresh_model()
+        self._load_fresh_models()
 
         # Perform any first time setup required
         if iteration == 0:
@@ -422,19 +422,22 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
     def save(self):
         save_classifier_model(self.wandb_run, self._model)
 
-    def _load_fresh_model(self):
-        """Load the classifier model afresh"""
+    def _load_fresh_models(self):
+        """Load the classifier models afresh"""
 
         # Delete the old model to free up memory
         del self._model
 
+        models = []
+
         # load a fresh version of the model
-        self._model = AutoModelForSequenceClassification.from_pretrained(
-            self.MODEL_NAME, num_labels=len(self.dataset_container.CATEGORIES)
-        )
+        for i in self.parameters["num_classifier_models"]:
+            models.append(AutoModelForSequenceClassification.from_pretrained(
+                self.MODEL_NAME, num_labels=len(self.dataset_container.CATEGORIES)
+            ))
 
         # Setup the model
-        self._setup_model()
+        self._setup_models()
 
     def _load_model_from_wandb(self):
         """Load the classifier using the wandb_run"""
@@ -443,16 +446,18 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         self._model = load_classifier_model(
             self.wandb_run, len(self.dataset_container.CATEGORIES)
         )
-        self._setup_model()
+        self._setup_models()
 
-    def _setup_model(self):
-        """Perform some intial setup on the classifier model"""
+    def _setup_models(self):
+        """Perform some initial setup on the classifier models"""
 
-        # set the End of Sentence token as the token used for padding by the model
-        self._model.config.pad_token_id = self._model.config.eos_token_id
+        for model in self._model.models:
 
-        # assign the model to the device (CUDA or GPU)
-        self._model.to(self.device)
+            # set the End of Sentence token as the token used for padding by the model
+            model.config.pad_token_id = model.config.eos_token_id
+
+        # Put the model on the torch device
+        model.to(self.device)
 
     def _train(self, train_dataloader: DataLoader, num_epochs: int, iteration: int):
 
@@ -798,7 +803,7 @@ class TAPTClassifier(HuggingFaceClassifier, ABC):
     def _initialise(self):
         wandb.config.update({"tapt_classifier": self.training_parameters})
 
-    def _load_fresh_model(self):
+    def _load_fresh_models(self):
         """Load the TAPT classifier model afresh"""
 
         # Delete the old model to free up memory
@@ -817,7 +822,7 @@ class TAPTClassifier(HuggingFaceClassifier, ABC):
         self.training_parameters = training_args
 
         # Setup the model
-        self._setup_model()
+        self._setup_models()
 
 
 class PlainGPT2Classifier(HuggingFaceClassifier):
