@@ -29,6 +29,7 @@ from al_llm.utils.artifacts import (
     load_classifier_model,
     load_tapted_model,
 )
+from al_llm.utils.models import HuggingFaceClassifierEnsemble
 from al_llm.constants import LABEL_COLUMN_NAME
 
 
@@ -430,11 +431,14 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
 
         models = []
 
-        # load a fresh version of the model
+        # Load fresh versions of the model
         for i in self.parameters["num_classifier_models"]:
             models.append(AutoModelForSequenceClassification.from_pretrained(
                 self.MODEL_NAME, num_labels=len(self.dataset_container.CATEGORIES)
             ))
+
+        # Create an ensemble of all of these
+        self._model = HuggingFaceClassifierEnsemble(models)
 
         # Setup the model
         self._setup_models()
@@ -451,10 +455,12 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
     def _setup_models(self):
         """Perform some initial setup on the classifier models"""
 
-        for model in self._model.models:
-
-            # set the End of Sentence token as the token used for padding by the model
-            model.config.pad_token_id = model.config.eos_token_id
+        # set the End of Sentence token as the token used for padding by the model
+        if isinstance(self._model, HuggingFaceClassifierEnsemble):
+            for model in self._model.models:
+                model.config.pad_token_id = model.config.eos_token_id
+        else:
+            self._model.config.pad_token_id = self._model.config.eos_token_id
 
         # Put the model on the torch device
         model.to(self.device)
