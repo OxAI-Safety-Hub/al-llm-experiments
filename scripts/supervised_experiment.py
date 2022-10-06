@@ -14,9 +14,9 @@ param_grid = {
     "train_dataset_size": [32, 64, 128, 256, 512, 1024, 2048, 4096],
     "classifier_base_model": ["gpt2"],
     "use_tapted_classifier": [True, False],
-    "supervised": True,
-    "cuda_device": f"cuda:{GPU_NUMBER}",
-    "eval_every": 1,
+    "supervised": [True],
+    "cuda_device": [f"cuda:{GPU_NUMBER}"],
+    "eval_every": [1],
     "seed": EXPERIMENT_SEEDS,
 }
 

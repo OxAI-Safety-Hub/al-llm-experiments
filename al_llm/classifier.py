@@ -136,7 +136,7 @@ class MetricEvaluator:
 
                 # For precision and recall we need to set this value to prevent
                 # warnings from appearing
-                if name in ["precision", "recall"]:
+                if name.startswith("precision") or name.startswith("recall"):
                     compute_args["zero_division"] = 0
 
                 # Compute the metric using this average

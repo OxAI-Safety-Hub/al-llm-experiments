@@ -434,7 +434,10 @@ class Experiment:
 
             # Update the parameters to match
             print("Updating parameters to match replayed run...")
-            parameters.update_from_dict(replayed_run.config, skip_keys=["replay_run"])
+            parameters.update_from_dict(
+                replayed_run.config,
+                skip_keys=["replay_run", "eval_every", "test_every", "cuda_device"],
+            )
 
         # initialise weights and biases
         #   Set resume to allow which resumes the previous run if there is already
@@ -502,7 +505,10 @@ class Experiment:
         sg_model_name = parameters["sample_generator_base_model"]
         if do_replay_run:
             sample_generator = ReplaySampleGenerator(
-                parameters, wandb_run, data_handler
+                parameters=parameters,
+                dataset_container=dataset_container,
+                wandb_run=wandb_run,
+                data_handler=data_handler,
             )
         elif sg_model_name == "pool":
             sample_generator = PoolSampleGenerator(
