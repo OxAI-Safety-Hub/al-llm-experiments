@@ -385,7 +385,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
     ):
 
         # Get a fresh version of the model
-        self._load_fresh_models()
+        self._load_fresh_model()
 
         # Perform any first time setup required
         if iteration == 0:
@@ -423,8 +423,8 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
     def save(self):
         save_classifier_model(self.wandb_run, self._model)
 
-    def _load_fresh_models(self):
-        """Load the classifier models afresh"""
+    def _load_fresh_model(self):
+        """Load the classifier model afresh"""
 
         # Delete the old model to free up memory
         del self._model
@@ -441,7 +441,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         self._model = HuggingFaceClassifierEnsemble(models)
 
         # Setup the model
-        self._setup_models()
+        self._setup_model()
 
     def _load_model_from_wandb(self):
         """Load the classifier using the wandb_run"""
@@ -450,10 +450,10 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         self._model = load_classifier_model(
             self.wandb_run, len(self.dataset_container.CATEGORIES)
         )
-        self._setup_models()
+        self._setup_model()
 
-    def _setup_models(self):
-        """Perform some initial setup on the classifier models"""
+    def _setup_model(self):
+        """Perform some initial setup on the classifier model"""
 
         # set the End of Sentence token as the token used for padding by the model
         if isinstance(self._model, HuggingFaceClassifierEnsemble):
@@ -809,7 +809,7 @@ class TAPTClassifier(HuggingFaceClassifier, ABC):
     def _initialise(self):
         wandb.config.update({"tapt_classifier": self.training_parameters})
 
-    def _load_fresh_models(self):
+    def _load_fresh_model(self):
         """Load the TAPT classifier model afresh"""
 
         # Delete the old model to free up memory
@@ -828,7 +828,7 @@ class TAPTClassifier(HuggingFaceClassifier, ABC):
         self.training_parameters = training_args
 
         # Setup the model
-        self._setup_models()
+        self._setup_model()
 
 
 class PlainGPT2Classifier(HuggingFaceClassifier):
