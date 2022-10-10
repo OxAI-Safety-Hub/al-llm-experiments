@@ -1,7 +1,10 @@
 import torch
 import torch.nn.functional as F
+from torch.distributions.uniform import Uniform
 
-from transformers import LogitsProcessor
+from transformers import LogitsProcessor, Pipeline
+
+from tqdm import tqdm
 
 from al_llm.classifier import HuggingFaceClassifier
 
@@ -158,3 +161,86 @@ class UncertaintyLogitsProcessor(LogitsProcessor):
 
         # The new scores are the log of these
         return torch.log(new_outputs)
+
+
+class MaskedMHSamplerPipeline(Pipeline):
+    """Pipeline for generating sentences using masked Metropolis-Hastings
+
+    This sampler generates sentences for a Masked-Language Model (MLM) using a
+    variant of the Metropolis-Hastings Markov Chain Monte Carlo (MCMC)
+    sampler. The aim is to generate sentences which are simultaneously
+    high-probability according to the language model, and give high values
+    according to some scoring function.
+
+    More precisely, we consider the MLM distribution over sentences as a
+    prior, and perform a Bayesian update using a distribution given by the
+    scoring function. We then aim to sample from this distribution.
+
+    The algorithm works as follows.
+
+    1. Start with a set of initial samples (e.g. taken from the unlabelled set
+       of sentences).
+    2. Repeat the following three steps for `num_steps`.
+    3. In each sample, randomly mask some of the tokens, and sample tokens to
+       replace them based on the MLM's probability distribution.
+    4. Accept these new tokens with probability given by the value of the
+       scoring function.
+    5. If they are not accepted, return the tokens back the way they were.
+    """
+
+    def _sanitize_parameters(
+        self, num_steps=None, scoring_function=None, mask_proportion=None, **tokenizer_kwargs
+    ):
+        preprocess_kwargs = tokenizer_kwargs
+        forward_kwargs = {}
+        if num_steps is not None:
+            forward_kwargs["num_steps"] = num_steps
+        if scoring_function is not None:
+            forward_kwargs["scoring_function"] = scoring_function
+        if mask_proportion is not None:
+            forward_kwargs["mask_proportion"] = mask_proportion
+        return preprocess_kwargs, forward_kwargs, {}
+
+    def preprocess(self, inputs, **tokenizer_kwargs):
+        # Tokenize the inputs
+        if isinstance(inputs, dict):
+            return self.tokenizer(**inputs, **tokenizer_kwargs)
+        else:
+            return self.tokenizer(inputs, **tokenizer_kwargs)
+
+    def _forward(self, samples, num_steps, scoring_function, mask_proportion):
+
+        # The number of samples we have
+        num_samples = samples["input_ids"].shape[0]
+
+        # Uniform[0,1] random number generator of shape the number of samples
+        uniform_generator = Uniform(torch.zeros(num_samples), torch.ones(num_samples))
+
+        print("Generating samples using masked Metropolis-Hastings...")
+
+        # Iterate through the MCMC process
+        for i in tqdm(range(num_steps)):
+
+            # Mask some of the input samples' tokens
+            masked_samples = samples
+
+            # Pass these through the model to compute probabilities over the
+            # masked tokens
+            with torch.no_grad():
+                outputs = self.model(**masked_samples)
+
+            # Replace the masked tokens by sampling from the distributions
+            new_samples = samples
+
+            # Compute the values of the scoring function for the new samples
+            new_samples_scores = scoring_function(new_samples)
+
+            # Keep the new samples with probability given by the scoring
+            # function
+            keep_indices = uniform_generator.sample() <= new_samples_scores
+            samples = torch.where(keep_indices, new_samples, samples)
+
+        return samples
+
+    def postprocess(self, model_outputs):
+        return model_outputs
