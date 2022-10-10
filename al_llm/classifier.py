@@ -502,8 +502,8 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
             print("- Running train loop")
             train_metrics = self._train_epoch(train_dataloader, optimizer, lr_scheduler)
             print(
-                f"Train loss: {train_metrics['loss']:.8}; "
-                f"train f1: {train_metrics['f1']:.6%}"
+                f"Train mean loss: {train_metrics['loss']:.8}; "
+                f"train f1: {train_metrics['f1']:.6}"
             )
 
             # The results to log to weights and biases for this epoch
@@ -533,8 +533,8 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
                     print(f"- Running {split} loop")
                     eval_metrics = self._eval_epoch(dataloader)
                     print(
-                        f"{split.capitalize()} loss: {eval_metrics['loss']:.8}; "
-                        f"{split.capitalize()} f1: {eval_metrics['f1']:.6%}"
+                        f"{split.capitalize()} mean loss: {eval_metrics['loss']:.8}; "
+                        f"{split.capitalize()} f1: {eval_metrics['f1']:.6}"
                     )
                     results_to_log[split] = eval_metrics
 
@@ -602,7 +602,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
             loss = outputs.loss
 
             # Add it to the accumulated loss
-            train_loss += loss.item() * len(batch)
+            train_loss += loss * len(batch)
 
             # Perform back-propagation
             loss.backward()
@@ -617,7 +617,11 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
 
         # Compute the average loss for this epoch
         train_loss /= len(train_dataloader.dataset)
-        train_metrics["loss"] = train_loss
+
+        # Record the mean of the model losses, and those for each model
+        train_metrics["loss"] = torch.mean(train_loss)
+        for i, model_loss in enumerate(train_loss):
+            train_metrics[f"loss_model{i}"] = model_loss.item()
 
         return train_metrics
 
@@ -670,14 +674,18 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
             loss = outputs.loss
 
             # Add it to the accumulated loss
-            eval_loss += loss.item() * len(batch)
+            eval_loss += loss * len(batch)
 
         # Compute all the metrics for this epoch
         eval_metrics = self.evaluator.compute()
 
         # Compute the average loss for this epoch
         eval_loss /= len(eval_dataloader.dataset)
-        eval_metrics["loss"] = eval_loss
+
+        # Record the mean of the model losses, and those for each model
+        eval_metrics["loss"] = torch.mean(eval_loss)
+        for i, model_loss in enumerate(eval_loss):
+            eval_metrics[f"loss_model{i}"] = model_loss.item()
 
         return eval_metrics
 
