@@ -9,11 +9,17 @@ import torch
 import wandb
 
 from transformers import (
+    PreTrainedModel,
+    PreTrainedTokenizer,
     pipeline,
     LogitsProcessor,
     LogitsProcessorList,
+    TemperatureLogitsWarper,
+    TopKLogitsWarper,
     AutoModelForCausalLM,
+    AutoModelForMaskedLM,
 )
+from transformers.pipelines import PIPELINE_REGISTRY
 
 from tqdm import tqdm
 
@@ -23,8 +29,20 @@ from al_llm.data_handler import DataHandler
 from al_llm.parameters import Parameters
 from al_llm.classifier import HuggingFaceClassifier
 from al_llm.utils.artifacts import load_tapted_model
-from al_llm.utils.generation import TopKLogitsProcessor, UncertaintyLogitsProcessor
+from al_llm.utils.generation import (
+    TopKLogitsProcessor,
+    UncertaintyLogitsProcessor,
+    MaskedMHSamplerPipeline,
+)
 from al_llm.constants import TEXT_COLUMN_NAME
+
+
+# Register the Masked Metropolis-Hastings pipeline, for later use
+PIPELINE_REGISTRY.register_pipeline(
+    "masked-metropolis-hastings-sampling",
+    pipeline_class=MaskedMHSamplerPipeline,
+    pt_model=AutoModelForMaskedLM,
+)
 
 
 class TqdmHolder:
@@ -135,8 +153,8 @@ class SampleGenerator(ABC):
 
         Returns
         -------
-        samples : list
-            A list of samples
+        sample_pool : list
+            The sample pool from which to select
         """
         return []
 
@@ -392,8 +410,8 @@ class HuggingFaceSampleGenerator(SampleGenerator, ABC):
 
         Returns
         -------
-        samples : list
-            A list of samples
+        sample_pool : list
+            The sample pool from which to select
         """
 
         # Create a tqdm progress bar to track the generation progress. We
@@ -490,6 +508,150 @@ class TokenByTokenSampleGenerator(HuggingFaceSampleGenerator, ABC):
         logits_processor.insert(1, uncertainty_logits_processor)
 
         return logits_processor
+
+
+class MaskedMHSampleGenerator(HuggingFaceSampleGenerator, ABC):
+    """Generate samples using the masked Metropolis-Hastings sampler
+
+    This generator uses a masked language model (MLM) and generates samples
+    using a modified Metropolis-Hastings Markov Chain Monte Carlo sampler.
+
+    The algorithm proceeds as follows.
+
+    1. Start with a set of `parameters["sample_pool_size"]` initial samples
+       taken from the unlabelled set.
+    2. Repeat the following three steps for `parameters["mmh_num_steps"]`.
+    3. In each sample, randomly mask `parameters["mmh_mask_proportion"]` of
+       the tokens, and sample tokens to replace them based on the MLM's
+       probability distribution.
+    4. Accept these new tokens with probability given by the resulting
+       classifier uncertainty.
+    5. If they are not accepted, return the tokens back the way they were.
+
+    Parameters
+    ----------
+    parameters : Parameters
+        The dictionary of parameters for the present experiment
+    dataset_container : DatasetContainer
+        The dataset container for the current experiment.
+    wandb_run : wandb.sdk.wandb_run.Run
+        The current wandb run
+    acquisition_function : AcquisitionFunction, optional
+        The acquisition function to use, if any. By default we simply generate
+        a number of samples with no selection procedure.
+    """
+
+    def _load_generator_model(self):
+        """Load the model used as a sentence generator"""
+
+        # Load a text generation verion of the model
+        self.generator_model = AutoModelForMaskedLM.from_pretrained(
+            self.GENERATOR_MODEL_NAME
+        )
+
+    def _make_logits_warper(self) -> LogitsProcessorList:
+        """Make a logits warper for use in generation
+
+        Returns
+        -------
+        logits_warper : LogitsProcessorList
+            The list of logits warpers to use
+        """
+
+        # Warper for chainging the temperature
+        temperature_logits_warper = TemperatureLogitsWarper(
+            self.parameters["sample_generator_temperature"]
+        )
+
+        # Warper for filtering the top k
+        top_k_logits_warper = TopKLogitsWarper(
+            self.parameters["sample_generator_top_k"]
+        )
+
+        # Make these into a list
+        logits_warper = LogitsProcessorList(
+            [temperature_logits_warper, top_k_logits_warper]
+        )
+
+        return logits_warper
+
+    def _make_pipeline_generator(self, model: Any, tokenizer: str, **kwargs):
+        """Create the generator using pipeline()
+
+        Parameters
+        ----------
+        model: Any
+            The name or reference to the model the pipeline should use.
+        tokenizer: str
+            The name of the tokenizer the pipeline should use.
+        """
+
+        # Set the device to use
+        if torch.cuda.is_available():
+            device = torch.device(self.parameters["cuda_device"])
+        else:
+            device = torch.device("cpu")
+
+        # The scoring function to use in the sampling algorithm, which scores
+        # using the classifier uncertainty
+        def scoring_function(
+            sample_ids: torch.Tensor, tokenizer: PreTrainedTokenizer
+        ) -> torch.Tensor:
+
+            # If we're using the sample classifer model as the generator, we
+            # don't need to retokenize
+            if self.GENERATOR_MODEL_NAME == self.classifier.MODEL_NAME:
+                samples_tokenized = sample_ids
+
+            # Otherwise, retokenize the input IDs
+            else:
+                samples = tokenizer.batch_decode(sample_ids)
+                samples_tokenized = self.classifier.tokenize(samples)
+
+            # Compute the uncertainties of the samples
+            uncertainties = self.classifier.calculate_uncertainties_tokenized(
+                samples_tokenized, print_output=False
+            )
+
+            return uncertainties
+
+        # Get the logits preprocessor to use
+        logits_warper = self._make_logits_warper()
+
+        # Create a pipeline for text generation
+        self.generator = pipeline(
+            task="masked-metropolis-hastings-sampling",
+            model=model,
+            device=device,
+            tokenizer=tokenizer,
+            num_steps=self.parameters["mmh_num_steps"],
+            scoring_function=scoring_function,
+            mask_probability=self.parameters["mmh_mask_probability"],
+            logits_warper=logits_warper,
+            **kwargs,
+        )
+
+    def _generate_sample_pool(self, pool_size: int) -> list:
+        """Generate a pool of samples, from which to select
+
+        Parameters
+        ----------
+        pool_size: int
+            The number of samples to generate
+
+        Returns
+        -------
+        sample_pool : list
+            The sample pool from which to select
+        """
+
+        # Select `pool_size` samples from the unlabelled pool
+        inititial_samples = inititial_samples
+
+        # Run the Masked MH algorithm starting with these
+        sample_pool = self.generator(inititial_samples)
+
+        return sample_pool
 
 
 class TAPTMixin(ABC):
@@ -635,3 +797,43 @@ class TAPTGPT2TokenByTokenSampleGenerator(TAPTMixin, TokenByTokenSampleGenerator
     """
 
     GENERATOR_MODEL_NAME = "gpt2"
+
+
+class PlainBERTMaskedMHSampleGenerator(TokenByTokenSampleGenerator):
+    """BERT Masked Metropolis-Hastings sample generator
+
+    Parameters
+    ----------
+    parameters : Parameters
+        The dictionary of parameters for the present experiment
+    classifier : HuggingFaceClassifier
+        The classifier used in the current experiment, for which we maximise
+        uncertainty.
+    wandb_run : wandb.sdk.wandb_run.Run
+        The current wandb run
+    acquisition_function : AcquisitionFunction, optional
+        The acquisition function to use, if any. By default we simply generate
+        a number of samples with no selection procedure.
+    """
+
+    GENERATOR_MODEL_NAME = "bert"
+
+
+class TAPTBERTMaskedMHSampleGenerator(TAPTMixin, TokenByTokenSampleGenerator):
+    """TAPTed BERT Masked Metropolis-Hastings sample generator
+
+    Parameters
+    ----------
+    parameters : Parameters
+        The dictionary of parameters for the present experiment
+    classifier : HuggingFaceClassifier
+        The classifier used in the current experiment, for which we maximise
+        uncertainty.
+    wandb_run : wandb.sdk.wandb_run.Run
+        The current wandb run
+    acquisition_function : AcquisitionFunction, optional
+        The acquisition function to use, if any. By default we simply generate
+        a number of samples with no selection procedure.
+    """
+
+    GENERATOR_MODEL_NAME = "bert"

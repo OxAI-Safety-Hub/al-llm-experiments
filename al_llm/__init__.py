@@ -44,5 +44,8 @@ from .sample_generator import (
     TokenByTokenSampleGenerator,
     PlainGPT2TokenByTokenSampleGenerator,
     TAPTGPT2TokenByTokenSampleGenerator,
+    MaskedMHSampleGenerator,
+    PlainBERTMaskedMHSampleGenerator,
+    TAPTBERTMaskedMHSampleGenerator,
 )
 from .parameters import Parameters

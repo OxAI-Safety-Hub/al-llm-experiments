@@ -271,7 +271,11 @@ class MaskedMHSamplerPipeline(Pipeline):
         num_steps : int
             The number of steps for which to run the algorithm
         scoring_function : callable
-            Scoring function used to evaluate new generated samples
+            Scoring function used to evaluate new generated samples. Should
+            take as input a tensor of shape (batch_size, sequence_length) of
+            samples and the pipeline tokenizer `tokenizer`, and output a
+            tensor of shape (batch_size) consisting of the scores for each
+            element in the batch.
         mask_probability : float
             The probability that any individual token will be masked
         logits_processor : LogitsProcessorList or list,
@@ -341,7 +345,7 @@ class MaskedMHSamplerPipeline(Pipeline):
             new_sample_ids = torch.where(masking_mask, sampled_tokens, sample_ids)
 
             # Compute the values of the scoring function for the new sample_ids
-            new_sample_scores = scoring_function(new_sample_ids)
+            new_sample_scores = scoring_function(new_sample_ids, self.tokenizer)
 
             # Keep the new samples with probability given by the scoring
             # function
