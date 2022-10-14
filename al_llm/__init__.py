@@ -2,11 +2,13 @@ from .classifier import (
     Classifier,
     DummyClassifier,
     HuggingFaceClassifier,
-    PlainDistilGPT2Classifier,
     PlainGPT2Classifier,
+    PlainDistilGPT2Classifier,
+    PlainBERTClassifier,
     TAPTClassifier,
     TAPTDistilGPT2Classifier,
     TAPTGPT2Classifier,
+    TAPTBERTClassifier,
 )
 from .data_handler import DataHandler
 from .dataset_container import (

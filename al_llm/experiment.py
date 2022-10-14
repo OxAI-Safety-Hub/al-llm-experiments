@@ -21,8 +21,10 @@ from al_llm.classifier import (
     DummyClassifier,
     PlainGPT2Classifier,
     PlainDistilGPT2Classifier,
+    PlainBERTClassifier,
     TAPTGPT2Classifier,
     TAPTDistilGPT2Classifier,
+    TAPTBERTClassifier,
 )
 from al_llm.sample_generator import (
     PlainGPT2SampleGenerator,
@@ -92,10 +94,12 @@ class Experiment:
         "dummy": DummyClassifier,
         "gpt2": PlainGPT2Classifier,
         "distilgpt2": PlainDistilGPT2Classifier,
+        "bert": PlainBERTClassifier,
     }
     MAP_TAPT_CLASSIFIER = {
         "gpt2": TAPTGPT2Classifier,
         "distilgpt2": TAPTDistilGPT2Classifier,
+        "bert": TAPTBERTClassifier,
     }
     MAP_ACQUISITION_FUNCTION = {
         "none": None,
