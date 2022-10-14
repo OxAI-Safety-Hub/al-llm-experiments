@@ -1,8 +1,9 @@
+from typing import Optional, Union, Callable, List
+
 import torch
 import torch.nn.functional as F
-from torch.distributions.uniform import Uniform
 
-from transformers import LogitsProcessor, Pipeline
+from transformers import LogitsProcessor, LogitsProcessorList, Pipeline
 
 from tqdm import tqdm
 
@@ -189,17 +190,62 @@ class MaskedMHSamplerPipeline(Pipeline):
     """
 
     def _sanitize_parameters(
-        self, num_steps=None, scoring_function=None, mask_proportion=None, **tokenizer_kwargs
+        self,
+        num_steps: Optional[int] = None,
+        scoring_function: Optional[Callable] = None,
+        mask_probability: Optional[float] = None,
+        logits_processor: Optional[Union[LogitsProcessorList, list]] = None,
+        logits_warper: Optional[Union[LogitsProcessorList, list]] = None,
+        **tokenizer_kwargs,
     ):
+        """Sanitize any excess parameters to `__init__` or `__call__`
+
+        Parameters
+        ----------
+        num_steps : int, optional
+            The number of steps for which to run the algorithm
+        scoring_function : callable, optional
+            Scoring function used to evaluate new generated samples
+        mask_probability : float, optional
+            The probability that any individual token will be masked
+        logits_processor : LogitsProcessorList or list, optional
+            The logits processor to use on the logits outputed at each stage
+            by the model
+        logits_warper : LogitsProcessorList or list, optional
+            The logits warper to use on the logits outputed at each stage by
+            the model
+        """
+
+        # Set the initial kwargs for the three key methods
         preprocess_kwargs = tokenizer_kwargs
         forward_kwargs = {}
+        postprocess_kwargs = {}
+
         if num_steps is not None:
             forward_kwargs["num_steps"] = num_steps
+
         if scoring_function is not None:
             forward_kwargs["scoring_function"] = scoring_function
-        if mask_proportion is not None:
-            forward_kwargs["mask_proportion"] = mask_proportion
-        return preprocess_kwargs, forward_kwargs, {}
+
+        if mask_probability is not None:
+            if mask_probability <= 0 or mask_probability > 1:
+                raise ValueError(
+                    f"Parameter `mask_probability` should lie in the interval "
+                    f"(0,1]; got {mask_probability}"
+                )
+            forward_kwargs["mask_probability"] = mask_probability
+
+        if logits_processor is not None:
+            if isinstance(logits_processor, list):
+                logits_processor = LogitsProcessorList(logits_processor)
+            forward_kwargs["logits_processor"] = logits_processor
+
+        if logits_warper is not None:
+            if isinstance(logits_warper, list):
+                logits_warper = LogitsProcessorList(logits_warper)
+            forward_kwargs["logits_warper"] = logits_warper
+
+        return preprocess_kwargs, forward_kwargs, postprocess_kwargs
 
     def preprocess(self, inputs, **tokenizer_kwargs):
         # Tokenize the inputs
@@ -208,39 +254,114 @@ class MaskedMHSamplerPipeline(Pipeline):
         else:
             return self.tokenizer(inputs, **tokenizer_kwargs)
 
-    def _forward(self, samples, num_steps, scoring_function, mask_proportion):
+    @torch.no_grad()
+    def _forward(
+        self,
+        samples: dict,
+        num_steps: int,
+        scoring_function: Callable,
+        mask_probability: float,
+        logits_processor: LogitsProcessorList = LogitsProcessorList([]),
+        logits_warper: LogitsProcessorList = LogitsProcessorList([]),
+    ) -> torch.Tensor:
+        """Run the MH sampler on the preprocessed inputs
 
-        # The number of samples we have
-        num_samples = samples["input_ids"].shape[0]
+        Parameters
+        ----------
+        num_steps : int
+            The number of steps for which to run the algorithm
+        scoring_function : callable
+            Scoring function used to evaluate new generated samples
+        mask_probability : float
+            The probability that any individual token will be masked
+        logits_processor : LogitsProcessorList or list,
+        default=LogitsProcessorList([])
+            The logits processor to use on the logits outputed at each stage
+            by the model
+        logits_warper : LogitsProcessorList or list,
+        default=LogitsProcessorList([])
+            The logits warper to use on the logits outputed at each stage by
+            the model
 
-        # Uniform[0,1] random number generator of shape the number of samples
-        uniform_generator = Uniform(torch.zeros(num_samples), torch.ones(num_samples))
+        Returns
+        -------
+        sample_ids : torch.Tensor
+            The token ids of the newly generated samples.
+        """
+
+        # The token ids of the samples
+        sample_ids = samples["input_ids"]
+
+        # The number of samples we have (batch size)
+        batch_size = sample_ids.shape[0]
+
+        # The length of the sequences (should be the model max length)
+        sequence_length = sample_ids.shape[1]
 
         print("Generating samples using masked Metropolis-Hastings...")
 
         # Iterate through the MCMC process
         for i in tqdm(range(num_steps)):
 
-            # Mask some of the input samples' tokens
-            masked_samples = samples
+            # To mask some of the tokens, First choose from all tokens
+            # uniformly with probability `mask_probability`
+            masking_mask = torch.rand_like(sample_ids) <= mask_probability
 
-            # Pass these through the model to compute probabilities over the
-            # masked tokens
-            with torch.no_grad():
-                outputs = self.model(**masked_samples)
+            # We now want to select those previous token in the original
+            # sequence was not a padding token
+            non_padding_mask = sample_ids != self.model.config.pad_token_id
+            non_padding_mask = torch.roll(non_padding_mask, shifts=1, dims=1)
+            non_padding_mask[:, 0] = True
+            masking_mask = masking_mask and non_padding_mask
 
-            # Replace the masked tokens by sampling from the distributions
-            new_samples = samples
+            # Replace all the tokens chosen to be masked with the mask token
+            masked_sample_ids = torch.where(
+                masking_mask, self.model.config.mask_token_id, sample_ids
+            )
 
-            # Compute the values of the scoring function for the new samples
-            new_samples_scores = scoring_function(new_samples)
+            # Pass these through the model to the logits over the masked tokens
+            output = self.model(
+                input_ids=masked_sample_ids, attention_mask=non_padding_mask
+            )
+            logits = output.logits
+
+            # Apply the logits processors and warpers
+            logits = logits_processor(sample_ids, logits)
+            logits = logits_warper(sample_ids, logits)
+
+            # Compute the class probabilites by applying the softmax
+            class_probs = F.softmax(logits, dim=-1)
+
+            # Sample from the class probabilities
+            class_probs_flat = torch.flatten(class_probs, start_dim=0, end_dim=1)
+            sampled_tokens = torch.multinomial(class_probs_flat, num_samples=1)
+            sampled_tokens = sampled_tokens.reshape((batch_size, sequence_length))
+
+            # Replace the masked tokens using the sampled ones
+            new_sample_ids = torch.where(masking_mask, sampled_tokens, sample_ids)
+
+            # Compute the values of the scoring function for the new sample_ids
+            new_sample_scores = scoring_function(new_sample_ids)
 
             # Keep the new samples with probability given by the scoring
             # function
-            keep_indices = uniform_generator.sample() <= new_samples_scores
-            samples = torch.where(keep_indices, new_samples, samples)
+            keep_indices = torch.rand(batch_size) <= new_sample_scores
+            sample_ids = torch.where(keep_indices, new_sample_ids, sample_ids)
 
-        return samples
+        return sample_ids
 
-    def postprocess(self, model_outputs):
-        return model_outputs
+    def postprocess(self, sample_ids: torch.Tensor) -> List[str]:
+        """Detokenize the results of the algorithm
+
+        Parameters
+        ----------
+        sample_ids : torch.Tensor
+            The ouputs from running the MH sampler, which are tokenized
+            samples
+
+        Returns
+        -------
+        list of str
+            The detokenized samples
+        """
+        return self.tokenizer.batch_decode(sample_ids)
