@@ -578,7 +578,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         self._model.train()
 
         # Recording the training loss by accumulating across batches
-        train_loss = 0
+        train_loss = torch.zeros(self._model.num_models)
 
         # iterate over all the batches in the dataloader
         for batch in tqdm(train_dataloader):
@@ -654,7 +654,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         self._model.eval()
 
         # Recording the evaluation loss by accumulating across batches
-        eval_loss = 0
+        eval_loss = torch.zeros(self._model.num_models)
 
         # iterate over all the batches in the dataloader
         for batch in tqdm(eval_dataloader):
