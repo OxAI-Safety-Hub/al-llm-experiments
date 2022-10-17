@@ -176,11 +176,14 @@ class Parameters(dict):
         use_tapted_classifier: bool = False,
         tapted_model_version: str = TAPTED_MODEL_DEFAULT_TAG,
         use_tbt_sample_generator: bool = False,
+        use_mmh_sample_generator: bool = False,
         sample_generator_temperature: float = 0.5,
         sample_generator_top_k: int = 50,
         sample_generator_max_length: int = -1,
         tbt_pre_top_k: int = 256,
         tbt_uncertainty_weighting: float = 1,
+        mmh_num_steps: int = 50,
+        mmh_mask_proportion: float = 0.15,
         use_automatic_labeller: bool = False,
         automatic_labeller_model_name: str = "textattack/roberta-base-rotten-tomatoes",
         ambiguity_mode: str = "only_mark",
@@ -195,6 +198,13 @@ class Parameters(dict):
         # If we're running supervised learning, we need to run a full loop
         if supervised:
             full_loop = True
+
+        # We can't use both the TBT and MMH sample generators
+        if use_tbt_sample_generator and use_mmh_sample_generator:
+            raise ValueError(
+                "Can't have both parameters 'use_tbt_sample_generator' and "
+                "'use_mmh_sample_generator' set to True"
+            )
 
         # sets the parameters provided
         #   'supervised' may override some parameters
@@ -227,11 +237,14 @@ class Parameters(dict):
             use_tapted_classifier=use_tapted_classifier,
             tapted_model_version=tapted_model_version,
             use_tbt_sample_generator=use_tbt_sample_generator,
+            use_mmh_sample_generator=use_mmh_sample_generator,
             sample_generator_temperature=sample_generator_temperature,
             sample_generator_top_k=sample_generator_top_k,
             sample_generator_max_length=sample_generator_max_length,
             tbt_pre_top_k=tbt_pre_top_k,
             tbt_uncertainty_weighting=tbt_uncertainty_weighting,
+            mmh_num_steps=mmh_num_steps,
+            mmh_mask_proportion=mmh_mask_proportion,
             use_automatic_labeller=use_automatic_labeller,
             automatic_labeller_model_name=automatic_labeller_model_name,
             ambiguity_mode=ambiguity_mode,

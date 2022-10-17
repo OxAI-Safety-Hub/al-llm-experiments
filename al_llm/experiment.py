@@ -36,6 +36,8 @@ from al_llm.sample_generator import (
     ReplaySampleGenerator,
     PlainGPT2TokenByTokenSampleGenerator,
     TAPTGPT2TokenByTokenSampleGenerator,
+    PlainBERTMaskedMHSampleGenerator,
+    TAPTBERTMaskedMHSampleGenerator,
 )
 from al_llm.acquisition_function import (
     DummyAF,
@@ -120,6 +122,12 @@ class Experiment:
     }
     MAP_TBT_TAPT_SAMPLE_GENERATOR = {
         "gpt2": TAPTGPT2TokenByTokenSampleGenerator,
+    }
+    MAP_MMH_PLAIN_SAMPLE_GENERATOR = {
+        "bert": PlainBERTMaskedMHSampleGenerator,
+    }
+    MAP_MMH_TAPT_SAMPLE_GENERATOR = {
+        "bert": TAPTBERTMaskedMHSampleGenerator,
     }
 
     def __init__(
@@ -537,6 +545,28 @@ class Experiment:
             and parameters["use_tapted_sample_generator"]
         ):
             sample_generator = cls.MAP_TBT_TAPT_SAMPLE_GENERATOR[sg_model_name](
+                parameters=parameters,
+                classifier=classifier,
+                dataset_container=dataset_container,
+                wandb_run=wandb_run,
+                acquisition_function=acquisition_function,
+            )
+        elif (
+            parameters["use_mmh_sample_generator"]
+            and not parameters["use_tapted_sample_generator"]
+        ):
+            sample_generator = cls.MAP_MMH_PLAIN_SAMPLE_GENERATOR[sg_model_name](
+                parameters=parameters,
+                classifier=classifier,
+                dataset_container=dataset_container,
+                wandb_run=wandb_run,
+                acquisition_function=acquisition_function,
+            )
+        elif (
+            parameters["use_mmh_sample_generator"]
+            and parameters["use_tapted_sample_generator"]
+        ):
+            sample_generator = cls.MAP_MMH_TAPT_SAMPLE_GENERATOR[sg_model_name](
                 parameters=parameters,
                 classifier=classifier,
                 dataset_container=dataset_container,

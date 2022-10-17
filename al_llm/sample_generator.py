@@ -1,7 +1,7 @@
 # The python abc module for making abstract base classes
 # https://docs.python.org/3.10/library/abc.html
 from abc import ABC, abstractmethod
-from random import randrange, sample
+import random
 from typing import Optional, Any
 
 import torch
@@ -9,7 +9,6 @@ import torch
 import wandb
 
 from transformers import (
-    PreTrainedModel,
     PreTrainedTokenizer,
     pipeline,
     LogitsProcessor,
@@ -19,7 +18,6 @@ from transformers import (
     AutoModelForCausalLM,
     AutoModelForMaskedLM,
 )
-from transformers.pipelines import PIPELINE_REGISTRY
 
 from tqdm import tqdm
 
@@ -35,14 +33,6 @@ from al_llm.utils.generation import (
     MaskedMHSamplerPipeline,
 )
 from al_llm.constants import TEXT_COLUMN_NAME
-
-
-# Register the Masked Metropolis-Hastings pipeline, for later use
-PIPELINE_REGISTRY.register_pipeline(
-    "masked-metropolis-hastings-sampling",
-    pipeline_class=MaskedMHSamplerPipeline,
-    pt_model=AutoModelForMaskedLM,
-)
 
 
 class TqdmHolder:
@@ -187,8 +177,8 @@ class DummySampleGenerator(SampleGenerator):
         # Generate the samples by sampling from the alphabet
         sample_pool = []
         for sample_index in range(pool_size):
-            length = randrange(5, 30)
-            sample_nums = [randrange(len(alphabet)) for i in range(length)]
+            length = random.randrange(5, 30)
+            sample_nums = [random.randrange(len(alphabet)) for i in range(length)]
             sample_chars = map(lambda x: alphabet[x], sample_nums)
             sample = "".join(sample_chars)
             sample_pool.append(sample)
@@ -223,8 +213,7 @@ class PoolSampleGenerator(SampleGenerator):
 
         # Get the list of sentences in the remainder dataset, as a list
         remainder_python = dataset_container.dataset_remainder.with_format(None)
-        text_column_name = TEXT_COLUMN_NAME
-        self.remainder_sentences = remainder_python[text_column_name]
+        self.remainder_sentences = remainder_python[TEXT_COLUMN_NAME]
 
     def generate(self) -> list:
 
@@ -239,7 +228,7 @@ class PoolSampleGenerator(SampleGenerator):
 
         # Take `sample_pool_size` random samples from `remainder_sentences`, or
         # as many as you can take up to the length of `remainder_sentences`
-        simulated_pool = sample(
+        simulated_pool = random.sample(
             self.remainder_sentences,
             min(len(self.remainder_sentences), self.parameters["sample_pool_size"]),
         )
@@ -461,32 +450,16 @@ class TokenByTokenSampleGenerator(HuggingFaceSampleGenerator, ABC):
         acquisition_function: Optional[AcquisitionFunction] = None,
     ):
 
-        self.parameters = parameters
+        super().__init__(parameters, dataset_container, wandb_run, acquisition_function)
+
         self.classifier = classifier
-        self.dataset_container = dataset_container
-        self.wandb_run = wandb_run
-        self.acquisition_function = acquisition_function
 
-        # Set the max sentence length to generate, in tokens
-        if self.parameters["sample_generator_max_length"] == -1:
-            self._max_length = dataset_container.TOKENIZED_LENGTH_UPPER_QUARTILE
-        else:
-            self._max_length = self.parameters["sample_generator_max_length"]
+    def _make_pipeline_generator(self, model: Any, tokenizer: str, **kwargs):
 
-        # Load the base sample generator model
-        self._load_generator_model()
-
-        # Setup the pipeline generator
-        # Use the Hugging Face generation utility to generate samples. This
-        # does most of the hard work for us in terms of interacting with the
-        # model. We use a custom logits processor to add the uncertainty
-        # values coming from the classifier
-        self._make_pipeline_generator(
-            self.generator_model,
-            self.GENERATOR_MODEL_NAME,
-            renormalize_logits=True,
-            do_sample=True,
-        )
+        # Make the default pipeline with two extra arguments
+        kwargs["renormalize_logits"] = True
+        kwargs["do_sample"] = True
+        super()._make_pipeline_generator(model, tokenizer, **kwargs)
 
     def _make_logits_processor(self) -> LogitsProcessorList:
 
@@ -532,6 +505,9 @@ class MaskedMHSampleGenerator(HuggingFaceSampleGenerator, ABC):
     ----------
     parameters : Parameters
         The dictionary of parameters for the present experiment
+    classifier : HuggingFaceClassifier
+        The classifier used in the current experiment, for which we maximise
+        uncertainty.
     dataset_container : DatasetContainer
         The dataset container for the current experiment.
     wandb_run : wandb.sdk.wandb_run.Run
@@ -540,6 +516,22 @@ class MaskedMHSampleGenerator(HuggingFaceSampleGenerator, ABC):
         The acquisition function to use, if any. By default we simply generate
         a number of samples with no selection procedure.
     """
+
+    def __init__(
+        self,
+        parameters: Parameters,
+        classifier: HuggingFaceClassifier,
+        dataset_container: DatasetContainer,
+        wandb_run: wandb.sdk.wandb_run.Run,
+        acquisition_function: Optional[AcquisitionFunction] = None,
+    ):
+        super().__init__(parameters, dataset_container, wandb_run, acquisition_function)
+
+        self.classifier = classifier
+
+        # Get the list of sentences in the remainder dataset, as a list
+        remainder_python = dataset_container.dataset_remainder.with_format(None)
+        self.remainder_sentences = remainder_python[TEXT_COLUMN_NAME]
 
     def _load_generator_model(self):
         """Load the model used as a sentence generator"""
@@ -619,8 +611,7 @@ class MaskedMHSampleGenerator(HuggingFaceSampleGenerator, ABC):
         logits_warper = self._make_logits_warper()
 
         # Create a pipeline for text generation
-        self.generator = pipeline(
-            task="masked-metropolis-hastings-sampling",
+        self.generator = MaskedMHSamplerPipeline(
             model=model,
             device=device,
             tokenizer=tokenizer,
@@ -646,7 +637,10 @@ class MaskedMHSampleGenerator(HuggingFaceSampleGenerator, ABC):
         """
 
         # Select `pool_size` samples from the unlabelled pool
-        inititial_samples = inititial_samples
+        inititial_samples = random.sample(
+            self.remainder_sentences,
+            min(len(self.remainder_sentences), pool_size),
+        )
 
         # Run the Masked MH algorithm starting with these
         sample_pool = self.generator(inititial_samples)
