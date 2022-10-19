@@ -68,6 +68,7 @@ class HuggingFaceClassifierEnsemble(nn.Module):
         self,
         input_ids: torch.LongTensor,
         attention_mask: Optional[torch.Tensor] = None,
+        labels: Optional[torch.Tensor] = None,
     ) -> HuggingFaceClassifierEnsembleOutput:
         """Do a forward pass on each model and average the results
 
@@ -99,7 +100,9 @@ class HuggingFaceClassifierEnsemble(nn.Module):
             else:
                 attention_mask_clone = None
             outputs = model(
-                input_ids=input_ids_clone, attention_mask=attention_mask_clone
+                input_ids=input_ids_clone,
+                attention_mask=attention_mask_clone,
+                labels=labels,
             )
 
             # Store the loss and prediction probabilities
