@@ -115,6 +115,12 @@ class Parameters(dict):
     tbt_uncertainty_weighting : float, default=1
         When doing token-by-token generation, this is the weighting to use
         when adding the uncertainty to the logit value.
+    tbt_uncertainty_scheduler : string, default="constant"
+        Which scheduler to use to vary the uncertainty weighting throught the
+        token-by-token generation process. Possible values are as follows.
+        - "constant": Don't vary the weighting
+        - "linear": Start with no uncertainty contribution, then increase
+        linearly to reach the maximum at `sample_generator_max_length`.
     use_automatic_labeller : bool, default=False
         Whether to use a pretrained classifier to provide the labels, instead
         of a human.
