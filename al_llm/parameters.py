@@ -137,7 +137,7 @@ class Parameters(dict):
         The string specifying the CUDA device to use
     is_running_pytests : bool, default=False
         If true, wandb will be disabled for the test experiments
-    save_classifier_every : int, default=0
+    save_classifier_every : int, default=-1
         Specifies how often to save the classifier model. A value of -1 means
         that we never save. A value of 0 means that we only save after the
         last iteration. A positive value k means that we save every k
@@ -185,7 +185,7 @@ class Parameters(dict):
         replay_run: str = "",
         cuda_device: str = "cuda:0",
         is_running_pytests: bool = False,
-        save_classifier_every: int = 0,
+        save_classifier_every: int = -1,
         *args,
         **kwargs,
     ):
