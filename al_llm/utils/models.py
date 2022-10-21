@@ -16,14 +16,14 @@ class HuggingFaceClassifierEnsembleOutput(ModelOutput):
 
     Parameters
     ----------
-    loss : torch.Tensor of shape (num_models)
-        The loss value for each model
     class_probs : torch.Tensor of shape (batch_size, num_labels)
         The mean class probabilities
+    loss : torch.Tensor of shape (num_models), optional
+        The loss value for each model
     """
 
-    loss: torch.Tensor
     class_probs: torch.Tensor
+    loss: Optional[torch.Tensor] = None
 
 
 class HuggingFaceClassifierEnsemble(nn.Module):
