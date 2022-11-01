@@ -1,12 +1,12 @@
 # Main packages
-torch
-transformers
-datasets
-evaluate
 wheel
-sklearn
-wandb
-tqdm
+torch==1.12.1
+transformers==4.23.1
+datasets==2.5.2
+evaluate==0.2.2
+scikit-learn==1.1.2
+wandb==0.13.4
+tqdm==4.64.1
 
 # Formatting and linting
 black
