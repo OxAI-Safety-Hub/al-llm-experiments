@@ -771,12 +771,9 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
 
             with torch.no_grad():
 
-                # Get the raw model output logits
+                # Get the model class probabilities
                 outputs = self._model(input_ids=batch)
-                logits = outputs.logits
-
-                # Compute the class probabilities
-                probabilities = F.softmax(logits, dim=1)
+                probabilities = outputs.class_probs
 
                 # Compute the entropies per element
                 per_class_entropies = torch.special.entr(probabilities)
