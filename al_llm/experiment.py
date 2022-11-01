@@ -406,8 +406,8 @@ class Experiment:
 
         Example
         -------
-        Make a dummy experiment 
-        >>> parameters = Parameters() 
+        Make a dummy experiment
+        >>> parameters = Parameters()
         >>> args = Experiment.make_experiment(parameters, "dummy")
         >>> experiment = Experiment(**args)
         """
