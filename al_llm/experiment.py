@@ -77,8 +77,6 @@ class Experiment:
         The interface instance to use
     wandb_run : wandb.sdk.wandb_run.Run
         The current wandb run
-    already_finetuned : bool, default=False
-        Is the classifier already fine-tuned on the dataset?
     """
 
     MAP_DATASET_CONTAINER = {
@@ -127,7 +125,6 @@ class Experiment:
         sample_generator: SampleGenerator,
         interface: Interface,
         wandb_run: wandb.sdk.wandb_run.Run,
-        already_finetuned: bool = False,
     ):
 
         # Set the instance attributes
@@ -138,7 +135,6 @@ class Experiment:
         self.sample_generator = sample_generator
         self.interface = interface
         self.wandb_run = wandb_run
-        self.already_finetuned = already_finetuned
 
     def run(self):
 
