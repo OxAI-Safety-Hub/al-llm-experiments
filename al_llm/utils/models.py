@@ -87,7 +87,10 @@ class HuggingFaceClassifierEnsemble(nn.Module):
 
         # Tensors of the outputs to be computed
         batch_size = input_ids.shape[0]
-        loss = torch.zeros(self.num_models)
+        if labels is not None:
+            loss = torch.zeros(self.num_models)
+        else:
+            loss = None
         class_probs = torch.zeros((batch_size, self.num_labels, self.num_models))
 
         for i, model in enumerate(self.models):
@@ -106,7 +109,8 @@ class HuggingFaceClassifierEnsemble(nn.Module):
             )
 
             # Store the loss and prediction probabilities
-            loss[i] = outputs.loss
+            if labels is not None:
+                loss[i] = outputs.loss
             class_probs[:, :, i] = F.softmax(outputs.logits, dim=0)
 
         # Take the mean of the class probabilities over all models
