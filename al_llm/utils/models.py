@@ -107,7 +107,7 @@ class HuggingFaceClassifierEnsemble(nn.Module):
 
             # Store the loss and prediction probabilities
             loss[i] = outputs.loss
-            class_probs[:, :, i] = F.softmax(outputs.logits)
+            class_probs[:, :, i] = F.softmax(outputs.logits, dim=0)
 
         # Take the mean of the class probabilities over all models
         class_probs = torch.mean(class_probs, dim=2)
