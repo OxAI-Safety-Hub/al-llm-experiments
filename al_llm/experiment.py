@@ -365,10 +365,9 @@ class Experiment:
     ) -> dict:
         """Get experiment instances to feed into the constructor
 
-        Default setup expects Rotten Tomatoes dataset, and uses a classifier built
-        on GPT-2, the HuggingFaceDataHandler, a GPT-2-based sentence generator that
-        produces real sentences and filters using a maximum uncertainty acquisition
-        function, and the Command Line Interface.
+        This method sets up all the experiment components according to the
+        `Parameters` instance. It also initialised the Weights and Biases
+        logging.
 
         Parameters
         ----------
@@ -389,16 +388,15 @@ class Experiment:
         Notes
         -----
 
-        By default all parameters are dummy parameters. This means that calling
-        this method with a plain `Parameters` instance will create a dummy
-        experiment.
+        By default all parameters are dummy parameters. This means that
+        calling this method with a plain `Parameters` instance will create a
+        dummy experiment.
 
         Example
         -------
-        Make a dummy experiment
-        >>> parameters = Parameters()
-        >>> args = Experiment.make_experiment(parameters, "dummy")
-        >>> experiment = Experiment(**args)
+        Make a dummy experiment >>> parameters = Parameters() >>> args =
+        Experiment.make_experiment(parameters, "dummy") >>> experiment =
+        Experiment(**args)
         """
 
         # Whether we're doing a replay run
