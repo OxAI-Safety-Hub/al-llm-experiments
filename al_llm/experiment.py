@@ -455,7 +455,7 @@ class Experiment:
 
         # Ensure that if a run is being resumed, it is intentional
         if wandb_run.resumed:
-            print("WARNING: Resuming an already existent run.")
+            print("WARNING: Resuming an already existant run.")
             if do_replay_run:
                 print("Moreover, this is a replay run.")
             happy_to_continue = False
