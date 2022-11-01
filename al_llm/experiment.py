@@ -406,9 +406,10 @@ class Experiment:
 
         Example
         -------
-        Make a dummy experiment >>> parameters = Parameters() >>> args =
-        Experiment.make_experiment(parameters, "dummy") >>> experiment =
-        Experiment(**args)
+        Make a dummy experiment 
+        >>> parameters = Parameters() 
+        >>> args = Experiment.make_experiment(parameters, "dummy")
+        >>> experiment = Experiment(**args)
         """
 
         # Whether we're doing a replay run
