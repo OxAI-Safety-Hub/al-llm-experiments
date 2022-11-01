@@ -55,6 +55,7 @@ from al_llm.constants import (
     AMBIGUITIES_COLUMN_NAME,
     WANDB_ENTITY,
     CACHE_SIZE,
+    DEFAULT_REPLAY_SKIP_KEYS,
 )
 
 
@@ -361,7 +362,9 @@ class Experiment:
         parameters: Parameters,
         project_name: str,
         run_id: str,
+        *,
         tags: list = [],
+        replay_skip_keys=DEFAULT_REPLAY_SKIP_KEYS,
     ) -> dict:
         """Get experiment instances to feed into the constructor
 
@@ -379,6 +382,9 @@ class Experiment:
             The ID of the current run
         tags : list, default=[]
             A list of tags to associate to the W&B run
+        replay_skip_keys : list, default=DEFAULT_REPLAY_SKIP_KEYS
+            When replaying a run, these are the parameter keys which are not
+            copied from the replayed run.
 
         Returns
         -------
@@ -430,7 +436,7 @@ class Experiment:
             print("Updating parameters to match replayed run...")
             parameters.update_from_dict(
                 replayed_run.config,
-                skip_keys=["replay_run", "eval_every", "test_every", "cuda_device"],
+                skip_keys=replay_skip_keys,
             )
 
         # initialise weights and biases
