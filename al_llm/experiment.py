@@ -59,6 +59,12 @@ from al_llm.constants import (
 )
 
 
+class NotHappyToResumeError(Exception):
+    """Exception raised when user is not happy to resume existant run"""
+
+    pass
+
+
 class Experiment:
     """The experiment runner
 
@@ -462,7 +468,7 @@ class Experiment:
             while not happy_to_continue:
                 choice = input("Do you want to continue? (Y/n): ")
                 if choice.lower() == "n":
-                    return None
+                    raise NotHappyToResumeError
                 elif choice.lower() == "y" or choice.lower() == "":
                     happy_to_continue = True
 
