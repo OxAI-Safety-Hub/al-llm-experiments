@@ -250,9 +250,13 @@ class MaskedMHSamplerPipeline(Pipeline):
     def preprocess(self, inputs, **tokenizer_kwargs):
         # Tokenize the inputs
         if isinstance(inputs, dict):
-            return self.tokenizer(**inputs, **tokenizer_kwargs)
+            return self.tokenizer(
+                **inputs, padding="max_length", truncation=True, **tokenizer_kwargs
+            )
         else:
-            return self.tokenizer(inputs, **tokenizer_kwargs)
+            return self.tokenizer(
+                inputs, padding="max_length", truncation=True, **tokenizer_kwargs
+            )
 
     @torch.no_grad()
     def _forward(
@@ -293,8 +297,20 @@ class MaskedMHSamplerPipeline(Pipeline):
             The token ids of the newly generated samples.
         """
 
+        torch.set_printoptions(threshold=50, edgeitems=7)
+
         # The token ids of the samples
         sample_ids = samples["input_ids"]
+        if not isinstance(sample_ids, torch.Tensor):
+            sample_ids = torch.tensor(sample_ids)
+
+        # Add a batch dimension, if we only have a single sample
+        if sample_ids.ndim == 1:
+            sample_ids = torch.unsqueeze(sample_ids, dim=0)
+
+        print(sample_ids)
+
+        print(sample_ids.shape)
 
         # The number of samples we have (batch size)
         batch_size = sample_ids.shape[0]
@@ -307,27 +323,47 @@ class MaskedMHSamplerPipeline(Pipeline):
         # Iterate through the MCMC process
         for i in tqdm(range(num_steps)):
 
+            _ = torch.rand_like(sample_ids, dtype=float)
+
             # To mask some of the tokens, First choose from all tokens
             # uniformly with probability `mask_probability`
-            masking_mask = torch.rand_like(sample_ids) <= mask_probability
+            masking_mask = torch.rand_like(sample_ids, dtype=float) <= mask_probability
+
+            print(masking_mask)
 
             # We now want to select those previous token in the original
             # sequence was not a padding token
             non_padding_mask = sample_ids != self.model.config.pad_token_id
-            non_padding_mask = torch.roll(non_padding_mask, shifts=1, dims=1)
-            non_padding_mask[:, 0] = True
-            masking_mask = masking_mask and non_padding_mask
+            # non_padding_mask = torch.roll(non_padding_mask, shifts=1, dims=1)
+            # non_padding_mask[:, 0] = True
+            masking_mask = masking_mask & non_padding_mask
+
+            print(non_padding_mask)
+
+            print(masking_mask)
+
+            print(masking_mask.device, self.tokenizer.mask_token_id, sample_ids.device)
 
             # Replace all the tokens chosen to be masked with the mask token
             masked_sample_ids = torch.where(
-                masking_mask, self.model.config.mask_token_id, sample_ids
+                masking_mask, self.tokenizer.mask_token_id, sample_ids
             )
 
-            # Pass these through the model to the logits over the masked tokens
+            print(masked_sample_ids)
+
+            # Move everything onto the correct device
+            masked_sample_ids = masked_sample_ids.to(self.device)
+            non_padding_mask = non_padding_mask.to(self.device)
+            self.model.to(self.device)
+
+            # Pass these through the model to get the logits over the masked
+            # tokens
             output = self.model(
                 input_ids=masked_sample_ids, attention_mask=non_padding_mask
             )
             logits = output.logits
+
+            print(logits.shape)
 
             # Apply the logits processors and warpers
             logits = logits_processor(sample_ids, logits)
@@ -337,20 +373,35 @@ class MaskedMHSamplerPipeline(Pipeline):
             class_probs = F.softmax(logits, dim=-1)
 
             # Sample from the class probabilities
+            print(class_probs.shape)
             class_probs_flat = torch.flatten(class_probs, start_dim=0, end_dim=1)
+            print(class_probs_flat.shape)
             sampled_tokens = torch.multinomial(class_probs_flat, num_samples=1)
+            print(sampled_tokens)
             sampled_tokens = sampled_tokens.reshape((batch_size, sequence_length))
+            print(sampled_tokens)
+
+            # Put the tensors on the correct device
+            masking_mask = masking_mask.to(self.device)
+            sampled_tokens = sampled_tokens.to(self.device)
+            sample_ids = sample_ids.to(self.device)
 
             # Replace the masked tokens using the sampled ones
             new_sample_ids = torch.where(masking_mask, sampled_tokens, sample_ids)
 
+            print(new_sample_ids)
+
             # Compute the values of the scoring function for the new sample_ids
             new_sample_scores = scoring_function(new_sample_ids, self.tokenizer)
+
+            print(new_sample_scores)
 
             # Keep the new samples with probability given by the scoring
             # function
             keep_indices = torch.rand(batch_size) <= new_sample_scores
+            print(keep_indices)
             sample_ids = torch.where(keep_indices, new_sample_ids, sample_ids)
+            print(sample_ids)
 
         return sample_ids
 

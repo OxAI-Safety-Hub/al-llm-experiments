@@ -18,6 +18,7 @@ from transformers import (
     AutoModelForCausalLM,
     AutoModelForMaskedLM,
 )
+from transformers.pipelines import PIPELINE_REGISTRY
 
 from tqdm import tqdm
 
@@ -33,6 +34,11 @@ from al_llm.utils.generation import (
     MaskedMHSamplerPipeline,
 )
 from al_llm.constants import TEXT_COLUMN_NAME
+
+PIPELINE_REGISTRY.register_pipeline(
+    "mmh-text-generation",
+    pipeline_class=MaskedMHSamplerPipeline,
+)
 
 
 class TqdmHolder:
@@ -597,8 +603,12 @@ class MaskedMHSampleGenerator(HuggingFaceSampleGenerator, ABC):
 
             # Otherwise, retokenize the input IDs
             else:
-                samples = tokenizer.batch_decode(sample_ids)
-                samples_tokenized = self.classifier.tokenize(samples)
+                samples = tokenizer.batch_decode(sample_ids, skip_special_tokens=True)
+                print(samples)
+                samples_tokenized = self.classifier.tokenize(
+                    samples, return_tensors="pt"
+                )["input_ids"]
+                print(samples_tokenized)
 
             # Compute the uncertainties of the samples
             uncertainties = self.classifier.calculate_uncertainties_tokenized(
@@ -611,7 +621,8 @@ class MaskedMHSampleGenerator(HuggingFaceSampleGenerator, ABC):
         logits_warper = self._make_logits_warper()
 
         # Create a pipeline for text generation
-        self.generator = MaskedMHSamplerPipeline(
+        self.generator = pipeline(
+            task="mmh-text-generation",
             model=model,
             device=device,
             tokenizer=tokenizer,
@@ -810,7 +821,7 @@ class PlainBERTMaskedMHSampleGenerator(MaskedMHSampleGenerator):
         a number of samples with no selection procedure.
     """
 
-    GENERATOR_MODEL_NAME = "bert-base-uncased"
+    GENERATOR_MODEL_NAME = "bert-base-cased"
 
 
 class TAPTBERTMaskedMHSampleGenerator(TAPTMixin, MaskedMHSampleGenerator):
@@ -830,4 +841,4 @@ class TAPTBERTMaskedMHSampleGenerator(TAPTMixin, MaskedMHSampleGenerator):
         a number of samples with no selection procedure.
     """
 
-    GENERATOR_MODEL_NAME = "bert-base-uncased"
+    GENERATOR_MODEL_NAME = "bert-base-cased"

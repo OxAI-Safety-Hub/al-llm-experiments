@@ -930,7 +930,7 @@ class PlainBERTClassifier(HuggingFaceClassifier):
     Understanding", arXiv:1810.04805v2, 2019
     """
 
-    MODEL_NAME = "bert"
+    MODEL_NAME = "bert-base-uncased"
 
 
 class TAPTGPT2Classifier(TAPTClassifier):
@@ -1038,4 +1038,4 @@ class TAPTBERTClassifier(TAPTClassifier):
     Understanding", arXiv:1810.04805v2, 2019
     """
 
-    MODEL_NAME = "bert"
+    MODEL_NAME = "bert-base-uncased"
