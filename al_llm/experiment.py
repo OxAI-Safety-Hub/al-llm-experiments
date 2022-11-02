@@ -55,7 +55,14 @@ from al_llm.constants import (
     AMBIGUITIES_COLUMN_NAME,
     WANDB_ENTITY,
     CACHE_SIZE,
+    DEFAULT_REPLAY_SKIP_KEYS,
 )
+
+
+class NotHappyToResumeError(Exception):
+    """Exception raised when user is not happy to resume existant run"""
+
+    pass
 
 
 class Experiment:
@@ -77,8 +84,6 @@ class Experiment:
         The interface instance to use
     wandb_run : wandb.sdk.wandb_run.Run
         The current wandb run
-    already_finetuned : bool, default=False
-        Is the classifier already fine-tuned on the dataset?
     """
 
     MAP_DATASET_CONTAINER = {
@@ -127,7 +132,6 @@ class Experiment:
         sample_generator: SampleGenerator,
         interface: Interface,
         wandb_run: wandb.sdk.wandb_run.Run,
-        already_finetuned: bool = False,
     ):
 
         # Set the instance attributes
@@ -138,7 +142,6 @@ class Experiment:
         self.sample_generator = sample_generator
         self.interface = interface
         self.wandb_run = wandb_run
-        self.already_finetuned = already_finetuned
 
     def run(self):
 
@@ -365,14 +368,15 @@ class Experiment:
         parameters: Parameters,
         project_name: str,
         run_id: str,
+        *,
         tags: list = [],
+        replay_skip_keys=DEFAULT_REPLAY_SKIP_KEYS,
     ) -> dict:
         """Get experiment instances to feed into the constructor
 
-        Default setup expects Rotten Tomatoes dataset, and uses a classifier built
-        on GPT-2, the HuggingFaceDataHandler, a GPT-2-based sentence generator that
-        produces real sentences and filters using a maximum uncertainty acquisition
-        function, and the Command Line Interface.
+        This method sets up all the experiment components according to the
+        `Parameters` instance. It also initialised the Weights and Biases
+        logging.
 
         Parameters
         ----------
@@ -384,6 +388,9 @@ class Experiment:
             The ID of the current run
         tags : list, default=[]
             A list of tags to associate to the W&B run
+        replay_skip_keys : list, default=DEFAULT_REPLAY_SKIP_KEYS
+            When replaying a run, these are the parameter keys which are not
+            copied from the replayed run.
 
         Returns
         -------
@@ -393,9 +400,9 @@ class Experiment:
         Notes
         -----
 
-        By default all parameters are dummy parameters. This means that calling
-        this method with a plain `Parameters` instance will create a dummy
-        experiment.
+        By default all parameters are dummy parameters. This means that
+        calling this method with a plain `Parameters` instance will create a
+        dummy experiment.
 
         Example
         -------
@@ -436,7 +443,7 @@ class Experiment:
             print("Updating parameters to match replayed run...")
             parameters.update_from_dict(
                 replayed_run.config,
-                skip_keys=["replay_run", "eval_every", "test_every", "cuda_device"],
+                skip_keys=replay_skip_keys,
             )
 
         # initialise weights and biases
@@ -455,14 +462,14 @@ class Experiment:
 
         # Ensure that if a run is being resumed, it is intentional
         if wandb_run.resumed:
-            print("WARNING: Resuming an already existent run.")
+            print("WARNING: Resuming an already existant run.")
             if do_replay_run:
                 print("Moreover, this is a replay run.")
             happy_to_continue = False
             while not happy_to_continue:
                 choice = input("Do you want to continue? (Y/n): ")
                 if choice.lower() == "n":
-                    return None
+                    raise NotHappyToResumeError
                 elif choice.lower() == "y" or choice.lower() == "":
                     happy_to_continue = True
 
