@@ -357,13 +357,18 @@ class Parameters(dict):
                 )
 
     @classmethod
-    def from_argparse_namespace(cls, namespace: Namespace) -> "Parameters":
+    def from_argparse_namespace(
+        cls, namespace: Namespace, *, defaults: dict = {}
+    ) -> "Parameters":
         """Build a `Parameters` object from and argparse namespace
 
         Parameters
         ----------
         namespace : Namespace
             The parsed command line arguments, from an ArgumentParser instance
+        defaults : dict, default={}
+            A dictionary of default values for the parameters, which override
+            the ones defined in `Parameters`
 
         Returns
         -------
@@ -375,7 +380,7 @@ class Parameters(dict):
         signature = inspect.signature(cls.__init__)
 
         # The arguments which we'll use to construct the `Parameters` instance
-        parameters_args = {}
+        parameters_args = defaults
 
         # Loop over all the parameters in the signature
         for name in list(signature.parameters):
