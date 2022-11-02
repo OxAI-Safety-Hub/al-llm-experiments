@@ -465,7 +465,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
             self._model.config.pad_token_id = self._model.config.eos_token_id
 
         # Put the model on the torch device
-        model.to(self.device)
+        self._model.to(self.device)
 
     def _train(self, train_dataloader: DataLoader, num_epochs: int, iteration: int):
 
