@@ -637,13 +637,13 @@ class MaskedMHSampleGenerator(HuggingFaceSampleGenerator, ABC):
         """
 
         # Select `pool_size` samples from the unlabelled pool
-        inititial_samples = random.sample(
+        initial_samples = random.sample(
             self.remainder_sentences,
             min(len(self.remainder_sentences), pool_size),
         )
 
         # Run the Masked MH algorithm starting with these
-        sample_pool = self.generator(inititial_samples)
+        sample_pool = self.generator(initial_samples)
 
         return sample_pool
 
