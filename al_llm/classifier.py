@@ -611,7 +611,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
             train_loss += loss * len(batch)
 
             # Perform back-propagation
-            loss.backward()
+            loss.backward(torch.ones_like(loss))
 
             # run and optimisation step and move the lr scheduler forward
             optimizer.step()
