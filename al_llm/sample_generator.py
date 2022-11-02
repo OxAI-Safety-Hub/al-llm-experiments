@@ -793,7 +793,7 @@ class TAPTGPT2TokenByTokenSampleGenerator(TAPTMixin, TokenByTokenSampleGenerator
     GENERATOR_MODEL_NAME = "gpt2"
 
 
-class PlainBERTMaskedMHSampleGenerator(TokenByTokenSampleGenerator):
+class PlainBERTMaskedMHSampleGenerator(MaskedMHSampleGenerator):
     """BERT Masked Metropolis-Hastings sample generator
 
     Parameters
@@ -813,7 +813,7 @@ class PlainBERTMaskedMHSampleGenerator(TokenByTokenSampleGenerator):
     GENERATOR_MODEL_NAME = "bert-base-uncased"
 
 
-class TAPTBERTMaskedMHSampleGenerator(TAPTMixin, TokenByTokenSampleGenerator):
+class TAPTBERTMaskedMHSampleGenerator(TAPTMixin, MaskedMHSampleGenerator):
     """TAPTed BERT Masked Metropolis-Hastings sample generator
 
     Parameters

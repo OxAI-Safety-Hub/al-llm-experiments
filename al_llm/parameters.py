@@ -116,9 +116,9 @@ class Parameters(dict):
     mmh_num_steps : int, default=50
         When doing Masked Metropolis-Hasting sampling, this is the number of
         steps for which to run the algorithm
-    mmh_mask_proportion : float, default=0.15
-        When doing Masked Metropolis-Hasting sampling, this is the proportion
-        of tokens to mask in each step.
+    mmh_mask_probability : float, default=0.15
+        When doing Masked Metropolis-Hasting sampling, this is the probability
+        that each token is masked at each step.
     use_automatic_labeller : bool, default=False
         Whether to use a pretrained classifier to provide the labels, instead
         of a human.
@@ -183,7 +183,7 @@ class Parameters(dict):
         tbt_pre_top_k: int = 256,
         tbt_uncertainty_weighting: float = 1,
         mmh_num_steps: int = 50,
-        mmh_mask_proportion: float = 0.15,
+        mmh_mask_probability: float = 0.15,
         use_automatic_labeller: bool = False,
         automatic_labeller_model_name: str = "textattack/roberta-base-rotten-tomatoes",
         ambiguity_mode: str = "only_mark",
@@ -244,7 +244,7 @@ class Parameters(dict):
             tbt_pre_top_k=tbt_pre_top_k,
             tbt_uncertainty_weighting=tbt_uncertainty_weighting,
             mmh_num_steps=mmh_num_steps,
-            mmh_mask_proportion=mmh_mask_proportion,
+            mmh_mask_probability=mmh_mask_probability,
             use_automatic_labeller=use_automatic_labeller,
             automatic_labeller_model_name=automatic_labeller_model_name,
             ambiguity_mode=ambiguity_mode,
