@@ -278,10 +278,16 @@ class Parameters(dict):
                 self.__setitem__(name, dictionary[name])
 
     @classmethod
-    def add_to_arg_parser(cls, parser: ArgumentParser, defaults: Optional[dict] = None):
+    def add_to_arg_parser(
+        cls,
+        parser: ArgumentParser,
+        *,
+        included_parameters: Optional[list] = None,
+        defaults: dict = {},
+    ):
         """Add the parameters to an ArgumentParser instance
 
-        This adds all the possible parameters as command line options, depending
+        This adds the possible parameters as command line options, depending
         on type, together with their default values, which can be overridden
         by `defaults`.
 
@@ -289,7 +295,10 @@ class Parameters(dict):
         ----------
         parser : ArgumentParser
             The argument parser to which to add the parameters
-        defaults : dict, optional
+        included_parameters : list, optional
+            A list of the parameters to include. If `None` then all parameters
+            are included.
+        defaults : dict, default={}
             A dictionary of default values for the parameters, which override
             the ones defined in `Parameters`
         """
@@ -303,6 +312,10 @@ class Parameters(dict):
             # We don't want to add the `self` argument, or any of the `*args`
             # or `**kwargs`
             if name in ["self", "args", "kwargs"]:
+                continue
+
+            # Only add parameters in `included_parameters`, it it is set
+            if included_parameters is not None and name not in included_parameters:
                 continue
 
             # Get the default for this parameter
