@@ -810,7 +810,7 @@ class PlainBERTMaskedMHSampleGenerator(TokenByTokenSampleGenerator):
         a number of samples with no selection procedure.
     """
 
-    GENERATOR_MODEL_NAME = "bert"
+    GENERATOR_MODEL_NAME = "bert-base-uncased"
 
 
 class TAPTBERTMaskedMHSampleGenerator(TAPTMixin, TokenByTokenSampleGenerator):
@@ -830,4 +830,4 @@ class TAPTBERTMaskedMHSampleGenerator(TAPTMixin, TokenByTokenSampleGenerator):
         a number of samples with no selection procedure.
     """
 
-    GENERATOR_MODEL_NAME = "bert"
+    GENERATOR_MODEL_NAME = "bert-base-uncased"
