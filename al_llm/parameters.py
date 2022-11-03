@@ -113,6 +113,12 @@ class Parameters(dict):
     tbt_uncertainty_weighting : float, default=1
         When doing token-by-token generation, this is the weighting to use
         when adding the uncertainty to the logit value.
+    tbt_uncertainty_scheduler : string, default="constant"
+        Which scheduler to use to vary the uncertainty weighting throught the
+        token-by-token generation process. Possible values are as follows.
+        - "constant": Don't vary the weighting
+        - "linear": Start with no uncertainty contribution, then increase
+        linearly to reach the maximum at `sample_generator_max_length`.
     mmh_num_steps : int, default=50
         When doing Masked Metropolis-Hasting sampling, this is the number of
         steps for which to run the algorithm
@@ -139,7 +145,7 @@ class Parameters(dict):
         The string specifying the CUDA device to use
     is_running_pytests : bool, default=False
         If true, wandb will be disabled for the test experiments
-    save_classifier_every : int, default=0
+    save_classifier_every : int, default=-1
         Specifies how often to save the classifier model. A value of -1 means
         that we never save. A value of 0 means that we only save after the
         last iteration. A positive value k means that we save every k
@@ -182,6 +188,7 @@ class Parameters(dict):
         sample_generator_max_length: int = -1,
         tbt_pre_top_k: int = 256,
         tbt_uncertainty_weighting: float = 1,
+        tbt_uncertainty_scheduler: str = "constant",
         mmh_num_steps: int = 50,
         mmh_mask_probability: float = 0.15,
         use_automatic_labeller: bool = False,
@@ -190,7 +197,7 @@ class Parameters(dict):
         replay_run: str = "",
         cuda_device: str = "cuda:0",
         is_running_pytests: bool = False,
-        save_classifier_every: int = 0,
+        save_classifier_every: int = -1,
         *args,
         **kwargs,
     ):
@@ -243,6 +250,7 @@ class Parameters(dict):
             sample_generator_max_length=sample_generator_max_length,
             tbt_pre_top_k=tbt_pre_top_k,
             tbt_uncertainty_weighting=tbt_uncertainty_weighting,
+            tbt_uncertainty_scheduler=tbt_uncertainty_scheduler,
             mmh_num_steps=mmh_num_steps,
             mmh_mask_probability=mmh_mask_probability,
             use_automatic_labeller=use_automatic_labeller,

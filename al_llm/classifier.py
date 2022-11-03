@@ -629,6 +629,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
 
         return train_metrics
 
+    @torch.no_grad()
     def _eval_epoch(self, eval_dataloader: torch.utils.data.DataLoader) -> dict:
         """Run a native PyTorch evaluation loop for one epoch
 
@@ -661,8 +662,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
             batch = {k: v.to(self.device) for k, v in batch.items()}
 
             # pass the data through the model without tracking computations
-            with torch.no_grad():
-                outputs = self._model(**batch)
+            outputs = self._model(**batch)
             logits = outputs.logits
 
             # work out the model's predictions for the data using argmax on the logits
@@ -727,6 +727,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         else:
             return uncertainties.tolist()
 
+    @torch.no_grad()
     def calculate_uncertainties_tokenized(
         self,
         tokenized_samples: torch.Tensor,

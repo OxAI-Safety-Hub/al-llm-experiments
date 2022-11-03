@@ -8,6 +8,7 @@ from transformers import LogitsProcessor, LogitsProcessorList, Pipeline
 from tqdm import tqdm
 
 from al_llm.classifier import HuggingFaceClassifier
+from al_llm.parameters import Parameters
 
 
 class TopKLogitsProcessor(LogitsProcessor):
@@ -68,10 +69,12 @@ class UncertaintyLogitsProcessor(LogitsProcessor):
 
     Parameters
     ----------
+    parameters : Parameters
+        The parameters for the current experiment
     classifier : HuggingFaceClassifier
         The classifier for which to compute the uncertainties
-    uncertainty_weighting : float
-        The weighting to use when adding the uncertainty to the logit value
+    max_length : int
+        The maximum length of sentence which will be generated.
     filter_value : float, default=`-float("Inf")`
         The value used in the `scores` by previous processors to indicate that
         we shouldn't consider that token.
@@ -79,14 +82,16 @@ class UncertaintyLogitsProcessor(LogitsProcessor):
 
     def __init__(
         self,
+        parameters: Parameters,
         classifier: HuggingFaceClassifier,
-        uncertainty_weighting: float,
+        max_length: int,
         filter_value: float = -float("Inf"),
     ):
         super().__init__()
 
+        self.parameters = parameters
         self.classifier = classifier
-        self.uncertainty_weighting = uncertainty_weighting
+        self.max_length = max_length
         self.filter_value = filter_value
 
     @torch.no_grad()
@@ -99,6 +104,9 @@ class UncertaintyLogitsProcessor(LogitsProcessor):
 
         # The number of input sequences
         num_inputs = input_ids.shape[0]
+
+        # The length of the sequences generated so far
+        sequnence_len = input_ids.shape[1]
 
         # The number of tokens
         num_tokens = scores.shape[1]
@@ -123,7 +131,7 @@ class UncertaintyLogitsProcessor(LogitsProcessor):
 
         # Create `num_filtered_scores` copies of each input sequence
         # This creates a tensor of dimension:
-        #     num_inputs x num_filtered_scores x {sequence length}
+        #     num_inputs x num_filtered_scores x sequnence_len
         inputs_repeated = input_ids.repeat(num_filtered_scores, 1, 1).transpose(0, 1)
 
         # Get the token ids of each of the filtered scores
@@ -134,13 +142,13 @@ class UncertaintyLogitsProcessor(LogitsProcessor):
 
         # Add these token IDs at the end of the repeated inputs, to get a
         # tensor of dimension:
-        #     num_inputs x num_filtered_scores x ({sequence length} + 1)
+        #     num_inputs x num_filtered_scores x (sequnence_len + 1)
         # which contains all the sequences for which we want to compute the
         # uncertainty
         sequences_block = torch.cat((inputs_repeated, filtered_token_ids), dim=2)
 
         # Serialise these into a tensor of dimension:
-        #     (num_inputs * num_filtered_scores) x ({sequence length} + 1)
+        #     (num_inputs * num_filtered_scores) x (sequnence_len + 1)
         sequences_serialised = torch.flatten(sequences_block, 0, 1)
 
         # Compute the uncertainties of the input sequences for the classifier
@@ -157,8 +165,13 @@ class UncertaintyLogitsProcessor(LogitsProcessor):
         # Compute the probabilities corresponding to the scores using softmax
         probabilities = F.softmax(scores, dim=1)
 
+        # Compute the weighting for the uncertainty values
+        weighting = self.parameters["tbt_uncertainty_weighting"]
+        if self.parameters["tbt_uncertainty_scheduler"] == "linear":
+            weighting = max(0, min(1, sequnence_len / self.max_length)) * weighting
+
         # Add the weighted uncertainties to the probabilities
-        new_outputs = probabilities + self.uncertainty_weighting * uncertainties_located
+        new_outputs = probabilities + weighting * uncertainties_located
 
         # The new scores are the log of these
         return torch.log(new_outputs)

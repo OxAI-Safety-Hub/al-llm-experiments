@@ -479,7 +479,7 @@ class TokenByTokenSampleGenerator(HuggingFaceSampleGenerator, ABC):
 
         # The logits processor which adds the uncertainty values
         uncertainty_logits_processor = UncertaintyLogitsProcessor(
-            self.classifier, self.parameters["tbt_uncertainty_weighting"]
+            self.parameters, self.classifier, self._max_length
         )
 
         # Combine these two to the beginning of the processors list

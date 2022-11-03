@@ -23,6 +23,10 @@ WANDB_PROJECTS = {
     "experiment": "Experiments",
 }
 
+# When replaying a run, these are the parameter keys which are not copied from
+# the replayed run, by default
+DEFAULT_REPLAY_SKIP_KEYS = ["replay_run", "eval_every", "test_every", "cuda_device"]
+
 # The maximum size to clear the W&B cache down to
 CACHE_SIZE = "10GB"
 
