@@ -2,6 +2,7 @@
 # https://docs.python.org/3.10/library/abc.html
 from abc import ABC, abstractmethod
 from typing import Union, Any, Optional
+import math
 
 import torch
 from torch.utils.data import DataLoader
@@ -236,7 +237,9 @@ class UncertaintyMixin(ABC):
     """A mixin for classifiers which provide a measure of uncertainty"""
 
     @abstractmethod
-    def calculate_uncertainties(self, samples: Union[str, list]) -> Union[float, list]:
+    def calculate_uncertainties(
+        self, samples: Union[str, list], *, output_probabilities=False
+    ) -> Union[float, list]:
         """Compute the uncertainty of a sample or batch of samples
 
         Uncertainties are floats, whose interpretations depend on the
@@ -246,6 +249,9 @@ class UncertaintyMixin(ABC):
         ----------
         samples : str or list
             The sample or samples for which to calculate the uncertainty
+        output_probabilities : bool, default=False
+            Return values which are like probabilities, i.e. they lie in the
+            interval [0,1].
 
         Returns
         -------
@@ -257,7 +263,11 @@ class UncertaintyMixin(ABC):
 
     @abstractmethod
     def calculate_uncertainties_tokenized(
-        self, tokenized_samples: torch.Tensor, print_output=True
+        self,
+        tokenized_samples: torch.Tensor,
+        *,
+        output_probabilities=False,
+        print_output=True,
     ) -> torch.Tensor:
         """Compute the uncertainty of tokenize samples
 
@@ -269,6 +279,9 @@ class UncertaintyMixin(ABC):
         tokenized_samples : torch.Tensor of shape (num_samples, num_tokens)
             A tensor of the tokenized samples for which to compute the
             uncertainty values
+        output_probabilities : bool, default=False
+            Return values which are like probabilities, i.e. they lie in the
+            interval [0,1].
         print_output : bool, default=True
             Whether to print a message saying that uncertainties are being
             computed, and a progress bar
@@ -306,7 +319,9 @@ class DummyClassifier(UncertaintyMixin, Classifier):
     def save(self):
         pass
 
-    def calculate_uncertainties(self, samples: Union[str, list]) -> Union[float, list]:
+    def calculate_uncertainties(
+        self, samples: Union[str, list], *, output_probabilities=False
+    ) -> Union[float, list]:
         if isinstance(samples, str):
             return 0
         elif isinstance(samples, list):
@@ -317,7 +332,11 @@ class DummyClassifier(UncertaintyMixin, Classifier):
             )
 
     def calculate_uncertainties_tokenized(
-        self, tokenized_samples: torch.Tensor, print_output=True
+        self,
+        tokenized_samples: torch.Tensor,
+        *,
+        output_probabilities=False,
+        print_output=True,
     ) -> torch.Tensor:
         return torch.zeros(tokenized_samples.shape[0])
 
@@ -677,7 +696,9 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
             string, padding=padding, truncation=truncation, *args, **kwargs
         )
 
-    def calculate_uncertainties(self, samples: Union[str, list]) -> Union[float, list]:
+    def calculate_uncertainties(
+        self, samples: Union[str, list], *, output_probabilities=False
+    ) -> Union[float, list]:
 
         # Turn samples into a list if it isn't already
         if isinstance(samples, str):
@@ -697,7 +718,9 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         tokenized_samples = tokenized_samples_dataset["input_ids"]
 
         # Compute the uncertainties, as a PyTorch tensor
-        uncertainties = self.calculate_uncertainties_tokenized(tokenized_samples)
+        uncertainties = self.calculate_uncertainties_tokenized(
+            tokenized_samples, output_probabilities=output_probabilities
+        )
 
         if return_string:
             return uncertainties.item()
@@ -705,7 +728,11 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
             return uncertainties.tolist()
 
     def calculate_uncertainties_tokenized(
-        self, tokenized_samples: torch.Tensor, print_output=True
+        self,
+        tokenized_samples: torch.Tensor,
+        *,
+        output_probabilities=False,
+        print_output=True,
     ) -> torch.Tensor:
 
         # Get the number of samples
@@ -756,8 +783,13 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
                 sum_entropies = torch.sum(per_class_entropies, dim=-1)
 
                 # Add these to the list of uncertainties
-
                 uncertainties[idx * batch_size : (idx + 1) * batch_size] = sum_entropies
+
+        # If we want to output probabilities, scale by 1/log(num_classes) to
+        # get something with range [0,1]
+        if output_probabilities:
+            num_classes = len(self.dataset_container.categories)
+            uncertainties = uncertainties / math.log(num_classes)
 
         return uncertainties
 

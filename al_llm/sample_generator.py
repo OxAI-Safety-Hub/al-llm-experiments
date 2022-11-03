@@ -604,15 +604,13 @@ class MaskedMHSampleGenerator(HuggingFaceSampleGenerator, ABC):
             # Otherwise, retokenize the input IDs
             else:
                 samples = tokenizer.batch_decode(sample_ids, skip_special_tokens=True)
-                print(samples)
                 samples_tokenized = self.classifier.tokenize(
                     samples, return_tensors="pt"
                 )["input_ids"]
-                print(samples_tokenized)
 
             # Compute the uncertainties of the samples
             uncertainties = self.classifier.calculate_uncertainties_tokenized(
-                samples_tokenized, print_output=False
+                samples_tokenized, output_probabilities=True, print_output=False
             )
 
             return uncertainties
@@ -654,7 +652,9 @@ class MaskedMHSampleGenerator(HuggingFaceSampleGenerator, ABC):
         )
 
         # Run the Masked MH algorithm starting with these
-        sample_pool = self.generator(initial_samples)
+        sample_pool = self.generator(
+            initial_samples, batch_size=self.parameters["eval_batch_size"]
+        )
 
         return sample_pool
 

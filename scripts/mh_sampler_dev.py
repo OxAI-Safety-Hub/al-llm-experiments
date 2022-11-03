@@ -13,6 +13,7 @@ DEFAULTS = dict(
     use_mmh_sample_generator=True,
     mmh_num_steps=1,
     num_samples=10,
+    eval_batch_size=1,
 )
 
 # Set up the arg parser
@@ -27,7 +28,12 @@ parser.add_argument("run_num", type=str, help="The number to use for the W&B run
 # Add MMH generation parameters to the parser
 Parameters.add_to_arg_parser(
     parser,
-    included_parameters=["mmh_num_steps", "mmh_mask_probability", "num_samples"],
+    included_parameters=[
+        "mmh_num_steps",
+        "mmh_mask_probability",
+        "num_samples",
+        "eval_batch_size",
+    ],
     defaults=DEFAULTS,
 )
 
@@ -45,5 +51,11 @@ args = Experiment.make_experiment(
 )
 experiment = Experiment(**args)
 
+# Load a a fresh classifier model for use in generating samples
+experiment.classifier._load_fresh_model()
+
 # Generate some samples
 samples = experiment.sample_generator._generate_sample_pool(parameters["num_samples"])
+
+for sample in samples:
+    print(sample)
