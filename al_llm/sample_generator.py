@@ -221,6 +221,7 @@ class PoolSampleGenerator(SampleGenerator):
         # Get the list of sentences in the remainder dataset, as a list
         remainder_python = dataset_container.dataset_remainder.with_format(None)
         self.remainder_sentences = remainder_python[TEXT_COLUMN_NAME]
+        self.remainder_labels = remainder_python[TEXT_COLUMN_NAME]
 
     def generate(self) -> UnlabelledSamples:
 
@@ -235,10 +236,20 @@ class PoolSampleGenerator(SampleGenerator):
 
         # Take `sample_pool_size` random samples from `remainder_sentences`, or
         # as many as you can take up to the length of `remainder_sentences`
-        simulated_pool = random.sample(
-            self.remainder_sentences,
+        pool_indices = random.sample(
+            range(len(self.remainder_sentences)),
             min(len(self.remainder_sentences), self.parameters["sample_pool_size"]),
         )
+
+        # Build an `UnlabelledSamples` object, attaching the dataset labels as
+        # the 'suggested labels'
+        simulated_pool = UnlabelledSamples(
+            [self.remainder_sentences[i] for i in pool_indices]
+        )
+        simulated_pool.suggested_labels = [
+            self.remainder_labels[i] for i in pool_indices
+        ]
+
         return simulated_pool
 
 

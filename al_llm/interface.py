@@ -487,31 +487,7 @@ class PoolSimulatorInterface(SimpleCLIInterfaceMixin, Interface):
             stored as integers (0=non-ambiguous, 1=ambiguous).
         """
 
-        # Get remainder dataset in pandas format
-        remainder_pd = self.dataset_container.dataset_remainder.with_format("pandas")[:]
-
-        labels = []
-        ambiguities = []
-
-        for sample in samples:
-
-            # Get the row containing `sample`
-            matching_row = remainder_pd.loc[remainder_pd["text"] == sample]
-
-            # If there is no such thing, something's gone wrong!
-            if len(matching_row) == 0:
-                raise ValueError(f"Sample {sample!r} not found in dataset")
-
-            # If there are two such things, we have duplicates in the dataset
-            # which is also not good
-            if len(matching_row) > 1:
-                raise ValueError(f"Sample {sample!r} found multiple times in dataset")
-
-            # Append this the label to `labels` with no ambiguity
-            labels.append(matching_row.iloc[0]["labels"])
-            ambiguities.append(0)
-
-        return labels, ambiguities
+        return samples.suggested_labels, [0] * len(samples)
 
 
 class AutomaticLabellerInterface(SimpleCLIInterfaceMixin, Interface):
