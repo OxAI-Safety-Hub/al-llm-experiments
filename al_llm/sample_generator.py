@@ -658,16 +658,20 @@ class MaskedMHSampleGenerator(HuggingFaceSampleGenerator, ABC):
         """
 
         # Select `pool_size` samples from the unlabelled pool
-        initial_samples = random.sample(
-            self.remainder_sentences,
-            min(len(self.remainder_sentences), pool_size),
+        pool_indices = random.sample(
+            range(len(self.remainder_sentences)),
+            min(len(self.remainder_sentences), self.parameters["sample_pool_size"]),
         )
+        initial_samples = [self.remainder_sentences[i] for i in pool_indices]
 
         # Run the Masked MH algorithm starting with these
         sample_pool = self.generator(
             initial_samples, batch_size=self.parameters["eval_batch_size"]
         )
         sample_pool = UnlabelledSamples(sample_pool)
+
+        # Add the original labels as suggested labels for each sample
+        sample_pool.suggested_labels = [self.remainder_labels[i] for i in pool_indices]
 
         return sample_pool
 
