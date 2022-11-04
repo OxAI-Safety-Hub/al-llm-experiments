@@ -108,7 +108,7 @@ class DataHandler:
 
         # Add the items using the dataset container
         items = {
-            TEXT_COLUMN_NAME: samples,
+            TEXT_COLUMN_NAME: list(samples),
             LABEL_COLUMN_NAME: labels,
             AMBIGUITIES_COLUMN_NAME: ambiguities,
         }
