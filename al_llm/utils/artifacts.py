@@ -1,7 +1,7 @@
 import os
 import tempfile
 import json
-from typing import Any, Tuple, Optional
+from typing import Any, Tuple, Optional, Union, List
 
 from transformers import (
     PreTrainedModel,
@@ -87,8 +87,13 @@ def _save_model(model: PreTrainedModel, tmp: str, file_name: str):
 
 
 def _load_model(
-    tmp: str, file_name: str, purpose: str, *, num_categories: Optional[int] = None
-) -> PreTrainedModel:
+    tmp: str,
+    file_name: str,
+    purpose: str,
+    *,
+    num_categories: Optional[int] = None,
+    num_models: int = 1,
+) -> List[PreTrainedModel]:
     """Load a model from a temporary directory
 
     Parameters
@@ -101,11 +106,14 @@ def _load_model(
         Which head should we load the model with
     num_categories : int, optional
         The number of class labels, when usings the model as a classifier.
+    num_models : int, default=1
+        The number of copies of the model to load, each of which are
+        initialised independently (i.e. can have different head weights)
 
     Returns
     ----------
-    model : PreTrainedModel
-        The model from the temporaty directory.
+    models : list of PreTrainedModel
+        The models loaded from the temporary directory.
     """
 
     model_file_path = os.path.join(tmp, file_name)
@@ -115,11 +123,19 @@ def _load_model(
             raise ValueError(
                 "`num_categories` can't be none when loading a model as a classifier"
             )
-        return AutoModelForSequenceClassification.from_pretrained(
-            model_file_path, num_labels=num_categories
-        )
+        models = [
+            AutoModelForSequenceClassification.from_pretrained(
+                model_file_path, num_labels=num_categories
+            )
+            for i in range(num_models)
+        ]
+        return models
     elif purpose == "sample_generator":
-        return AutoModelForCausalLM.from_pretrained(model_file_path)
+        models = [
+            AutoModelForCausalLM.from_pretrained(model_file_path)
+            for i in range(num_models)
+        ]
+        return models
     else:
         raise Exception("Unrecognised 'purpose' when loading tapted model")
 
@@ -398,7 +414,8 @@ def load_tapted_model(
     *,
     num_categories: Optional[int] = None,
     tapted_model_version: str = TAPTED_MODEL_DEFAULT_TAG,
-) -> Tuple[PreTrainedModel, dict]:
+    num_models: int = 1,
+) -> Tuple[List[PreTrainedModel], dict]:
     """Load a tapted model and it's parameters from wandb
 
     Parameters
@@ -416,11 +433,14 @@ def load_tapted_model(
     tapted_model_version : str, default=TAPTED_MODEL_DEFAULT_TAG
         The artifact version of the tapted model to load. By default it will
         load the most recent version
+    num_models : int, default=1
+        The number of copies of the model to load, each of which are
+        initialised independently (i.e. can have different head weights)
 
     Returns
     ----------
-    model : PreTrainedModel
-        The loaded tapted model
+    models : list of PreTrainedModel
+        The loaded tapted models
     training_args : dict
         The training arguments which the tapt process used
     """
@@ -438,7 +458,11 @@ def load_tapted_model(
         )
 
         training_args = _load_json(tmp, TAPT_PARAMETERS_FILE_NAME)
-        model = _load_model(
-            tmp, TAPT_MODEL_FILE_NAME, purpose, num_categories=num_categories
+        models = _load_model(
+            tmp,
+            TAPT_MODEL_FILE_NAME,
+            purpose,
+            num_categories=num_categories,
+            num_models=num_models,
         )
-        return model, training_args
+        return models, training_args

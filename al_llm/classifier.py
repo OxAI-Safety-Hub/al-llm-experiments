@@ -30,6 +30,7 @@ from al_llm.utils.artifacts import (
     load_classifier_model,
     load_tapted_model,
 )
+from al_llm.utils.models import HuggingFaceClassifierEnsemble
 from al_llm.constants import LABEL_COLUMN_NAME
 
 
@@ -357,7 +358,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
     ----------
     tokenizer : transformers.AutoTokenizer
         The HuggingFace tokenizer associated with this classifier
-    model : transformers.AutoModelForSequenceClassification
+    model : PreTrainedModel or HuggingFaceClassifierEnsemble
         The HuggingFace model for this classifier; reset to a new model every
         call of `train_afresh`
     optimizer : torch.optim.AdamW
@@ -387,7 +388,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         # Set up the metric evaluator
         self.evaluator = MetricEvaluator(dataset_container)
 
-        # model not required until a call to `train_afresh`
+        # The models are not required until a call to `train_afresh`
         self._model = None
 
         # set device
@@ -447,10 +448,18 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         # Delete the old model to free up memory
         del self._model
 
-        # load a fresh version of the model
-        self._model = AutoModelForSequenceClassification.from_pretrained(
-            self.MODEL_NAME, num_labels=len(self.dataset_container.CATEGORIES)
-        )
+        models = []
+
+        # Load fresh versions of the model
+        for i in range(self.parameters["num_classifier_models"]):
+            models.append(
+                AutoModelForSequenceClassification.from_pretrained(
+                    self.MODEL_NAME, num_labels=len(self.dataset_container.CATEGORIES)
+                )
+            )
+
+        # Create an ensemble of all of these
+        self._model = HuggingFaceClassifierEnsemble(models)
 
         # Setup the model
         self._setup_model()
@@ -465,12 +474,16 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         self._setup_model()
 
     def _setup_model(self):
-        """Perform some intial setup on the classifier model"""
+        """Perform some initial setup on the classifier model"""
 
         # set the End of Sentence token as the token used for padding by the model
-        self._model.config.pad_token_id = self._model.config.eos_token_id
+        if isinstance(self._model, HuggingFaceClassifierEnsemble):
+            for model in self._model.models:
+                model.config.pad_token_id = model.config.eos_token_id
+        else:
+            self._model.config.pad_token_id = self._model.config.eos_token_id
 
-        # assign the model to the device (CUDA or GPU)
+        # Put the model on the torch device
         self._model.to(self.device)
 
     def _train(self, train_dataloader: DataLoader, num_epochs: int, iteration: int):
@@ -510,8 +523,8 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
             print("- Running train loop")
             train_metrics = self._train_epoch(train_dataloader, optimizer, lr_scheduler)
             print(
-                f"Train loss: {train_metrics['loss']:.8}; "
-                f"train f1: {train_metrics['f1']:.6%}"
+                f"Train mean loss: {train_metrics['loss']:.8}; "
+                f"train f1: {train_metrics['f1']:.6}"
             )
 
             # The results to log to weights and biases for this epoch
@@ -541,8 +554,8 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
                     print(f"- Running {split} loop")
                     eval_metrics = self._eval_epoch(dataloader)
                     print(
-                        f"{split.capitalize()} loss: {eval_metrics['loss']:.8}; "
-                        f"{split.capitalize()} f1: {eval_metrics['f1']:.6%}"
+                        f"{split.capitalize()} mean loss: {eval_metrics['loss']:.8}; "
+                        f"{split.capitalize()} f1: {eval_metrics['f1']:.6}"
                     )
                     results_to_log[split] = eval_metrics
 
@@ -584,7 +597,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         self._model.train()
 
         # Recording the training loss by accumulating across batches
-        train_loss = 0
+        train_loss = torch.zeros(self._model.num_models)
 
         # iterate over all the batches in the dataloader
         for batch in tqdm(train_dataloader):
@@ -596,9 +609,13 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
             outputs = self._model(**batch)
 
             # work out the model's predictions for the data using argmax on
-            # the logits
-            logits = outputs.logits
-            predictions = torch.argmax(logits, dim=-1)
+            # the logits or class probabilities
+            if isinstance(self._model, HuggingFaceClassifierEnsemble):
+                class_probs = outputs.class_probs
+                predictions = torch.argmax(class_probs, dim=-1)
+            else:
+                logits = outputs.logits
+                predictions = torch.argmax(logits, dim=-1)
 
             # Use these outputs to calculate metrics
             self.evaluator.add_batch(
@@ -610,10 +627,10 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
             loss = outputs.loss
 
             # Add it to the accumulated loss
-            train_loss += loss.item() * len(batch)
+            train_loss += loss * len(batch)
 
             # Perform back-propagation
-            loss.backward()
+            loss.backward(torch.ones_like(loss))
 
             # run and optimisation step and move the lr scheduler forward
             optimizer.step()
@@ -625,7 +642,11 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
 
         # Compute the average loss for this epoch
         train_loss /= len(train_dataloader.dataset)
-        train_metrics["loss"] = train_loss
+
+        # Record the mean of the model losses, and those for each model
+        train_metrics["loss"] = torch.mean(train_loss)
+        for i, model_loss in enumerate(train_loss):
+            train_metrics[f"loss_model{i}"] = model_loss.item()
 
         return train_metrics
 
@@ -653,7 +674,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         self._model.eval()
 
         # Recording the evaluation loss by accumulating across batches
-        eval_loss = 0
+        eval_loss = torch.zeros(self._model.num_models)
 
         # iterate over all the batches in the dataloader
         for batch in tqdm(eval_dataloader):
@@ -663,10 +684,15 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
 
             # pass the data through the model without tracking computations
             outputs = self._model(**batch)
-            logits = outputs.logits
 
-            # work out the model's predictions for the data using argmax on the logits
-            predictions = torch.argmax(logits, dim=-1)
+            # work out the model's predictions for the data using argmax on
+            # the logits or class probabilities
+            if isinstance(self._model, HuggingFaceClassifierEnsemble):
+                class_probs = outputs.class_probs
+                predictions = torch.argmax(class_probs, dim=-1)
+            else:
+                logits = outputs.logits
+                predictions = torch.argmax(logits, dim=-1)
 
             # give the predictions to the metric(s)
             self.evaluator.add_batch(
@@ -678,14 +704,18 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
             loss = outputs.loss
 
             # Add it to the accumulated loss
-            eval_loss += loss.item() * len(batch)
+            eval_loss += loss * len(batch)
 
         # Compute all the metrics for this epoch
         eval_metrics = self.evaluator.compute()
 
         # Compute the average loss for this epoch
         eval_loss /= len(eval_dataloader.dataset)
-        eval_metrics["loss"] = eval_loss
+
+        # Record the mean of the model losses, and those for each model
+        eval_metrics["loss"] = torch.mean(eval_loss)
+        for i, model_loss in enumerate(eval_loss):
+            eval_metrics[f"loss_model{i}"] = model_loss.item()
 
         return eval_metrics
 
@@ -769,12 +799,9 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
 
             with torch.no_grad():
 
-                # Get the raw model output logits
+                # Get the model class probabilities
                 outputs = self._model(input_ids=batch)
-                logits = outputs.logits
-
-                # Compute the class probabilities
-                probabilities = F.softmax(logits, dim=1)
+                probabilities = outputs.class_probs
 
                 # Compute the entropies per element
                 per_class_entropies = torch.special.entr(probabilities)
@@ -819,7 +846,7 @@ class TAPTClassifier(HuggingFaceClassifier, ABC):
     ----------
     tokenizer : transformers.AutoTokenizer
         The HuggingFace tokenizer associated with this classifier
-    model : transformers.AutoModelForSequenceClassification
+    model : PreTrainedModel or HuggingFaceClassifierEnsemble
         The HuggingFace model for this classifier; reset to a new model every
         call of `train_afresh`
     optimizer : torch.optim.AdamW
@@ -838,15 +865,16 @@ class TAPTClassifier(HuggingFaceClassifier, ABC):
         del self._model
 
         # load model and training args from wandb
-        model, training_args = load_tapted_model(
+        models, training_args = load_tapted_model(
             self.wandb_run,
             self.MODEL_NAME,
             self.parameters["dataset_name"],
             "classifier",
             num_categories=len(self.dataset_container.CATEGORIES),
             tapted_model_version=self.parameters["tapted_model_version"],
+            num_models=self.parameters["num_classifier_models"],
         )
-        self._model = model
+        self._model = HuggingFaceClassifierEnsemble(models)
         self.training_parameters = training_args
 
         # Setup the model
@@ -873,7 +901,7 @@ class PlainGPT2Classifier(HuggingFaceClassifier):
     ----------
     tokenizer : transformers.AutoTokenizer
         The HuggingFace tokenizer associated with this classifier
-    model : transformers.AutoModelForSequenceClassification
+    model : PreTrainedModel or HuggingFaceClassifierEnsemble
         The HuggingFace model for this classifier; reset to a new model every
         call of `train_afresh`
     optimizer : torch.optim.AdamW
@@ -911,7 +939,7 @@ class PlainDistilGPT2Classifier(HuggingFaceClassifier):
     ----------
     tokenizer : transformers.AutoTokenizer
         The HuggingFace tokenizer associated with this classifier
-    model : transformers.AutoModelForSequenceClassification
+    model : PreTrainedModel or HuggingFaceClassifierEnsemble
         The HuggingFace model for this classifier; reset to a new model every
         call of `train_afresh`
     optimizer : torch.optim.AdamW
@@ -986,7 +1014,7 @@ class TAPTGPT2Classifier(TAPTClassifier):
     ----------
     tokenizer : transformers.AutoTokenizer
         The HuggingFace tokenizer associated with this classifier
-    model : transformers.AutoModelForSequenceClassification
+    model : PreTrainedModel or HuggingFaceClassifierEnsemble
         The HuggingFace model for this classifier; reset to a new model every
         call of `train_afresh`
     optimizer : torch.optim.AdamW
@@ -1024,7 +1052,7 @@ class TAPTDistilGPT2Classifier(TAPTClassifier):
     ----------
     tokenizer : transformers.AutoTokenizer
         The HuggingFace tokenizer associated with this classifier
-    model : transformers.AutoModelForSequenceClassification
+    model : PreTrainedModel or HuggingFaceClassifierEnsemble
         The HuggingFace model for this classifier; reset to a new model every
         call of `train_afresh`
     optimizer : torch.optim.AdamW

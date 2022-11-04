@@ -81,6 +81,10 @@ class Parameters(dict):
         Run this experiment using standard supervised learning.
     classifier_base_model : str, default="dummy"
         The name of the base model the classifier should use.
+    num_classifier_models : int, default=1
+        The number of models to use in the classifier ensemble. The output
+        probabilities are the averages of the output probabilities of each
+        model.
     acquisition_function : str, default="dummy"
         The name of the acquisition function to use.
     sample_generator_base_model : str, default="dummy"
@@ -176,6 +180,7 @@ class Parameters(dict):
         full_loop: bool = True,
         supervised: bool = False,
         classifier_base_model: str = "dummy",
+        num_classifier_models: int = 1,
         acquisition_function: str = "dummy",
         sample_generator_base_model: str = "dummy",
         use_tapted_sample_generator: bool = False,
@@ -238,6 +243,7 @@ class Parameters(dict):
             full_loop=full_loop,
             supervised=supervised,
             classifier_base_model=classifier_base_model,
+            num_classifier_models=num_classifier_models,
             acquisition_function=acquisition_function,
             sample_generator_base_model=sample_generator_base_model,
             use_tapted_sample_generator=use_tapted_sample_generator,
