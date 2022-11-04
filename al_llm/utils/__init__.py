@@ -53,7 +53,7 @@ class UnlabelledSamples(list):
 
         # If we're slicing the samples, also slice the labels if available
         elif isinstance(key, slice):
-            new_unlabelled_samples = super().__getitem__(key)
+            new_unlabelled_samples = UnlabelledSamples(super().__getitem__(key))
             try:
                 new_unlabelled_samples.suggested_labels = self.suggested_labels[key]
             except AttributeError:
