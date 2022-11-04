@@ -618,7 +618,7 @@ class Experiment:
                 wandb_run,
                 parameters["automatic_labeller_model_name"],
             )
-        elif sg_model_name == "pool":
+        elif sg_model_name == "pool" or parameters["use_suggested_labels"]:
             interface = PoolSimulatorInterface(parameters, dataset_container, wandb_run)
         elif parameters["full_loop"]:
             interface = CLIInterface(parameters, dataset_container, wandb_run)
