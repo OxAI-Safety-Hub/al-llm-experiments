@@ -34,7 +34,7 @@ from al_llm.utils.generation import (
     UncertaintyLogitsProcessor,
     MaskedMHSamplerPipeline,
 )
-from al_llm.constants import TEXT_COLUMN_NAME
+from al_llm.constants import TEXT_COLUMN_NAME, LABEL_COLUMN_NAME
 
 PIPELINE_REGISTRY.register_pipeline(
     "mmh-text-generation",
@@ -221,7 +221,7 @@ class PoolSampleGenerator(SampleGenerator):
         # Get the list of sentences in the remainder dataset, as a list
         remainder_python = dataset_container.dataset_remainder.with_format(None)
         self.remainder_sentences = remainder_python[TEXT_COLUMN_NAME]
-        self.remainder_labels = remainder_python[TEXT_COLUMN_NAME]
+        self.remainder_labels = remainder_python[LABEL_COLUMN_NAME]
 
     def generate(self) -> UnlabelledSamples:
 
@@ -550,6 +550,7 @@ class MaskedMHSampleGenerator(HuggingFaceSampleGenerator, ABC):
         # Get the list of sentences in the remainder dataset, as a list
         remainder_python = dataset_container.dataset_remainder.with_format(None)
         self.remainder_sentences = remainder_python[TEXT_COLUMN_NAME]
+        self.remainder_labels = remainder_python[LABEL_COLUMN_NAME]
 
     def _load_generator_model(self):
         """Load the model used as a sentence generator"""
