@@ -149,8 +149,8 @@ class Parameters(dict):
         Use labels suggested by the sampler generator as the labels for the
         samples, bypassing human labelling. This only makes sense for certain
         sample generators (currently the pool-based one and masked
-        Metropolis-Hastings). When `sample_generator` is set to "pool",
-        suggested labels are used regardless of this setting.
+        Metropolis-Hastings). When `sample_generator_base_model` is set to
+        "pool", suggested labels are used regardless of this setting.
     cuda_device : str, default="cuda:0"
         The string specifying the CUDA device to use
     is_running_pytests : bool, default=False
