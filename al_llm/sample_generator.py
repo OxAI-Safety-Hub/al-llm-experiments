@@ -27,6 +27,7 @@ from al_llm.dataset_container import DatasetContainer
 from al_llm.data_handler import DataHandler
 from al_llm.parameters import Parameters
 from al_llm.classifier import HuggingFaceClassifier
+from al_llm.utils import UnlabelledSamples
 from al_llm.utils.artifacts import load_tapted_model
 from al_llm.utils.generation import (
     TopKLogitsProcessor,
@@ -105,12 +106,12 @@ class SampleGenerator(ABC):
         self.wandb_run = wandb_run
         self.acquisition_function = acquisition_function
 
-    def generate(self) -> list:
+    def generate(self) -> UnlabelledSamples:
         """Generate new samples for querying
 
         Returns
         -------
-        samples : list
+        samples : UnlabelledSamples
             A list of samples which are to be labelled of length `num_samples`
             as defined in the experiment parameters
         """
@@ -139,7 +140,7 @@ class SampleGenerator(ABC):
             return filtered
 
     @abstractmethod
-    def _generate_sample_pool(self, pool_size: int) -> list:
+    def _generate_sample_pool(self, pool_size: int) -> UnlabelledSamples:
         """Generate a pool of samples, from which to select
 
         Parameters
@@ -149,7 +150,7 @@ class SampleGenerator(ABC):
 
         Returns
         -------
-        sample_pool : list
+        sample_pool : UnlabelledSamples
             The sample pool from which to select
         """
         return []
@@ -176,12 +177,12 @@ class DummySampleGenerator(SampleGenerator):
         a number of samples with no selection procedure.
     """
 
-    def _generate_sample_pool(self, pool_size: int) -> list:
+    def _generate_sample_pool(self, pool_size: int) -> UnlabelledSamples:
 
         alphabet = "abcdefghijklmnopqrstuvwxyz         "
 
         # Generate the samples by sampling from the alphabet
-        sample_pool = []
+        sample_pool = UnlabelledSamples()
         for sample_index in range(pool_size):
             length = random.randrange(5, 30)
             sample_nums = [random.randrange(len(alphabet)) for i in range(length)]
@@ -221,7 +222,7 @@ class PoolSampleGenerator(SampleGenerator):
         remainder_python = dataset_container.dataset_remainder.with_format(None)
         self.remainder_sentences = remainder_python[TEXT_COLUMN_NAME]
 
-    def generate(self) -> list:
+    def generate(self) -> UnlabelledSamples:
 
         # Filter the acquisition function through the set of sentences in the
         # simulated pool taken from the remainder dataset
@@ -230,7 +231,7 @@ class PoolSampleGenerator(SampleGenerator):
         print("Selecting samples using the acquisition function...")
         return self.acquisition_function.select(sample_pool)
 
-    def _generate_sample_pool(self) -> list:
+    def _generate_sample_pool(self) -> UnlabelledSamples:
 
         # Take `sample_pool_size` random samples from `remainder_sentences`, or
         # as many as you can take up to the length of `remainder_sentences`
@@ -272,7 +273,7 @@ class ReplaySampleGenerator(SampleGenerator):
         # The current index in the replay dataset extension
         self._iteration = 0
 
-    def generate(self) -> list:
+    def generate(self) -> UnlabelledSamples:
 
         # Announce what we're doing
         print()
@@ -286,7 +287,7 @@ class ReplaySampleGenerator(SampleGenerator):
 
         return samples
 
-    def _generate_sample_pool(self, pool_size: int) -> list:
+    def _generate_sample_pool(self, pool_size: int) -> UnlabelledSamples:
         return []
 
 
@@ -395,7 +396,7 @@ class HuggingFaceSampleGenerator(SampleGenerator, ABC):
             **kwargs,
         )
 
-    def _generate_sample_pool(self, pool_size: int) -> list:
+    def _generate_sample_pool(self, pool_size: int) -> UnlabelledSamples:
         """Generate a pool of samples, from which to select
 
         Parameters
@@ -405,7 +406,7 @@ class HuggingFaceSampleGenerator(SampleGenerator, ABC):
 
         Returns
         -------
-        sample_pool : list
+        sample_pool : UnlabelledSamples
             The sample pool from which to select
         """
 
@@ -423,7 +424,7 @@ class HuggingFaceSampleGenerator(SampleGenerator, ABC):
                 num_return_sequences=pool_size,
             )
 
-        sample_pool = [d["generated_text"] for d in sentence_dicts]
+        sample_pool = UnlabelledSamples([d["generated_text"] for d in sentence_dicts])
 
         return sample_pool
 
@@ -631,7 +632,7 @@ class MaskedMHSampleGenerator(HuggingFaceSampleGenerator, ABC):
             **kwargs,
         )
 
-    def _generate_sample_pool(self, pool_size: int) -> list:
+    def _generate_sample_pool(self, pool_size: int) -> UnlabelledSamples:
         """Generate a pool of samples, from which to select
 
         Parameters
@@ -641,7 +642,7 @@ class MaskedMHSampleGenerator(HuggingFaceSampleGenerator, ABC):
 
         Returns
         -------
-        sample_pool : list
+        sample_pool : UnlabelledSamples
             The sample pool from which to select
         """
 
@@ -655,6 +656,7 @@ class MaskedMHSampleGenerator(HuggingFaceSampleGenerator, ABC):
         sample_pool = self.generator(
             initial_samples, batch_size=self.parameters["eval_batch_size"]
         )
+        sample_pool = UnlabelledSamples(sample_pool)
 
         return sample_pool
 

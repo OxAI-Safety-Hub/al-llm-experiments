@@ -15,6 +15,7 @@ import wandb
 from al_llm.dataset_container import DatasetContainer
 from al_llm.parameters import Parameters
 from al_llm.data_handler import DataHandler
+from al_llm.utils import UnlabelledSamples
 
 
 class Interface(ABC):
@@ -99,12 +100,12 @@ class FullLoopInterface(Interface, ABC):
     """
 
     @abstractmethod
-    def prompt(self, samples: list) -> Tuple[list, list]:
+    def prompt(self, samples: UnlabelledSamples) -> Tuple[list, list]:
         """Prompt the human for labels and ambiguities for the samples
 
         Parameters
         ----------
-        samples : list
+        samples : UnlabelledSamples
             A list of samples to query the human
 
         Returns
@@ -289,12 +290,12 @@ class CLIInterface(CLIInterfaceMixin, FullLoopInterface):
         text = self._head_text(text, initial_newline=False)
         self._output(text)
 
-    def prompt(self, samples: list) -> Tuple[list, list]:
+    def prompt(self, samples: UnlabelledSamples) -> Tuple[list, list]:
         """Prompt the human for labels and ambiguities for the samples
 
         Parameters
         ----------
-        samples : list
+        samples : UnlabelledSamples
             A list of samples to query the human
 
         Returns
@@ -469,12 +470,12 @@ class PoolSimulatorInterface(SimpleCLIInterfaceMixin, Interface):
         super().__init__(parameters, dataset_container, wandb_run)
         self.line_width = line_width
 
-    def prompt(self, samples: list) -> Tuple[list, list]:
+    def prompt(self, samples: UnlabelledSamples) -> Tuple[list, list]:
         """Prompt the data for labels and ambiguities for the samples
 
         Parameters
         ----------
-        samples : list
+        samples : UnlabelledSamples
             A list of samples to query the data
 
         Returns
@@ -576,12 +577,12 @@ class AutomaticLabellerInterface(SimpleCLIInterfaceMixin, Interface):
             device=device,
         )
 
-    def prompt(self, samples: list) -> Tuple[list, list]:
+    def prompt(self, samples: UnlabelledSamples) -> Tuple[list, list]:
         """Prompt the machine for labels and ambiguities for the samples
 
         Parameters
         ----------
-        samples : list
+        samples : UnlabelledSamples
             A list of samples to query the machine
 
         Returns
@@ -664,7 +665,7 @@ class ReplayInterface(SimpleCLIInterfaceMixin, Interface):
         # The current index in the replay dataset extension
         self._iteration = 0
 
-    def prompt(self, samples: list) -> Tuple[list, list]:
+    def prompt(self, samples: UnlabelledSamples) -> Tuple[list, list]:
 
         # Announce what we're doing
         print()

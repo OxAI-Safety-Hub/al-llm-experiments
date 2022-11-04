@@ -10,6 +10,7 @@ from al_llm.acquisition_function import (
 )
 from al_llm.classifier import DummyClassifier
 from al_llm.dataset_container import DummyDatasetContainer
+from al_llm.utils import UnlabelledSamples
 
 
 wandb_run = wandb.init(project="test", entity="test", mode="disabled")
@@ -36,7 +37,9 @@ def _basic_acquisition_function_test(acquisition_function_cls):
         acquisition_function = acquisition_function_cls(parameters)
 
     # Generate some sentences then select them using the acquisition function
-    sample_pool = [str(i) for i in range(parameters["sample_pool_size"])]
+    sample_pool = UnlabelledSamples(
+        [str(i) for i in range(parameters["sample_pool_size"])]
+    )
     samples = acquisition_function.select(sample_pool)
 
     # Make sure the selection is a sublist
@@ -71,7 +74,7 @@ def test_max_uncertainty_function():
     acquisition_function = MaxUncertaintyAF(parameters, classifier)
 
     # Generate some samples with increasing length
-    sample_pool = ["a" * i for i in range(sample_pool_size)]
+    sample_pool = UnlabelledSamples(["a" * i for i in range(sample_pool_size)])
 
     # Shuffle these to make it harder
     random.seed(3535)
