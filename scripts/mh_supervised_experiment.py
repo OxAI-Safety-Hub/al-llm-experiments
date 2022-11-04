@@ -63,7 +63,7 @@ param_grid = {
     "use_suggested_labels": [True],
     "save_classifier_every": [-1],
     "mmh_num_steps": [5, 10, 20, 50],
-    "mmh_mask_probability": [0, 0.05, 0.1, 0.15],
+    "mmh_mask_probability": [0.000001, 0.05, 0.1, 0.15],
 }
 
 # An interator over the configurations of hyperparameters
