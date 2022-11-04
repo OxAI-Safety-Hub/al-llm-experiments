@@ -1,20 +1,24 @@
 # The python abc module for making abstract base classes
 # https://docs.python.org/3.10/library/abc.html
 from abc import ABC, abstractmethod
-from random import randrange, sample
+import random
 from typing import Optional, Any
 
 import torch
-import torch.nn.functional as F
 
 import wandb
 
 from transformers import (
+    PreTrainedTokenizer,
     pipeline,
     LogitsProcessor,
     LogitsProcessorList,
+    TemperatureLogitsWarper,
+    TopKLogitsWarper,
     AutoModelForCausalLM,
+    AutoModelForMaskedLM,
 )
+from transformers.pipelines import PIPELINE_REGISTRY
 
 from tqdm import tqdm
 
@@ -24,7 +28,17 @@ from al_llm.data_handler import DataHandler
 from al_llm.parameters import Parameters
 from al_llm.classifier import HuggingFaceClassifier
 from al_llm.utils.artifacts import load_tapted_model
+from al_llm.utils.generation import (
+    TopKLogitsProcessor,
+    UncertaintyLogitsProcessor,
+    MaskedMHSamplerPipeline,
+)
 from al_llm.constants import TEXT_COLUMN_NAME
+
+PIPELINE_REGISTRY.register_pipeline(
+    "mmh-text-generation",
+    pipeline_class=MaskedMHSamplerPipeline,
+)
 
 
 class TqdmHolder:
@@ -32,172 +46,6 @@ class TqdmHolder:
 
     def __init__(self):
         self.tqdm_bar: Optional[tqdm] = None
-
-
-class TopKLogitsProcessor(LogitsProcessor):
-    """LogitsProcessor that performs top-k filtering
-
-    Restricts to the k highest probability elements.
-
-    Parameters
-    ----------
-    top_k : int
-        The number of highest probability vocabulary tokens to keep for
-        top-k-filtering.
-    filter_value : float, optional, default=-`float("Inf")`
-        All filtered values will be set to this float value.
-    min_tokens_to_keep : int, optional, default=1
-        Minimum number of tokens that cannot be filtered.
-    """
-
-    def __init__(self, top_k: int, filter_value: float = -float("Inf")):
-        self.top_k = top_k
-        self.filter_value = filter_value
-
-    def __call__(
-        self, input_ids: torch.LongTensor, scores: torch.FloatTensor
-    ) -> torch.FloatTensor:
-
-        # Compute the indices of the top k scores
-        indices_to_keep = torch.topk(scores, self.top_k, dim=1).indices
-
-        # Create a new tensor from `scores`, where all of the values to remove
-        # get value `self.filter_value`
-        filtered_sores = torch.ones_like(scores) * self.filter_value
-        dim_0_indices = (
-            torch.arange(scores.shape[0]).repeat(self.top_k, 1).transpose(0, 1)
-        )
-        filtered_sores[dim_0_indices, indices_to_keep] = scores[
-            dim_0_indices, indices_to_keep
-        ]
-
-        return filtered_sores
-
-
-class UncertaintyLogitsProcessor(LogitsProcessor):
-    """A logits processor which incorporates uncertainties from a classifier
-
-    Adds to each probability a weighted uncertainty estimate for the sentence
-    generated up to this point together with the corresponding token.
-
-    Given the probability value `p` of a particular token (the output of the
-    generative model) and the uncertainty value `u` of the sentence generated
-    so far plus this token, the new probability value is:
-        p + uncertainty_weighting * u
-
-    Given that we actually work with a logit values L and not probabilities
-    the actual calculation, producing the new logit values L' given uncertainty
-    values U, is:
-        L' = log(softmax(L) + uncertainty_weighting * U)
-
-    Parameters
-    ----------
-    parameters : Parameters
-        The parameters for the current experiment
-    classifier : HuggingFaceClassifier
-        The classifier for which to compute the uncertainties
-    max_length : int
-        The maximum length of sentence which will be generated.
-    filter_value : float, default=`-float("Inf")`
-        The value used in the `scores` by previous processors to indicate that
-        we shouldn't consider that token.
-    """
-
-    def __init__(
-        self,
-        parameters: Parameters,
-        classifier: HuggingFaceClassifier,
-        max_length: int,
-        filter_value: float = -float("Inf"),
-    ):
-        super().__init__()
-
-        self.parameters = parameters
-        self.classifier = classifier
-        self.max_length = max_length
-        self.filter_value = filter_value
-
-    @torch.no_grad()
-    def __call__(
-        self, input_ids: torch.LongTensor, scores: torch.FloatTensor
-    ) -> torch.FloatTensor:
-
-        # Get the device used to hold the tensors
-        device = input_ids.device
-
-        # The number of input sequences
-        num_inputs = input_ids.shape[0]
-
-        # The length of the sequences generated so far
-        sequnence_len = input_ids.shape[1]
-
-        # The number of tokens
-        num_tokens = scores.shape[1]
-
-        # The mask for the tokens for which we actually want to compute the
-        # uncertainties
-        scores_mask = scores != self.filter_value
-
-        # Determine the amounts of filtered scores per input
-        count_per_input = torch.count_nonzero(scores_mask, dim=1)
-        unique_counts = torch.unique(count_per_input)
-
-        # We need that all scores have the same number of filtered values
-        if len(unique_counts) != 1:
-            raise ValueError(
-                f"Parameter `scores` must have the same number"
-                f" of filtered values per input. Got {count_per_input.tolist()}"
-            )
-
-        # Get the number of filtered scores
-        num_filtered_scores = unique_counts.item()
-
-        # Create `num_filtered_scores` copies of each input sequence
-        # This creates a tensor of dimension:
-        #     num_inputs x num_filtered_scores x sequnence_len
-        inputs_repeated = input_ids.repeat(num_filtered_scores, 1, 1).transpose(0, 1)
-
-        # Get the token ids of each of the filtered scores
-        score_indices = torch.arange(num_tokens, device=device).repeat(num_inputs, 1)
-        filtered_token_ids = score_indices[scores_mask].reshape(
-            (num_inputs, num_filtered_scores, 1)
-        )
-
-        # Add these token IDs at the end of the repeated inputs, to get a
-        # tensor of dimension:
-        #     num_inputs x num_filtered_scores x (sequnence_len + 1)
-        # which contains all the sequences for which we want to compute the
-        # uncertainty
-        sequences_block = torch.cat((inputs_repeated, filtered_token_ids), dim=2)
-
-        # Serialise these into a tensor of dimension:
-        #     (num_inputs * num_filtered_scores) x (sequnence_len + 1)
-        sequences_serialised = torch.flatten(sequences_block, 0, 1)
-
-        # Compute the uncertainties of the input sequences for the classifier
-        uncertainties_serialised = self.classifier.calculate_uncertainties_tokenized(
-            sequences_serialised, print_output=False
-        )
-
-        # Insert the weighted uncertainty values in the appropriate places in a:
-        #     num_inputs x num_tokens
-        # tensor, so be added to the scores.
-        uncertainties_located = torch.zeros_like(scores)
-        uncertainties_located[scores_mask] = uncertainties_serialised
-
-        # Compute the probabilities corresponding to the scores using softmax
-        probabilities = F.softmax(scores, dim=1)
-
-        # Compute the weighting for the uncertainty values
-        weighting = self.parameters["tbt_uncertainty_weighting"]
-        if self.parameters["tbt_uncertainty_scheduler"] == "linear":
-            weighting = max(0, min(1, sequnence_len / self.max_length)) * weighting
-
-        # Add the weighted uncertainties to the probabilities
-        new_outputs = probabilities + weighting * uncertainties_located
-
-        # The new scores are the log of these
-        return torch.log(new_outputs)
 
 
 class TqdmStepLogitsProcessor(LogitsProcessor):
@@ -301,8 +149,8 @@ class SampleGenerator(ABC):
 
         Returns
         -------
-        samples : list
-            A list of samples
+        sample_pool : list
+            The sample pool from which to select
         """
         return []
 
@@ -335,8 +183,8 @@ class DummySampleGenerator(SampleGenerator):
         # Generate the samples by sampling from the alphabet
         sample_pool = []
         for sample_index in range(pool_size):
-            length = randrange(5, 30)
-            sample_nums = [randrange(len(alphabet)) for i in range(length)]
+            length = random.randrange(5, 30)
+            sample_nums = [random.randrange(len(alphabet)) for i in range(length)]
             sample_chars = map(lambda x: alphabet[x], sample_nums)
             sample = "".join(sample_chars)
             sample_pool.append(sample)
@@ -371,8 +219,7 @@ class PoolSampleGenerator(SampleGenerator):
 
         # Get the list of sentences in the remainder dataset, as a list
         remainder_python = dataset_container.dataset_remainder.with_format(None)
-        text_column_name = TEXT_COLUMN_NAME
-        self.remainder_sentences = remainder_python[text_column_name]
+        self.remainder_sentences = remainder_python[TEXT_COLUMN_NAME]
 
     def generate(self) -> list:
 
@@ -387,7 +234,7 @@ class PoolSampleGenerator(SampleGenerator):
 
         # Take `sample_pool_size` random samples from `remainder_sentences`, or
         # as many as you can take up to the length of `remainder_sentences`
-        simulated_pool = sample(
+        simulated_pool = random.sample(
             self.remainder_sentences,
             min(len(self.remainder_sentences), self.parameters["sample_pool_size"]),
         )
@@ -558,8 +405,8 @@ class HuggingFaceSampleGenerator(SampleGenerator, ABC):
 
         Returns
         -------
-        samples : list
-            A list of samples
+        sample_pool : list
+            The sample pool from which to select
         """
 
         # Create a tqdm progress bar to track the generation progress. We
@@ -609,32 +456,16 @@ class TokenByTokenSampleGenerator(HuggingFaceSampleGenerator, ABC):
         acquisition_function: Optional[AcquisitionFunction] = None,
     ):
 
-        self.parameters = parameters
+        super().__init__(parameters, dataset_container, wandb_run, acquisition_function)
+
         self.classifier = classifier
-        self.dataset_container = dataset_container
-        self.wandb_run = wandb_run
-        self.acquisition_function = acquisition_function
 
-        # Set the max sentence length to generate, in tokens
-        if self.parameters["sample_generator_max_length"] == -1:
-            self._max_length = dataset_container.TOKENIZED_LENGTH_UPPER_QUARTILE
-        else:
-            self._max_length = self.parameters["sample_generator_max_length"]
+    def _make_pipeline_generator(self, model: Any, tokenizer: str, **kwargs):
 
-        # Load the base sample generator model
-        self._load_generator_model()
-
-        # Setup the pipeline generator
-        # Use the Hugging Face generation utility to generate samples. This
-        # does most of the hard work for us in terms of interacting with the
-        # model. We use a custom logits processor to add the uncertainty
-        # values coming from the classifier
-        self._make_pipeline_generator(
-            self.generator_model,
-            self.GENERATOR_MODEL_NAME,
-            renormalize_logits=True,
-            do_sample=True,
-        )
+        # Make the default pipeline with two extra arguments
+        kwargs["renormalize_logits"] = True
+        kwargs["do_sample"] = True
+        super()._make_pipeline_generator(model, tokenizer, **kwargs)
 
     def _make_logits_processor(self) -> LogitsProcessorList:
 
@@ -656,6 +487,176 @@ class TokenByTokenSampleGenerator(HuggingFaceSampleGenerator, ABC):
         logits_processor.insert(1, uncertainty_logits_processor)
 
         return logits_processor
+
+
+class MaskedMHSampleGenerator(HuggingFaceSampleGenerator, ABC):
+    """Generate samples using the masked Metropolis-Hastings sampler
+
+    This generator uses a masked language model (MLM) and generates samples
+    using a modified Metropolis-Hastings Markov Chain Monte Carlo sampler.
+
+    The algorithm proceeds as follows.
+
+    1. Start with a set of `parameters["sample_pool_size"]` initial samples
+       taken from the unlabelled set.
+    2. Repeat the following three steps for `parameters["mmh_num_steps"]`.
+    3. In each sample, randomly mask `parameters["mmh_mask_proportion"]` of
+       the tokens, and sample tokens to replace them based on the MLM's
+       probability distribution.
+    4. Accept these new tokens with probability given by the resulting
+       classifier uncertainty.
+    5. If they are not accepted, return the tokens back the way they were.
+
+    Parameters
+    ----------
+    parameters : Parameters
+        The dictionary of parameters for the present experiment
+    classifier : HuggingFaceClassifier
+        The classifier used in the current experiment, for which we maximise
+        uncertainty.
+    dataset_container : DatasetContainer
+        The dataset container for the current experiment.
+    wandb_run : wandb.sdk.wandb_run.Run
+        The current wandb run
+    acquisition_function : AcquisitionFunction, optional
+        The acquisition function to use, if any. By default we simply generate
+        a number of samples with no selection procedure.
+    """
+
+    def __init__(
+        self,
+        parameters: Parameters,
+        classifier: HuggingFaceClassifier,
+        dataset_container: DatasetContainer,
+        wandb_run: wandb.sdk.wandb_run.Run,
+        acquisition_function: Optional[AcquisitionFunction] = None,
+    ):
+        super().__init__(parameters, dataset_container, wandb_run, acquisition_function)
+
+        self.classifier = classifier
+
+        # Get the list of sentences in the remainder dataset, as a list
+        remainder_python = dataset_container.dataset_remainder.with_format(None)
+        self.remainder_sentences = remainder_python[TEXT_COLUMN_NAME]
+
+    def _load_generator_model(self):
+        """Load the model used as a sentence generator"""
+
+        # Load a text generation verion of the model
+        self.generator_model = AutoModelForMaskedLM.from_pretrained(
+            self.GENERATOR_MODEL_NAME
+        )
+
+    def _make_logits_warper(self) -> LogitsProcessorList:
+        """Make a logits warper for use in generation
+
+        Returns
+        -------
+        logits_warper : LogitsProcessorList
+            The list of logits warpers to use
+        """
+
+        # Warper for chainging the temperature
+        temperature_logits_warper = TemperatureLogitsWarper(
+            self.parameters["sample_generator_temperature"]
+        )
+
+        # Warper for filtering the top k
+        top_k_logits_warper = TopKLogitsWarper(
+            self.parameters["sample_generator_top_k"]
+        )
+
+        # Make these into a list
+        logits_warper = LogitsProcessorList(
+            [temperature_logits_warper, top_k_logits_warper]
+        )
+
+        return logits_warper
+
+    def _make_pipeline_generator(self, model: Any, tokenizer: str, **kwargs):
+        """Create the generator using pipeline()
+
+        Parameters
+        ----------
+        model: Any
+            The name or reference to the model the pipeline should use.
+        tokenizer: str
+            The name of the tokenizer the pipeline should use.
+        """
+
+        # Set the device to use
+        if torch.cuda.is_available():
+            device = torch.device(self.parameters["cuda_device"])
+        else:
+            device = torch.device("cpu")
+
+        # The scoring function to use in the sampling algorithm, which scores
+        # using the classifier uncertainty
+        def scoring_function(
+            sample_ids: torch.Tensor, tokenizer: PreTrainedTokenizer
+        ) -> torch.Tensor:
+
+            # If we're using the sample classifer model as the generator, we
+            # don't need to retokenize
+            if self.GENERATOR_MODEL_NAME == self.classifier.MODEL_NAME:
+                samples_tokenized = sample_ids
+
+            # Otherwise, retokenize the input IDs
+            else:
+                samples = tokenizer.batch_decode(sample_ids, skip_special_tokens=True)
+                samples_tokenized = self.classifier.tokenize(
+                    samples, return_tensors="pt"
+                )["input_ids"]
+
+            # Compute the uncertainties of the samples
+            uncertainties = self.classifier.calculate_uncertainties_tokenized(
+                samples_tokenized, output_probabilities=True, print_output=False
+            )
+
+            return uncertainties
+
+        # Get the logits preprocessor to use
+        logits_warper = self._make_logits_warper()
+
+        # Create a pipeline for text generation
+        self.generator = pipeline(
+            task="mmh-text-generation",
+            model=model,
+            device=device,
+            tokenizer=tokenizer,
+            num_steps=self.parameters["mmh_num_steps"],
+            scoring_function=scoring_function,
+            mask_probability=self.parameters["mmh_mask_probability"],
+            logits_warper=logits_warper,
+            **kwargs,
+        )
+
+    def _generate_sample_pool(self, pool_size: int) -> list:
+        """Generate a pool of samples, from which to select
+
+        Parameters
+        ----------
+        pool_size: int
+            The number of samples to generate
+
+        Returns
+        -------
+        sample_pool : list
+            The sample pool from which to select
+        """
+
+        # Select `pool_size` samples from the unlabelled pool
+        initial_samples = random.sample(
+            self.remainder_sentences,
+            min(len(self.remainder_sentences), pool_size),
+        )
+
+        # Run the Masked MH algorithm starting with these
+        sample_pool = self.generator(
+            initial_samples, batch_size=self.parameters["eval_batch_size"]
+        )
+
+        return sample_pool
 
 
 class TAPTMixin(ABC):
@@ -801,3 +802,43 @@ class TAPTGPT2TokenByTokenSampleGenerator(TAPTMixin, TokenByTokenSampleGenerator
     """
 
     GENERATOR_MODEL_NAME = "gpt2"
+
+
+class PlainBERTMaskedMHSampleGenerator(MaskedMHSampleGenerator):
+    """BERT Masked Metropolis-Hastings sample generator
+
+    Parameters
+    ----------
+    parameters : Parameters
+        The dictionary of parameters for the present experiment
+    classifier : HuggingFaceClassifier
+        The classifier used in the current experiment, for which we maximise
+        uncertainty.
+    wandb_run : wandb.sdk.wandb_run.Run
+        The current wandb run
+    acquisition_function : AcquisitionFunction, optional
+        The acquisition function to use, if any. By default we simply generate
+        a number of samples with no selection procedure.
+    """
+
+    GENERATOR_MODEL_NAME = "bert-base-cased"
+
+
+class TAPTBERTMaskedMHSampleGenerator(TAPTMixin, MaskedMHSampleGenerator):
+    """TAPTed BERT Masked Metropolis-Hastings sample generator
+
+    Parameters
+    ----------
+    parameters : Parameters
+        The dictionary of parameters for the present experiment
+    classifier : HuggingFaceClassifier
+        The classifier used in the current experiment, for which we maximise
+        uncertainty.
+    wandb_run : wandb.sdk.wandb_run.Run
+        The current wandb run
+    acquisition_function : AcquisitionFunction, optional
+        The acquisition function to use, if any. By default we simply generate
+        a number of samples with no selection procedure.
+    """
+
+    GENERATOR_MODEL_NAME = "bert-base-cased"

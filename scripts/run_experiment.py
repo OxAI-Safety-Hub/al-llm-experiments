@@ -34,7 +34,7 @@ parser.add_argument(
 )
 
 # Add the parameters to the parser
-Parameters.add_to_arg_parser(parser, DEFAULTS)
+Parameters.add_to_arg_parser(parser, defaults=DEFAULTS)
 
 # Get the arguments
 cmd_args = parser.parse_args()

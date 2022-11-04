@@ -21,8 +21,10 @@ from al_llm.classifier import (
     DummyClassifier,
     PlainGPT2Classifier,
     PlainDistilGPT2Classifier,
+    PlainBERTClassifier,
     TAPTGPT2Classifier,
     TAPTDistilGPT2Classifier,
+    TAPTBERTClassifier,
 )
 from al_llm.sample_generator import (
     PlainGPT2SampleGenerator,
@@ -34,6 +36,8 @@ from al_llm.sample_generator import (
     ReplaySampleGenerator,
     PlainGPT2TokenByTokenSampleGenerator,
     TAPTGPT2TokenByTokenSampleGenerator,
+    PlainBERTMaskedMHSampleGenerator,
+    TAPTBERTMaskedMHSampleGenerator,
 )
 from al_llm.acquisition_function import (
     DummyAF,
@@ -97,10 +101,12 @@ class Experiment:
         "dummy": DummyClassifier,
         "gpt2": PlainGPT2Classifier,
         "distilgpt2": PlainDistilGPT2Classifier,
+        "bert": PlainBERTClassifier,
     }
     MAP_TAPT_CLASSIFIER = {
         "gpt2": TAPTGPT2Classifier,
         "distilgpt2": TAPTDistilGPT2Classifier,
+        "bert": TAPTBERTClassifier,
     }
     MAP_ACQUISITION_FUNCTION = {
         "none": None,
@@ -121,6 +127,12 @@ class Experiment:
     }
     MAP_TBT_TAPT_SAMPLE_GENERATOR = {
         "gpt2": TAPTGPT2TokenByTokenSampleGenerator,
+    }
+    MAP_MMH_PLAIN_SAMPLE_GENERATOR = {
+        "bert": PlainBERTMaskedMHSampleGenerator,
+    }
+    MAP_MMH_TAPT_SAMPLE_GENERATOR = {
+        "bert": TAPTBERTMaskedMHSampleGenerator,
     }
 
     def __init__(
@@ -540,6 +552,28 @@ class Experiment:
             and parameters["use_tapted_sample_generator"]
         ):
             sample_generator = cls.MAP_TBT_TAPT_SAMPLE_GENERATOR[sg_model_name](
+                parameters=parameters,
+                classifier=classifier,
+                dataset_container=dataset_container,
+                wandb_run=wandb_run,
+                acquisition_function=acquisition_function,
+            )
+        elif (
+            parameters["use_mmh_sample_generator"]
+            and not parameters["use_tapted_sample_generator"]
+        ):
+            sample_generator = cls.MAP_MMH_PLAIN_SAMPLE_GENERATOR[sg_model_name](
+                parameters=parameters,
+                classifier=classifier,
+                dataset_container=dataset_container,
+                wandb_run=wandb_run,
+                acquisition_function=acquisition_function,
+            )
+        elif (
+            parameters["use_mmh_sample_generator"]
+            and parameters["use_tapted_sample_generator"]
+        ):
+            sample_generator = cls.MAP_MMH_TAPT_SAMPLE_GENERATOR[sg_model_name](
                 parameters=parameters,
                 classifier=classifier,
                 dataset_container=dataset_container,

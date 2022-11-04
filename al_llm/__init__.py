@@ -2,11 +2,13 @@ from .classifier import (
     Classifier,
     DummyClassifier,
     HuggingFaceClassifier,
-    PlainDistilGPT2Classifier,
     PlainGPT2Classifier,
+    PlainDistilGPT2Classifier,
+    PlainBERTClassifier,
     TAPTClassifier,
     TAPTDistilGPT2Classifier,
     TAPTGPT2Classifier,
+    TAPTBERTClassifier,
 )
 from .data_handler import DataHandler
 from .dataset_container import (
@@ -42,5 +44,8 @@ from .sample_generator import (
     TokenByTokenSampleGenerator,
     PlainGPT2TokenByTokenSampleGenerator,
     TAPTGPT2TokenByTokenSampleGenerator,
+    MaskedMHSampleGenerator,
+    PlainBERTMaskedMHSampleGenerator,
+    TAPTBERTMaskedMHSampleGenerator,
 )
 from .parameters import Parameters
