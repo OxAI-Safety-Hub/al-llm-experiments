@@ -52,8 +52,8 @@ param_grid = {
     "eval_batch_size": [2],
     "num_samples": [32],
     "sample_pool_size": [32],  # Should never be less than 'num_samples'
-    "train_dataset_size": [10],
-    "classifier_base_model": ["bert"],
+    "train_dataset_size": [32],
+    "classifier_base_model": ["gpt2"],
     "acquisition_function": ["none"],
     "sample_generator_base_model": ["bert"],
     "use_tapted_classifier": [False],
