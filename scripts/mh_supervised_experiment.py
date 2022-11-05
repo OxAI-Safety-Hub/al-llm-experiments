@@ -40,6 +40,13 @@ parser.add_argument(
     default=WANDB_PROJECTS["experiment"],
     help="The W&B project to use",
 )
+parser.add_argument(
+    "--tag",
+    type=str,
+    default="",
+    help="The (optional) tag to  W&B project to use",
+)
+
 # Get the arguments
 cmd_args = parser.parse_args()
 
@@ -108,10 +115,12 @@ try:
         parameters = Parameters(**combo)
 
         # Make the experiment and run it
+        tags = [cmd_args.tag] if cmd_args.tag != "" else []
         args = Experiment.make_experiment(
             parameters=parameters,
             run_id=run_id,
             project_name=cmd_args.project_name,
+            tags=tags
         )
         experiment = Experiment(**args)
         experiment.run()
