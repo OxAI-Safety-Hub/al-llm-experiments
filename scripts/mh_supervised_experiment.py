@@ -40,7 +40,6 @@ parser.add_argument(
     default=WANDB_PROJECTS["experiment"],
     help="The W&B project to use",
 )
-
 # Get the arguments
 cmd_args = parser.parse_args()
 
@@ -80,19 +79,19 @@ combinations = list(combinations)[cmd_args.num_skip :]
 
 # Keep track of the results of the runs
 run_results = []
-for i in range(len(combinations)):
+for combo_num in range(len(combinations)):
     run_results.append("SKIPPED")
 
 try:
 
     # Run the experiment for each sampled combination of parameters
-    for i, combo in combinations:
+    for i, (combo_index, combo) in enumerate(combinations):
 
         # Set the status of the current run to failed until proven otherwise
         run_results[i] = "FAILED"
 
         # Create a unique run_id for this trial
-        run_id = f"mh_supervised_{cmd_args.run_letter}_{i}"
+        run_id = f"mh_supervised_{cmd_args.run_letter}_{combo_index}"
 
         # Print the run_id and the Parameters
         print()
@@ -129,8 +128,8 @@ finally:
     title += (" " * (78 - len(title))) + "|"
     print(title)
     print("=" * 79)
-    for result, (i, combo) in zip(run_results, combinations):
+    for result, (combo_num, combo) in zip(run_results, combinations):
         print()
-        print(f"COMBO {i}")
+        print(f"COMBO {combo_num}")
         print(combo)
         print(result)
