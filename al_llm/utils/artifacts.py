@@ -1,7 +1,7 @@
 import os
 import tempfile
 import json
-from typing import Any, Tuple, Optional, Union, List
+from typing import Any, Tuple, Optional, List
 
 from transformers import (
     PreTrainedModel,

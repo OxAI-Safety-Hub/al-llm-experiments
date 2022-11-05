@@ -120,7 +120,7 @@ try:
             parameters=parameters,
             run_id=run_id,
             project_name=cmd_args.project_name,
-            tags=tags
+            tags=tags,
         )
         experiment = Experiment(**args)
         experiment.run()
