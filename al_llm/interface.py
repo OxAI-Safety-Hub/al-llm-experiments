@@ -15,6 +15,7 @@ import wandb
 from al_llm.dataset_container import DatasetContainer
 from al_llm.parameters import Parameters
 from al_llm.data_handler import DataHandler
+from al_llm.utils import UnlabelledSamples
 
 
 class Interface(ABC):
@@ -99,12 +100,12 @@ class FullLoopInterface(Interface, ABC):
     """
 
     @abstractmethod
-    def prompt(self, samples: list) -> Tuple[list, list]:
+    def prompt(self, samples: UnlabelledSamples) -> Tuple[list, list]:
         """Prompt the human for labels and ambiguities for the samples
 
         Parameters
         ----------
-        samples : list
+        samples : UnlabelledSamples
             A list of samples to query the human
 
         Returns
@@ -289,12 +290,12 @@ class CLIInterface(CLIInterfaceMixin, FullLoopInterface):
         text = self._head_text(text, initial_newline=False)
         self._output(text)
 
-    def prompt(self, samples: list) -> Tuple[list, list]:
+    def prompt(self, samples: UnlabelledSamples) -> Tuple[list, list]:
         """Prompt the human for labels and ambiguities for the samples
 
         Parameters
         ----------
-        samples : list
+        samples : UnlabelledSamples
             A list of samples to query the human
 
         Returns
@@ -469,12 +470,12 @@ class PoolSimulatorInterface(SimpleCLIInterfaceMixin, Interface):
         super().__init__(parameters, dataset_container, wandb_run)
         self.line_width = line_width
 
-    def prompt(self, samples: list) -> Tuple[list, list]:
+    def prompt(self, samples: UnlabelledSamples) -> Tuple[list, list]:
         """Prompt the data for labels and ambiguities for the samples
 
         Parameters
         ----------
-        samples : list
+        samples : UnlabelledSamples
             A list of samples to query the data
 
         Returns
@@ -486,31 +487,7 @@ class PoolSimulatorInterface(SimpleCLIInterfaceMixin, Interface):
             stored as integers (0=non-ambiguous, 1=ambiguous).
         """
 
-        # Get remainder dataset in pandas format
-        remainder_pd = self.dataset_container.dataset_remainder.with_format("pandas")[:]
-
-        labels = []
-        ambiguities = []
-
-        for sample in samples:
-
-            # Get the row containing `sample`
-            matching_row = remainder_pd.loc[remainder_pd["text"] == sample]
-
-            # If there is no such thing, something's gone wrong!
-            if len(matching_row) == 0:
-                raise ValueError(f"Sample {sample!r} not found in dataset")
-
-            # If there are two such things, we have duplicates in the dataset
-            # which is also not good
-            if len(matching_row) > 1:
-                raise ValueError(f"Sample {sample!r} found multiple times in dataset")
-
-            # Append this the label to `labels` with no ambiguity
-            labels.append(matching_row.iloc[0]["labels"])
-            ambiguities.append(0)
-
-        return labels, ambiguities
+        return samples.suggested_labels, [0] * len(samples)
 
 
 class AutomaticLabellerInterface(SimpleCLIInterfaceMixin, Interface):
@@ -576,12 +553,12 @@ class AutomaticLabellerInterface(SimpleCLIInterfaceMixin, Interface):
             device=device,
         )
 
-    def prompt(self, samples: list) -> Tuple[list, list]:
+    def prompt(self, samples: UnlabelledSamples) -> Tuple[list, list]:
         """Prompt the machine for labels and ambiguities for the samples
 
         Parameters
         ----------
-        samples : list
+        samples : UnlabelledSamples
             A list of samples to query the machine
 
         Returns
@@ -664,7 +641,7 @@ class ReplayInterface(SimpleCLIInterfaceMixin, Interface):
         # The current index in the replay dataset extension
         self._iteration = 0
 
-    def prompt(self, samples: list) -> Tuple[list, list]:
+    def prompt(self, samples: UnlabelledSamples) -> Tuple[list, list]:
 
         # Announce what we're doing
         print()

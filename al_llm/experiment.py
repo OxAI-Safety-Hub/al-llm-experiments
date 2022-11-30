@@ -61,6 +61,7 @@ from al_llm.constants import (
     CACHE_SIZE,
     DEFAULT_REPLAY_SKIP_KEYS,
 )
+from al_llm.utils import UnlabelledSamples
 
 
 class NotHappyToResumeError(Exception):
@@ -319,12 +320,12 @@ class Experiment:
         else:
             self._train_update(dataset_samples, iteration)
 
-    def _get_samples(self) -> list:
+    def _get_samples(self) -> UnlabelledSamples:
         """Get new samples from the sample generator
 
         Returns
         -------
-        samples : list
+        samples : UnlabelledSamples
             The latest samples for labelling
         """
 
@@ -357,7 +358,11 @@ class Experiment:
             iteration,
         )
 
-    def _save(self, iteration: int, unlabelled_samples: list = []):
+    def _save(
+        self,
+        iteration: int,
+        unlabelled_samples: UnlabelledSamples = UnlabelledSamples(),
+    ):
         """Save the current classifier and dataset"""
 
         # Only save the classifier if we are at the correct iteration according
@@ -613,7 +618,7 @@ class Experiment:
                 wandb_run,
                 parameters["automatic_labeller_model_name"],
             )
-        elif sg_model_name == "pool":
+        elif sg_model_name == "pool" or parameters["use_suggested_labels"]:
             interface = PoolSimulatorInterface(parameters, dataset_container, wandb_run)
         elif parameters["full_loop"]:
             interface = CLIInterface(parameters, dataset_container, wandb_run)

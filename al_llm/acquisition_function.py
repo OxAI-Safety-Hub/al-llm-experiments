@@ -6,6 +6,7 @@ import random
 
 from al_llm.classifier import Classifier, UncertaintyMixin
 from al_llm.parameters import Parameters
+from al_llm.utils import UnlabelledSamples
 
 
 class AcquisitionFunction(ABC):
@@ -21,12 +22,14 @@ class AcquisitionFunction(ABC):
         self.parameters = parameters
 
     @abstractmethod
-    def select(self, sample_pool: list, num_samples: int = -1) -> list:
+    def select(
+        self, sample_pool: UnlabelledSamples, num_samples: int = -1
+    ) -> UnlabelledSamples:
         """Apply the acquisition function
 
         Parameters
         ----------
-        sample_pool : list
+        sample_pool : UnlabelledSamples
             The list of sentences from which to sample
         num_samples : int, default=-1
             The number of samples to select. The default value of -1 means
@@ -34,14 +37,14 @@ class AcquisitionFunction(ABC):
 
         Returns
         -------
-        selected_samples : list
+        selected_samples : UnlabelledSamples
             A sublist of `samples` of size `num_samples` selected according
             the to acquisition function.
         """
         pass
 
     def _get_validated_num_samples(
-        self, sample_pool: list, num_samples: int = -1
+        self, sample_pool: UnlabelledSamples, num_samples: int = -1
     ) -> int:
         """Determine and validate the number of samples to take
 
@@ -69,7 +72,9 @@ class DummyAF(AcquisitionFunction):
         The dictionary of parameters for the present experiment
     """
 
-    def select(self, sample_pool: list, num_samples: int = -1) -> list:
+    def select(
+        self, sample_pool: UnlabelledSamples, num_samples: int = -1
+    ) -> UnlabelledSamples:
         num_samples = self._get_validated_num_samples(sample_pool, num_samples)
         return sample_pool[:num_samples]
 
@@ -83,7 +88,9 @@ class RandomAF(AcquisitionFunction):
         The dictionary of parameters for the present experiment
     """
 
-    def select(self, sample_pool: list, num_samples: int = -1) -> list:
+    def select(
+        self, sample_pool: UnlabelledSamples, num_samples: int = -1
+    ) -> UnlabelledSamples:
         num_samples = self._get_validated_num_samples(sample_pool, num_samples)
         return random.sample(sample_pool, num_samples)
 
@@ -103,7 +110,9 @@ class MaxUncertaintyAF(AcquisitionFunction):
             raise TypeError("`classifier` must implement uncertainty measuring")
         self.classifier = classifier
 
-    def select(self, sample_pool: list, num_samples: int = -1) -> list:
+    def select(
+        self, sample_pool: UnlabelledSamples, num_samples: int = -1
+    ) -> UnlabelledSamples:
 
         # Process and validate `num_samples`
         num_samples = self._get_validated_num_samples(sample_pool, num_samples)
@@ -115,6 +124,6 @@ class MaxUncertaintyAF(AcquisitionFunction):
         argsorted = sorted(range(len(sample_pool)), key=lambda i: uncertainties[i])
 
         # Take the values of `samples` at the last `num_samples` indices
-        uncertain_samples = [sample_pool[i] for i in argsorted[-num_samples:]]
+        uncertain_samples = sample_pool[argsorted[-num_samples:]]
 
         return uncertain_samples

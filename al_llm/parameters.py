@@ -119,10 +119,10 @@ class Parameters(dict):
         when adding the uncertainty to the logit value.
     tbt_uncertainty_scheduler : string, default="constant"
         Which scheduler to use to vary the uncertainty weighting throught the
-        token-by-token generation process. Possible values are as follows.
-        - "constant": Don't vary the weighting
-        - "linear": Start with no uncertainty contribution, then increase
-        linearly to reach the maximum at `sample_generator_max_length`.
+        token-by-token generation process. Possible values are as follows. -
+        "constant": Don't vary the weighting - "linear": Start with no
+        uncertainty contribution, then increase linearly to reach the maximum
+        at `sample_generator_max_length`.
     mmh_num_steps : int, default=50
         When doing Masked Metropolis-Hasting sampling, this is the number of
         steps for which to run the algorithm
@@ -145,6 +145,12 @@ class Parameters(dict):
         If non-empty, we replay the run with this ID, using the samples and
         labels generated there. Useful to redo the evaluation or testing on a
         particular run.
+    use_suggested_labels : bool, default=False,
+        Use labels suggested by the sampler generator as the labels for the
+        samples, bypassing human labelling. This only makes sense for certain
+        sample generators (currently the pool-based one and masked
+        Metropolis-Hastings). When `sample_generator_base_model` is set to
+        "pool", suggested labels are used regardless of this setting.
     cuda_device : str, default="cuda:0"
         The string specifying the CUDA device to use
     is_running_pytests : bool, default=False
@@ -200,6 +206,7 @@ class Parameters(dict):
         automatic_labeller_model_name: str = "textattack/roberta-base-rotten-tomatoes",
         ambiguity_mode: str = "only_mark",
         replay_run: str = "",
+        use_suggested_labels: bool = False,
         cuda_device: str = "cuda:0",
         is_running_pytests: bool = False,
         save_classifier_every: int = -1,
@@ -263,6 +270,7 @@ class Parameters(dict):
             automatic_labeller_model_name=automatic_labeller_model_name,
             ambiguity_mode=ambiguity_mode,
             replay_run=replay_run,
+            use_suggested_labels=use_suggested_labels,
             cuda_device=cuda_device,
             is_running_pytests=is_running_pytests,
             save_classifier_every=save_classifier_every,

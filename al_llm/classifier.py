@@ -7,7 +7,6 @@ import math
 import torch
 from torch.utils.data import DataLoader
 from torch.optim import AdamW
-import torch.nn.functional as F
 
 from transformers import (
     AutoTokenizer,

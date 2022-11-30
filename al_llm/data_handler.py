@@ -16,6 +16,7 @@ from al_llm.constants import (
     LABEL_COLUMN_NAME,
     AMBIGUITIES_COLUMN_NAME,
 )
+from al_llm.utils import UnlabelledSamples
 
 
 class DataHandler:
@@ -92,12 +93,12 @@ class DataHandler:
         tokenized_samples.set_format("torch")
         return tokenized_samples
 
-    def new_labelled(self, samples: list, labels: list, ambiguities: list):
+    def new_labelled(self, samples: UnlabelledSamples, labels: list, ambiguities: list):
         """Add new labelled samples to the dataset
 
         Parameters
         ----------
-        samples : list
+        samples : UnlabelledSamples
             The list of sample strings
         labels : list
             Labels for the samples
@@ -107,13 +108,13 @@ class DataHandler:
 
         # Add the items using the dataset container
         items = {
-            TEXT_COLUMN_NAME: samples,
+            TEXT_COLUMN_NAME: list(samples),
             LABEL_COLUMN_NAME: labels,
             AMBIGUITIES_COLUMN_NAME: ambiguities,
         }
         self.dataset_container.add_items(items, self.classifier.tokenize)
 
-    def save(self, unlabelled_samples: list):
+    def save(self, unlabelled_samples: UnlabelledSamples):
         """Save the current dataset
 
         This saves the raw sentence-label pairs that have been added to the
@@ -122,7 +123,7 @@ class DataHandler:
 
         Parameters
         ----------
-        unlabelled_samples : list
+        unlabelled_samples : UnlabelledSamples
             A list of any generated samples needing labelling, to be stored
             until the next iteration alongside the added labelled data
         """
@@ -170,7 +171,7 @@ class DataHandler:
             dataset_extension_dict
         )
 
-    def get_replay_samples(self, iteration: int) -> list:
+    def get_replay_samples(self, iteration: int) -> UnlabelledSamples:
         """Get a set of samples from the replay dataset extension
 
         Returns the set of sentences in the slice:
@@ -183,13 +184,15 @@ class DataHandler:
 
         Returns
         -------
-        samples : list
+        samples : UnlabelledSamples
             The list of sentences selected
         """
 
         start = iteration * self.parameters["num_samples"]
         end = (iteration + 1) * self.parameters["num_samples"]
-        return self.replay_dataset_extension[TEXT_COLUMN_NAME][start:end]
+        return UnlabelledSamples(
+            self.replay_dataset_extension[TEXT_COLUMN_NAME][start:end]
+        )
 
     def get_replay_labels_ambiguities(self, iteration: int) -> Tuple[list, list]:
         """Get a set of labels and ambiguities from the replay dataset extension

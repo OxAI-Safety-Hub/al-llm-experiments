@@ -329,7 +329,6 @@ class MaskedMHSamplerPipeline(Pipeline):
 
         # Iterate through the MCMC process
         for i in tqdm(range(num_steps)):
-            # for i in range(num_steps):
 
             # To mask some of the tokens, First choose from all tokens
             # uniformly with probability `mask_probability`
