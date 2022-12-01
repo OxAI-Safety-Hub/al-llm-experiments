@@ -185,10 +185,10 @@ class Experiment:
 
                 if not self.parameters["supervised"]:
                     # Get the labels from the human
-                    labels, ambiguities = self.interface.prompt(samples)
+                    prompt_output = self.interface.prompt(samples)
 
                     # Add these samples to the dataset
-                    self.data_handler.new_labelled(samples, labels, ambiguities)
+                    self.data_handler.new_labelled(samples, prompt_output)
 
             # Save the current version of the classifier and dataset
             self._save(iteration)
@@ -271,11 +271,11 @@ class Experiment:
         ]
 
         # Prompt the human for labels
-        labels, ambiguities = self.interface.prompt(unlabelled_added)
+        prompt_output = self.interface.prompt(unlabelled_added)
 
         # Append these labels onto the end of the added_data
-        added_data[LABEL_COLUMN_NAME].extend(labels)
-        added_data[AMBIGUITIES_COLUMN_NAME].extend(ambiguities)
+        added_data[LABEL_COLUMN_NAME].extend(prompt_output.labels)
+        added_data[AMBIGUITIES_COLUMN_NAME].extend(prompt_output.ambiguities)
 
         # Return the added_data dataset
         return added_data

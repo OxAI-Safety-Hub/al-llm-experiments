@@ -1,6 +1,6 @@
 # The python abc module for making abstract base classes
 # https://docs.python.org/3.10/library/abc.html
-from typing import Union, Optional, Tuple
+from typing import Union, Optional
 
 import torch
 
@@ -16,7 +16,7 @@ from al_llm.constants import (
     LABEL_COLUMN_NAME,
     AMBIGUITIES_COLUMN_NAME,
 )
-from al_llm.utils import UnlabelledSamples
+from al_llm.utils import UnlabelledSamples, PromptOutput
 
 
 class DataHandler:
@@ -93,24 +93,23 @@ class DataHandler:
         tokenized_samples.set_format("torch")
         return tokenized_samples
 
-    def new_labelled(self, samples: UnlabelledSamples, labels: list, ambiguities: list):
+    def new_labelled(self, samples: UnlabelledSamples, prompt_output: PromptOutput):
         """Add new labelled samples to the dataset
 
         Parameters
         ----------
         samples : UnlabelledSamples
             The list of sample strings
-        labels : list
-            Labels for the samples
-        ambiguities : list
-            List of ambiguities (0=non-ambiguous, 1=ambiguous) for samples
+        prompt_output : PromptOutput
+            Data class containing the prompt output (labels, ambiguities, skip
+            mask)
         """
 
         # Add the items using the dataset container
         items = {
             TEXT_COLUMN_NAME: list(samples),
-            LABEL_COLUMN_NAME: labels,
-            AMBIGUITIES_COLUMN_NAME: ambiguities,
+            LABEL_COLUMN_NAME: prompt_output.labels,
+            AMBIGUITIES_COLUMN_NAME: prompt_output.ambiguities,
         }
         self.dataset_container.add_items(items, self.classifier.tokenize)
 
@@ -194,10 +193,10 @@ class DataHandler:
             self.replay_dataset_extension[TEXT_COLUMN_NAME][start:end]
         )
 
-    def get_replay_labels_ambiguities(self, iteration: int) -> Tuple[list, list]:
-        """Get a set of labels and ambiguities from the replay dataset extension
+    def get_replay_prompt_output(self, iteration: int) -> PromptOutput:
+        """Get a set of prompt output from the replay dataset extension
 
-        Returns the set of labels and ambiguities in the slice:
+        Returns the set of labels, ambiguities and the skip mask in the slice:
             `iteration * num_samples : (iteration + 1) * num_samples`
 
         Parameters
@@ -207,10 +206,9 @@ class DataHandler:
 
         Returns
         -------
-        labels : list
-            The list of labels selected
-        ambiguities : list
-            The list of ambiguities selected
+        prompt_output : PromptOutput
+            The data class containing the replayed labels, ambiguities and
+            skip mask
         """
 
         # Get the labels and ambiguities
@@ -223,4 +221,4 @@ class DataHandler:
         categories = self.dataset_container.CATEGORIES
         labels = [list(categories.keys())[label] for label in labels]
 
-        return labels, ambiguities
+        return PromptOutput(labels=labels, ambiguities=ambiguities)

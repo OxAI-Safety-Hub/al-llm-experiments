@@ -1,7 +1,7 @@
 # The python abc module for making abstract base classes
 # https://docs.python.org/3.10/library/abc.html
 from abc import ABC, abstractmethod
-from typing import Any, Tuple
+from typing import Any
 import textwrap
 
 import torch
@@ -15,7 +15,7 @@ import wandb
 from al_llm.dataset_container import DatasetContainer
 from al_llm.parameters import Parameters
 from al_llm.data_handler import DataHandler
-from al_llm.utils import UnlabelledSamples
+from al_llm.utils import UnlabelledSamples, PromptOutput
 
 
 class Interface(ABC):
@@ -100,8 +100,8 @@ class FullLoopInterface(Interface, ABC):
     """
 
     @abstractmethod
-    def prompt(self, samples: UnlabelledSamples) -> Tuple[list, list]:
-        """Prompt the human for labels and ambiguities for the samples
+    def prompt(self, samples: UnlabelledSamples) -> PromptOutput:
+        """Prompt the human for labels, ambiguities and skips for the samples
 
         Parameters
         ----------
@@ -110,13 +110,12 @@ class FullLoopInterface(Interface, ABC):
 
         Returns
         -------
-        labels : list
-            A list of labels, one for each element in `samples`
-        ambiguities : list
-            A list of ambiguities, one for each element in `samples`
+        prompt_output : PromptOutput
+            A data class object storing the labels and possibly ambiguities
+            and the skip mask.
         """
 
-        return [], []
+        return PromptOutput(labels=[])
 
 
 class BrokenLoopInterface(Interface, ABC):
@@ -290,8 +289,8 @@ class CLIInterface(CLIInterfaceMixin, FullLoopInterface):
         text = self._head_text(text, initial_newline=False)
         self._output(text)
 
-    def prompt(self, samples: UnlabelledSamples) -> Tuple[list, list]:
-        """Prompt the human for labels and ambiguities for the samples
+    def prompt(self, samples: UnlabelledSamples) -> PromptOutput:
+        """Prompt the human for labels, ambiguities and skips for the samples
 
         Parameters
         ----------
@@ -300,14 +299,15 @@ class CLIInterface(CLIInterfaceMixin, FullLoopInterface):
 
         Returns
         -------
-        labels : list
-            A list of labels, one for each element in `samples`
-        ambiguities : list
-            A list of ambiguities, one for each element in `samples`
+        prompt_output : PromptOutput
+            A data class object storing the labels, ambiguities and the skip
+            mask.
         """
 
-        labels = []
-        ambiguities = []
+        # Create the initial PromptOutput object
+        getting_ambiguities = self.parameters["ambiguity_mode"] != "none"
+        ambiguities = [] if getting_ambiguities else None
+        prompt_output = PromptOutput(labels=[], ambiguities=ambiguities)
 
         # Loop over all the samples for which we need a label
         for i, sample in enumerate(samples):
@@ -325,7 +325,7 @@ class CLIInterface(CLIInterfaceMixin, FullLoopInterface):
                 text += self._wrap(f"[{i}] {cat_human_readable}") + "\n"
 
             # If also checking for ambiguity, add these options
-            if self.parameters["ambiguity_mode"] != "none":
+            if getting_ambiguities:
                 for i, cat_human_readable in enumerate(categories.values()):
                     text += (
                         self._wrap(
@@ -356,10 +356,13 @@ class CLIInterface(CLIInterfaceMixin, FullLoopInterface):
                     valid_label = True
 
             # Append this label with the ambiguity assigned
-            labels.append(list(categories.keys())[label % len(categories)])
-            ambiguities.append(label // len(categories))
+            prompt_output.labels.append(
+                list(categories.keys())[label % len(categories)]
+            )
+            if getting_ambiguities:
+                prompt_output.ambiguities.append(label // len(categories))
 
-        return labels, ambiguities
+        return prompt_output
 
     def train_afresh(self, message: str = None, iteration=None):
 
@@ -470,8 +473,8 @@ class PoolSimulatorInterface(SimpleCLIInterfaceMixin, Interface):
         super().__init__(parameters, dataset_container, wandb_run)
         self.line_width = line_width
 
-    def prompt(self, samples: UnlabelledSamples) -> Tuple[list, list]:
-        """Prompt the data for labels and ambiguities for the samples
+    def prompt(self, samples: UnlabelledSamples) -> PromptOutput:
+        """Prompt the data for labels for the samples
 
         Parameters
         ----------
@@ -480,14 +483,11 @@ class PoolSimulatorInterface(SimpleCLIInterfaceMixin, Interface):
 
         Returns
         -------
-        labels : list
-            A list of labels, one for each element in `samples`
-        ambiguities : list
-            A list of ambiguities, one for each element in `samples`
-            stored as integers (0=non-ambiguous, 1=ambiguous).
+        prompt_output : PromptOutput
+            A data class object storing the labels
         """
 
-        return samples.suggested_labels, [0] * len(samples)
+        return PromptOutput(labels=samples.suggested_labels)
 
 
 class AutomaticLabellerInterface(SimpleCLIInterfaceMixin, Interface):
@@ -553,8 +553,8 @@ class AutomaticLabellerInterface(SimpleCLIInterfaceMixin, Interface):
             device=device,
         )
 
-    def prompt(self, samples: UnlabelledSamples) -> Tuple[list, list]:
-        """Prompt the machine for labels and ambiguities for the samples
+    def prompt(self, samples: UnlabelledSamples) -> PromptOutput:
+        """Prompt the machine for labels for the samples
 
         Parameters
         ----------
@@ -563,11 +563,8 @@ class AutomaticLabellerInterface(SimpleCLIInterfaceMixin, Interface):
 
         Returns
         -------
-        labels : list
-            A list of labels, one for each element in `samples`
-        ambiguities : list
-            A list of ambiguities, one for each element in `samples`
-            stored as integers (0=non-ambiguous, 1=ambiguous).
+        prompt_output : PromptOutput
+            A data class object storing the labels
         """
 
         # Make a dataset out of the samples
@@ -589,10 +586,7 @@ class AutomaticLabellerInterface(SimpleCLIInterfaceMixin, Interface):
         # Get the actual labels from these
         labels = [self._map_class_label(output["label"]) for output in outputs]
 
-        # For now we don't mark ambiguities with the automatic labeller
-        ambiguities = [0] * len(samples)
-
-        return labels, ambiguities
+        return PromptOutput(labels=labels)
 
     def _map_class_label(self, label: str) -> str:
         """Map a label given by the automatic labeller to a dataset label
@@ -641,18 +635,16 @@ class ReplayInterface(SimpleCLIInterfaceMixin, Interface):
         # The current index in the replay dataset extension
         self._iteration = 0
 
-    def prompt(self, samples: UnlabelledSamples) -> Tuple[list, list]:
+    def prompt(self, samples: UnlabelledSamples) -> PromptOutput:
 
         # Announce what we're doing
         print()
         print("Getting labels from the replayed run...")
 
         # Get the next batch of samples from the replayed run
-        labels, ambiguities = self.data_handler.get_replay_labels_ambiguities(
-            self._iteration
-        )
+        prompt_output = self.data_handler.get_replay_prompt_output(self._iteration)
 
         # Update the index
         self._iteration += 1
 
-        return labels, ambiguities
+        return prompt_output

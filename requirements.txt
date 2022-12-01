@@ -7,6 +7,7 @@ evaluate==0.2.2
 scikit-learn==1.1.2
 wandb==0.13.4
 tqdm==4.64.1
+dataclasses==0.8
 
 # Formatting and linting
 black
