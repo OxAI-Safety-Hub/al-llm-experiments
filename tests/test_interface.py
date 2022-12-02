@@ -72,18 +72,18 @@ class TestCLIInterface:
             # Determine the prompt inputs
             num_categories = len(experiment.dataset_container.categories)
             num_options = num_categories
-            if extra_parameters_grid["ambiguity_mode"] == "only_mark":
+            if extra_parameters["ambiguity_mode"] == "only_mark":
                 num_options *= 2
-            if extra_parameters_grid["allow_skipping"]:
+            if extra_parameters["allow_skipping"]:
                 num_options += 1
             prompt_inputs = [str(i) for i in range(num_options)]
 
             # Determine the expected resulting labels, ambiguities and skip
             # mask
             expected_output = [(i, 0, 0) for i in range(num_categories)]
-            if extra_parameters_grid["ambiguity_mode"] == "only_mark":
+            if extra_parameters["ambiguity_mode"] == "only_mark":
                 expected_output.extend([(i, 1, 0) for i in range(num_categories)])
-            if extra_parameters_grid["allow_skipping"]:
+            if extra_parameters["allow_skipping"]:
                 expected_output.append((0, 0, 1))
 
             # Run the prompt feeding the prompt inputs to STDIN, cycling
@@ -100,10 +100,9 @@ class TestCLIInterface:
                 prompt_output.skip_mask,
             )
             category_keys = list(experiment.dataset_container.categories.keys())
-            for expected, label, amgibuity, skip in iterator:
-                print(expected, label, amgibuity, skip)
+            for expected, label, ambiguity, skip in iterator:
                 assert label == category_keys[expected[0]]
-                assert amgibuity == expected[1]
+                assert ambiguity == expected[1]
                 assert skip == expected[2]
 
     def setup_method(self):

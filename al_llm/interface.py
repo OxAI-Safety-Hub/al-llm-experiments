@@ -366,8 +366,8 @@ class CLIInterface(CLIInterfaceMixin, FullLoopInterface):
 
             # If skipping record this and assign and arbitrary label and
             # ambiguity
-            if label == option_num - 1:
-                prompt_output.labels.append(0)
+            if getting_skips and label == option_num - 1:
+                prompt_output.labels.append(list(categories.keys())[0])
                 if getting_ambiguities:
                     prompt_output.ambiguities.append(0)
 
