@@ -9,7 +9,7 @@ from al_llm.constants import WANDB_PROJECTS
 class ZeroStringIO(io.TextIOBase):
     """Simple I/O stream which returns infinite lines of '0'"""
 
-    def readline(size=-1):
+    def readline(self, size=-1):
         return "0"
 
 
