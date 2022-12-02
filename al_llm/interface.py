@@ -306,8 +306,12 @@ class CLIInterface(CLIInterfaceMixin, FullLoopInterface):
 
         # Create the initial PromptOutput object
         getting_ambiguities = self.parameters["ambiguity_mode"] != "none"
+        getting_skips = self.parameters["allow_skipping"]
         ambiguities = [] if getting_ambiguities else None
-        prompt_output = PromptOutput(labels=[], ambiguities=ambiguities)
+        skip_mask = [] if getting_skips else None
+        prompt_output = PromptOutput(
+            labels=[], ambiguities=ambiguities, skip_mask=skip_mask
+        )
 
         # Loop over all the samples for which we need a label
         for i, sample in enumerate(samples):
@@ -319,30 +323,35 @@ class CLIInterface(CLIInterfaceMixin, FullLoopInterface):
             text += self._wrap(f"{sample!r}") + "\n"
             text += self._wrap("How would you classify this?") + "\n"
 
+            # Keep track of the option number as we build up the list of
+            # options
+            option_num = 0
+
             # Add the category selection
             categories = self.dataset_container.categories
-            for i, cat_human_readable in enumerate(categories.values()):
-                text += self._wrap(f"[{i}] {cat_human_readable}") + "\n"
+            for cat_human_readable in categories.values():
+                text += self._wrap(f"[{option_num}] {cat_human_readable}") + "\n"
+                option_num += 1
 
             # If also checking for ambiguity, add these options
             if getting_ambiguities:
-                for i, cat_human_readable in enumerate(categories.values()):
+                for cat_human_readable in categories.values():
                     text += (
-                        self._wrap(
-                            f"[{i+len(categories)}] {cat_human_readable} (ambiguous)"
-                        )
+                        self._wrap(f"[{option_num}] {cat_human_readable} (ambiguous)")
                         + "\n"
                     )
+                    option_num += 1
+
+            # Add a skip option if we're using it
+            if getting_skips:
+                text += self._wrap(f"[{option_num}] Skip") + "\n"
+                option_num += 1
 
             # Print the message
             self._output(text)
 
             # Build the prompt
-            if self.parameters["ambiguity_mode"] == "none":
-                max_valid_label = len(categories) - 1
-            else:
-                max_valid_label = 2 * len(categories) - 1
-            prompt = self._wrap(f"Enter a number (0-{max_valid_label}): ")
+            prompt = self._wrap(f"Enter a number (0-{option_num - 1}): ")
 
             # Keep asking the user for a label until they give a valid one
             valid_label = False
@@ -352,15 +361,23 @@ class CLIInterface(CLIInterfaceMixin, FullLoopInterface):
                     label = int(label_str)
                 except ValueError:
                     continue
-                if label >= 0 and label <= max_valid_label:
+                if label >= 0 and label < option_num:
                     valid_label = True
 
-            # Append this label with the ambiguity assigned
-            prompt_output.labels.append(
-                list(categories.keys())[label % len(categories)]
-            )
-            if getting_ambiguities:
-                prompt_output.ambiguities.append(label // len(categories))
+            # If skipping record this and assign and arbitrary label and
+            # ambiguity
+            if label == option_num - 1:
+                prompt_output.labels.append(0)
+                if getting_ambiguities:
+                    prompt_output.ambiguities.append(0)
+
+            # Otherwise, append this label with the ambiguity assigned
+            else:
+                prompt_output.labels.append(
+                    list(categories.keys())[label % len(categories)]
+                )
+                if getting_ambiguities:
+                    prompt_output.ambiguities.append(label // len(categories))
 
         return prompt_output
 
