@@ -83,7 +83,7 @@ param_grid = {
 param_iter = ParameterGrid(param_grid)
 
 # Shuffle the experiments if required
-if parser.shuffle:
+if cmd_args.shuffle:
     random.seed(SHUFFLE_SEED)
     param_iter = list(param_iter)
     random.shuffle(param_iter)
