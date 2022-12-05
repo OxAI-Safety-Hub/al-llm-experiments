@@ -1,9 +1,13 @@
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
+import random
 
 from sklearn.model_selection import ParameterGrid
 
 from al_llm import Experiment, Parameters
 from al_llm.constants import WANDB_PROJECTS, EXPERIMENT_SEEDS
+
+# The random seed to use when shuffling the experiments
+SHUFFLE_SEED = 45897
 
 # Set up the arg parser
 parser = ArgumentParser(
@@ -24,6 +28,13 @@ parser.add_argument(
     type=int,
     default=0,
     help="Which combo group to run this time",
+)
+parser.add_argument(
+    "--no-shuffle-experiments",
+    dest="shuffle",
+    action="store_false",
+    default=False,
+    help="Don't shuffle the experiment order",
 )
 parser.add_argument(
     "--num-skip",
@@ -56,20 +67,26 @@ param_grid = {
     "num_iterations": [15],
     "batch_size": [2],
     "eval_batch_size": [2],
-    "num_samples": [8, 32],
+    "num_samples": [10],
     "sample_pool_size": [256],  # Should never be less than 'num_samples'
-    "train_dataset_size": [16, 64, 256, 1024],
+    "train_dataset_size": [32, 256, 1024],
     "classifier_base_model": ["gpt2"],
     "acquisition_function": ["random", "max_uncertainty"],
     "sample_generator_base_model": ["pool"],
-    "use_tapted_classifier": [True, False],
+    "use_tapted_classifier": [True],
     "seed": EXPERIMENT_SEEDS,
     "cuda_device": [f"cuda:{cmd_args.gpu_num}"],
     "save_classifier_every": [-1],
 }
 
-# An interator over the configurations of hyperparameters
+# An iterator over the configurations of hyperparameters
 param_iter = ParameterGrid(param_grid)
+
+# Shuffle the experiments if required
+if parser.shuffle:
+    random.seed(SHUFFLE_SEED)
+    param_iter = list(param_iter)
+    random.shuffle(param_iter)
 
 # Enumerate these to keep track of them
 combinations = enumerate(param_iter)
