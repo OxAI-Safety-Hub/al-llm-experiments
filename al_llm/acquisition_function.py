@@ -91,8 +91,14 @@ class RandomAF(AcquisitionFunction):
     def select(
         self, sample_pool: UnlabelledSamples, num_samples: int = -1
     ) -> UnlabelledSamples:
+
+        # Select the right number of random samples
         num_samples = self._get_validated_num_samples(sample_pool, num_samples)
-        return random.sample(sample_pool, num_samples)
+        random_samples = random.sample(sample_pool, num_samples)
+
+        # Return these as an `UnlabelledSamples` object
+        random_samples = UnlabelledSamples(random_samples)
+        return random_samples
 
 
 class MaxUncertaintyAF(AcquisitionFunction):
