@@ -33,7 +33,7 @@ parser.add_argument(
     "--no-shuffle-experiments",
     dest="shuffle",
     action="store_false",
-    default=False,
+    default=True,
     help="Don't shuffle the experiment order",
 )
 parser.add_argument(
