@@ -84,17 +84,50 @@ class DatasetContainer(ABC):
         """
 
         # Tokenize each dataset split
-        self.tokenized_train = self._tokenize_dataset(self.dataset_train, tokenizer)
+        self.tokenized_train = self._tokenize_dataset(
+            self.dataset_train,
+            tokenizer,
+            columns=[
+                "input_ids",
+                "attention_mask",
+                LABEL_COLUMN_NAME,
+                SKIPS_COLUMN_NAME,
+            ],
+        )
         self.tokenized_validation = self._tokenize_dataset(
-            self.dataset_validation, tokenizer
+            self.dataset_validation,
+            tokenizer,
+            columns=[
+                "input_ids",
+                "attention_mask",
+                LABEL_COLUMN_NAME,
+            ],
         )
         self.tokenized_remainder = self._tokenize_dataset(
-            self.dataset_remainder, tokenizer
+            self.dataset_remainder,
+            tokenizer,
+            columns=[
+                "input_ids",
+                "attention_mask",
+                LABEL_COLUMN_NAME,
+            ],
         )
-        self.tokenized_test = self._tokenize_dataset(self.dataset_test, tokenizer)
+        self.tokenized_test = self._tokenize_dataset(
+            self.dataset_test,
+            tokenizer,
+            columns=[
+                "input_ids",
+                "attention_mask",
+                LABEL_COLUMN_NAME,
+            ],
+        )
 
     def _tokenize_dataset(
-        self, dataset: datasets.Dataset, tokenizer: Callable, batched=True
+        self,
+        dataset: datasets.Dataset,
+        tokenizer: Callable,
+        columns: list,
+        batched=True,
     ) -> datasets.Dataset:
         """Tokenize a Hugging Face dataset
 
@@ -123,14 +156,7 @@ class DatasetContainer(ABC):
         tokenized = dataset.map(tokenize_function, batched=batched)
 
         # Set the format to pytorch
-        tokenized.set_format(
-            "torch",
-            columns=[
-                "input_ids",
-                "attention_mask",
-                LABEL_COLUMN_NAME,
-            ],
-        )
+        tokenized.set_format("torch", columns=columns)
 
         return tokenized
 
