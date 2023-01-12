@@ -91,8 +91,16 @@ class RandomAF(AcquisitionFunction):
     def select(
         self, sample_pool: UnlabelledSamples, num_samples: int = -1
     ) -> UnlabelledSamples:
+
+        # Get the indices of the random samples
         num_samples = self._get_validated_num_samples(sample_pool, num_samples)
-        return random.sample(sample_pool, num_samples)
+        random_indices = random.sample(range(len(sample_pool)), num_samples)
+
+        # Select these samples by indexing using the list
+        random_samples = sample_pool[random_indices]
+
+        # Return these as an `UnlabelledSamples` object
+        return random_samples
 
 
 class MaxUncertaintyAF(AcquisitionFunction):
