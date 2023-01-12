@@ -12,6 +12,7 @@ from al_llm.constants import (
     TEXT_COLUMN_NAME,
     LABEL_COLUMN_NAME,
     AMBIGUITIES_COLUMN_NAME,
+    SKIPS_COLUMN_NAME,
     PREPROCESSING_SEED,
 )
 
@@ -200,7 +201,7 @@ class DatasetContainer(ABC):
         """
 
         # Get the required structure of the datasets as a datasets.Features object
-        features = self._get_ambiguous_dataset_features()
+        features = self._get_full_dataset_features()
 
         # First make a new dataset from the new items
         items_dataset = datasets.Dataset.from_dict(items, features=features)
@@ -242,8 +243,10 @@ class DatasetContainer(ABC):
             [0] * len(self.dataset_train),
         )
 
-    def _get_dataset_features(self) -> datasets.Features:
-        """Get the internal structure of the (non-tokenized) dataset
+    def _get_basic_dataset_features(self) -> datasets.Features:
+        """Get the basic internal structure of the (non-tokenized) dataset
+
+        This includes only the sample text and label.
 
         Returns
         -------
@@ -260,8 +263,11 @@ class DatasetContainer(ABC):
         )
         return features
 
-    def _get_ambiguous_dataset_features(self) -> datasets.Features:
-        """Get the internal structure of the (non-tokenized) dataset
+    def _get_full_dataset_features(self) -> datasets.Features:
+        """Get the full internal structure of the (non-tokenized) dataset
+
+        This includes all features recorded during the experiment: the sample
+        text, label, ambiguity value and the skip mask.
 
         Returns
         -------
@@ -271,11 +277,13 @@ class DatasetContainer(ABC):
         text_type = datasets.Value(dtype="string")
         label_type = datasets.ClassLabel(names=list(self.categories.keys()))
         ambiguity_type = datasets.Value(dtype="int64")
+        skip_mask_type = datasets.Value(dtype="int64")
         features = datasets.Features(
             {
                 TEXT_COLUMN_NAME: text_type,
                 LABEL_COLUMN_NAME: label_type,
                 AMBIGUITIES_COLUMN_NAME: ambiguity_type,
+                SKIPS_COLUMN_NAME: skip_mask_type,
             }
         )
         return features
@@ -351,7 +359,7 @@ class DummyDatasetContainer(DatasetContainer):
         test_labels = label_generator.generate(self.TEST_SIZE)
 
         # Get the required structure of the datasets as a datasets.Features object
-        features = self._get_dataset_features()
+        features = self._get_basic_dataset_features()
 
         # Compose everything to make the datasets
         train_split = datasets.Dataset.from_dict(
@@ -381,10 +389,14 @@ class DummyDatasetContainer(DatasetContainer):
             train_split
         )
 
-        # Add an ambiguities column to the train dataset
-        #   All of this data will not be ambiguous
+        # Add an ambiguities and skip mask columns to the train dataset. All
+        # of this data will unambiguous and non-skipped
         self.dataset_train = self.dataset_train.add_column(
             AMBIGUITIES_COLUMN_NAME,
+            [0] * len(self.dataset_train),
+        )
+        self.dataset_train = self.dataset_train.add_column(
+            SKIPS_COLUMN_NAME,
             [0] * len(self.dataset_train),
         )
 

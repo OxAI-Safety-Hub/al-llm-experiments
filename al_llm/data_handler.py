@@ -1,8 +1,6 @@
 # The python abc module for making abstract base classes
 # https://docs.python.org/3.10/library/abc.html
-from typing import Union, Optional
-
-import torch
+from typing import Optional
 
 import datasets
 import wandb
@@ -15,6 +13,7 @@ from al_llm.constants import (
     TEXT_COLUMN_NAME,
     LABEL_COLUMN_NAME,
     AMBIGUITIES_COLUMN_NAME,
+    SKIPS_COLUMN_NAME,
 )
 from al_llm.utils import UnlabelledSamples, PromptOutput
 
@@ -75,12 +74,12 @@ class DataHandler:
 
     def get_latest_tokenized_datapoints(
         self,
-    ) -> Union[datasets.Dataset, torch.utils.data.Dataset]:
+    ) -> datasets.Dataset:
         """Get the most recently added datapoints, obtained from the human
 
         Returns
         -------
-        tokenized_samples : datasets.Dataset or torch.utils.data.Dataset
+        tokenized_samples : datasets.Dataset
             The latest datapoints
         """
 
@@ -110,6 +109,7 @@ class DataHandler:
             TEXT_COLUMN_NAME: list(samples),
             LABEL_COLUMN_NAME: prompt_output.labels,
             AMBIGUITIES_COLUMN_NAME: prompt_output.ambiguities,
+            SKIPS_COLUMN_NAME: prompt_output.skip_mask,
         }
         self.dataset_container.add_items(items, self.classifier.tokenize)
 

@@ -2,6 +2,7 @@
 TEXT_COLUMN_NAME = "text"
 LABEL_COLUMN_NAME = "labels"
 AMBIGUITIES_COLUMN_NAME = "ambiguities"
+SKIPS_COLUMN_NAME = "skips"
 
 # Seeds used for running experiments
 EXPERIMENT_SEEDS = [7086, 3202, 6353, 3437]

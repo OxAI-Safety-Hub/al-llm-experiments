@@ -30,7 +30,7 @@ from al_llm.utils.artifacts import (
     load_tapted_model,
 )
 from al_llm.utils.models import HuggingFaceClassifierEnsemble
-from al_llm.constants import LABEL_COLUMN_NAME
+from al_llm.constants import LABEL_COLUMN_NAME, SKIPS_COLUMN_NAME
 
 
 class MetricEvaluator:
@@ -175,14 +175,14 @@ class Classifier(ABC):
     @abstractmethod
     def train_afresh(
         self,
-        tokenized_train: Union[datasets.Dataset, torch.utils.data.Dataset],
+        tokenized_train: datasets.Dataset,
         iteration: int,
     ):
         """Reset the classifier and fine-tune it anew on tokenised data
 
         Parameters
         ----------
-        tokenized_train : dataset.Dataset or torch.utils.data.Dataset
+        tokenized_train : dataset.Dataset
             The dataset with which to fine-tune
         iteration : int
             The index of the current iteration of the AL loop
@@ -192,14 +192,14 @@ class Classifier(ABC):
     @abstractmethod
     def train_update(
         self,
-        tokenized_samples: Union[datasets.Dataset, torch.utils.data.Dataset],
+        tokenized_samples: datasets.Dataset,
         iteration: int,
     ):
         """Fine-tune the classifier on more data tokenized, without resetting
 
         Parameters
         ----------
-        tokenized_samples : dataset.Dataset or torch.utils.data.Dataset
+        tokenized_samples : dataset.Dataset
             The extra tokenized datapoints with which to fine-tune
         iteration : int
             The index of the current iteration of the AL loop
@@ -398,7 +398,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
 
     def train_afresh(
         self,
-        tokenized_train: Union[datasets.Dataset, torch.utils.data.Dataset],
+        tokenized_train: datasets.Dataset,
         iteration: int,
     ):
 
@@ -408,6 +408,9 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         # Perform any first time setup required
         if iteration == 0:
             self._initialise()
+
+        # Select those samples which are not to be skipped
+        tokenized_train = tokenized_train.filter(lambda x: x[SKIPS_COLUMN_NAME] == 0)
 
         # create a dataloader for the train dataset
         train_dataloader = DataLoader(
@@ -419,15 +422,26 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
 
     def train_update(
         self,
-        tokenized_samples: Union[datasets.Dataset, torch.utils.data.Dataset],
+        tokenized_samples: datasets.Dataset,
         iteration: int,
     ):
+
+        # Select those samples which are not to be skipped
+        tokenized_samples = tokenized_samples.filter(
+            lambda x: x[SKIPS_COLUMN_NAME] == 0
+        )
+
+        # If there are no non-skipped samples, don't do any training
+        if len(tokenized_samples) == 0:
+            print()
+            print("All new samples skipped; not training")
+            return
 
         # If the model is not already loaded then load it
         if self._model is None:
             self._load_model_from_wandb()
 
-        # Make a smaple loader from the latest batch of labelled samples
+        # Make a sample loader from the latest batch of labelled samples
         samples_dataloader = DataLoader(
             tokenized_samples, shuffle=True, batch_size=self.parameters["batch_size"]
         )
@@ -720,7 +734,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
 
     def tokenize(
         self, string: str, padding="max_length", truncation=True, *args, **kwargs
-    ):
+    ) -> torch.Tensor:
         return self.tokenizer(
             string, padding=padding, truncation=truncation, *args, **kwargs
         )

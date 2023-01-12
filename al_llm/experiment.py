@@ -1,7 +1,3 @@
-from typing import Union
-
-import torch
-
 import datasets
 from transformers import set_seed
 
@@ -348,7 +344,7 @@ class Experiment:
 
     def _train_update(
         self,
-        dataset_samples: Union[datasets.Dataset, torch.utils.data.Dataset],
+        dataset_samples: datasets.Dataset,
         iteration: int,
     ):
         """Fine-tune the classifier with new datapoints, without resetting"""
