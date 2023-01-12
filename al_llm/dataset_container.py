@@ -236,10 +236,14 @@ class DatasetContainer(ABC):
             test_slice_size = min(5, len(self.dataset_test))
             self.dataset_test = self.dataset_test.select(range(test_slice_size))
 
-        # Add an ambiguities column to the train dataset
-        #   All of this data will not be ambiguous
+        # Add an ambiguities and skip mask columns to the train dataset. All
+        # of this data will unambiguous and non-skipped
         self.dataset_train = self.dataset_train.add_column(
             AMBIGUITIES_COLUMN_NAME,
+            [0] * len(self.dataset_train),
+        )
+        self.dataset_train = self.dataset_train.add_column(
+            SKIPS_COLUMN_NAME,
             [0] * len(self.dataset_train),
         )
 
