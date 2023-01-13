@@ -262,13 +262,13 @@ class DatasetContainer(ABC):
 
         # If we're in dev mode, limit the size of the datasets significantly
         if self.parameters["dev_mode"]:
-            train_slice_size = min(5, len(self.dataset_train))
+            train_slice_size = min(20, len(self.dataset_train))
             self.dataset_train = self.dataset_train.select(range(train_slice_size))
-            validation_slice_size = min(5, len(self.dataset_validation))
+            validation_slice_size = min(20, len(self.dataset_validation))
             self.dataset_validation = self.dataset_validation.select(
                 range(validation_slice_size)
             )
-            test_slice_size = min(5, len(self.dataset_test))
+            test_slice_size = min(20, len(self.dataset_test))
             self.dataset_test = self.dataset_test.select(range(test_slice_size))
 
         # Add an ambiguities and skip mask columns to the train dataset. All
