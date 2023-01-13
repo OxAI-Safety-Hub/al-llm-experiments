@@ -21,11 +21,13 @@ jobs:
       uses: actions/setup-python@v3
       with:
         python-version: "3.10"
+    - name: Removing dataclasses from requirements.txt
+      run: |
+        sed '/^dataclasses==/d' requirements.txt > requirements.txt
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install flake8 pytest black black[jupyter]
-        sed '/^dataclasses==/d' requirements.txt > requirements.txt
         pip install -r requirements.txt
     - name: Check formatting with black
       run: |
