@@ -312,7 +312,7 @@ class Experiment:
                 and self.parameters["refresh_on_last"]
             )
         ):
-            self._train_afresh(iteration)
+            self._train_afresh(dataset_samples, iteration)
         else:
             self._train_update(dataset_samples, iteration)
 
@@ -334,12 +334,17 @@ class Experiment:
 
         return samples
 
-    def _train_afresh(self, iteration: int):
+    def _train_afresh(
+        self,
+        dataset_samples: datasets.Dataset,
+        iteration: int,
+    ):
         """Fine-tune the classifier from scratch"""
         self.interface.train_afresh(iteration=iteration)
         self.classifier.train_afresh(
             self.dataset_container.tokenized_train,
             iteration,
+            new_tokenized_samples=dataset_samples,
         )
 
     def _train_update(
