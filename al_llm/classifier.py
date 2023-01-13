@@ -433,9 +433,9 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         tokenized_samples = tokenized_samples.filter(
             lambda x: x[SKIPS_COLUMN_NAME] == 0
         )
-        tokenized_samples = tokenized_samples[
-            "input_ids", "attention_mask", LABEL_COLUMN_NAME
-        ]
+        tokenized_samples.set_format(
+            "torch", columns=["input_ids", "attention_mask", LABEL_COLUMN_NAME]
+        )
 
         # If there are no non-skipped samples, don't do any training
         if len(tokenized_samples) == 0:
