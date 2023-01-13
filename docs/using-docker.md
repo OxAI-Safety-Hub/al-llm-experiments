@@ -22,9 +22,9 @@ GIT_EMAIL=""
 5. Build the image using the following command:
 
 ```
-docker build -t DOCKER_REPO:DOCKER_TAG --secret id=my_env,src=.env .
+docker build -t DOCKER_REPO:DOCKER_TAG --build-arg user=USER --secret id=my_env,src=.env .
 ```
 
-replacing `DOCKER_REPO` and `DOCKER_TAG` with the appropriate details.
+replacing `DOCKER_REPO` and `DOCKER_TAG` with the appropriate details and `USER` with your desired username in the image.
 
 6. Push the image to the Docker Hub, ready for use.
