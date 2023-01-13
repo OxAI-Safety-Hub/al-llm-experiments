@@ -15,9 +15,10 @@ GITHUB_USER=
 GITHUB_PAT=
 GIT_NAME=""
 GIT_EMAIL=""
+SSH_PUBKEY=""
 ```
 
-4. Fill in the details with the W&B PAT, your GitHub username, your GitHub PAT, your name as you'd like it to appear in git commit messages, and the email you'd like to use for git commits.
+4. Fill in the details with the W&B PAT, your GitHub username, your GitHub PAT, your name as you'd like it to appear in git commit messages, the email you'd like to use for git commits and the SSH public key you'd like to use to access the container.
 
 5. Build the image using the following command:
 

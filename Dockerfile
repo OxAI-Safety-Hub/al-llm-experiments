@@ -38,7 +38,9 @@ RUN --mount=type=secret,id=my_env,mode=0444 /bin/bash -c 'source /run/secrets/my
     && git config --global user.name "${GIT_NAME}" \
     && git config --global user.email "${GIT_EMAIL}" \
     && /home/${user}/.local/bin/wandb login $WANDB_KEY \
-    && git clone https://$GITHUB_USER:$GITHUB_PAT@github.com/OxAI-Safety-Hub/al-llm-experiments.git Experiments'
+    && git clone https://$GITHUB_USER:$GITHUB_PAT@github.com/OxAI-Safety-Hub/al-llm-experiments.git Experiments \
+    && mkdir -p .ssh \
+    && echo ${SSH_PUBKEY} > .ssh/authorized_keys'
 
 # Move to the repo directory
 WORKDIR Experiments
