@@ -233,7 +233,16 @@ class DatasetContainer(ABC):
         items_dataset = datasets.Dataset.from_dict(items, features=features)
 
         # Get the tokenized version
-        items_tokenized = self._tokenize_dataset(items_dataset, tokenizer)
+        items_tokenized = self._tokenize_dataset(
+            items_dataset,
+            tokenizer,
+            columns=[
+                "input_ids",
+                "attention_mask",
+                LABEL_COLUMN_NAME,
+                SKIPS_COLUMN_NAME,
+            ],
+        )
 
         # Add these to the training set
         self.dataset_train = datasets.concatenate_datasets(

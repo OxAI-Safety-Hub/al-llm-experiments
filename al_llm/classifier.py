@@ -411,9 +411,9 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
 
         # Select those samples which are not to be skipped
         tokenized_train = tokenized_train.filter(lambda x: x[SKIPS_COLUMN_NAME] == 0)
-        tokenized_train = tokenized_train[
-            "input_ids", "attention_mask", LABEL_COLUMN_NAME
-        ]
+        tokenized_train.set_format(
+            "torch", columns=["input_ids", "attention_mask", LABEL_COLUMN_NAME]
+        )
 
         # create a dataloader for the train dataset
         train_dataloader = DataLoader(
