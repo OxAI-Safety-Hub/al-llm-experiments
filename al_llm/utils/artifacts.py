@@ -1,7 +1,7 @@
 import os
 import tempfile
 import json
-from typing import Any, Tuple, Optional, List
+from typing import Any, Tuple, Optional, List, Union
 
 from transformers import (
     PreTrainedModel,
@@ -96,7 +96,7 @@ def _load_model(
     *,
     num_categories: Optional[int] = None,
     num_models: int = 1,
-) -> List[PreTrainedModel]:
+) -> Union[PreTrainedModel, List[PreTrainedModel]]:
     """Load a model from a temporary directory
 
     Parameters
@@ -115,8 +115,8 @@ def _load_model(
 
     Returns
     ----------
-    models : list of PreTrainedModel
-        The models loaded from the temporary directory.
+    models : PreTrainedModel or list of PreTrainedModel
+        The model(s) loaded from the temporary directory.
     """
 
     model_file_path = os.path.join(tmp, file_name)
@@ -134,11 +134,7 @@ def _load_model(
         ]
         return models
     elif purpose == "sample_generator":
-        models = [
-            AutoModelForCausalLM.from_pretrained(model_file_path)
-            for i in range(num_models)
-        ]
-        return models
+        return AutoModelForCausalLM.from_pretrained(model_file_path)
     else:
         raise Exception("Unrecognised 'purpose' when loading tapted model")
 
@@ -431,7 +427,7 @@ def load_tapted_model(
     num_categories: Optional[int] = None,
     tapted_model_version: str = TAPTED_MODEL_DEFAULT_TAG,
     num_models: int = 1,
-) -> Tuple[List[PreTrainedModel], dict]:
+) -> Tuple[Union[PreTrainedModel, List[PreTrainedModel]], dict]:
     """Load a tapted model and it's parameters from wandb
 
     Parameters
@@ -455,8 +451,8 @@ def load_tapted_model(
 
     Returns
     ----------
-    models : list of PreTrainedModel
-        The loaded tapted models
+    models : PreTrainedModel or list of PreTrainedModel
+        The loaded tapted model(s)
     training_args : dict
         The training arguments which the tapt process used
     """
