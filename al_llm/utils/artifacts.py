@@ -27,6 +27,9 @@ from al_llm.constants import (
     TAPT_ARTIFACT_TYPE,
     TAPT_MODEL_FILE_NAME,
     TAPT_PARAMETERS_FILE_NAME,
+    TEXT_COLUMN_NAME,
+    AMBIGUITIES_COLUMN_NAME,
+    SKIPS_COLUMN_NAME,
 )
 
 
@@ -238,7 +241,11 @@ def load_dataset_extension(
     dataset_wandb_run: Optional[wandb.sdk.wandb_run.Run] = None,
     dataset_extension_version: str = "latest",
 ) -> dict:
-    """Load a dataset extention from wandb
+    """Load a dataset extension from wandb
+
+    If either the ambiguities or skips columns are not present (because this
+    run was started with an older version of the codebase) it creates them and
+    fills them with 0s.
 
     Parameters
     ----------
@@ -272,6 +279,15 @@ def load_dataset_extension(
         )
 
         added_data = _load_json(tmp, DATASET_EXT_DATASET_FILE_NAME)
+
+        # Add the ambiguities or skips columns filled with 0s if not already
+        # present
+        if AMBIGUITIES_COLUMN_NAME not in added_data:
+            added_data[AMBIGUITIES_COLUMN_NAME] = [0] * len(
+                added_data[TEXT_COLUMN_NAME]
+            )
+        if SKIPS_COLUMN_NAME not in added_data:
+            added_data[SKIPS_COLUMN_NAME] = [0] * len(added_data[TEXT_COLUMN_NAME])
 
         return added_data
 

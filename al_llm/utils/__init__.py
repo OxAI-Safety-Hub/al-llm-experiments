@@ -1,4 +1,5 @@
-from typing import Optional
+from typing import Optional, Any
+from dataclasses import dataclass
 
 from .fake_data import FakeSentenceGenerator, FakeLabelGenerator
 
@@ -62,3 +63,33 @@ class UnlabelledSamples(list):
 
         # Otherwise following the normal getitem procedure
         return super().__getitem__(key)
+
+
+@dataclass
+class PromptOutput:
+    """Data class to store the output of an interface prompt
+
+    If either the ambiguities or the skip mask is not set, when these are
+    accessed a list of zeros of the same length as `labels` is returned.
+
+    Attributes
+    ----------
+    labels : list
+        A list of labels corresponding to the list of samples to annotate.
+    ambiguities : list, optional
+        A list of ambiguities corresponding to the list of samples to
+        annotate.
+    skip_mask : list, optional
+        Which of the samples are marked as 'skip' (indicating that they should
+        not be used for training).
+    """
+
+    labels: list
+    ambiguities: Optional[list] = None
+    skip_mask: Optional[list] = None
+
+    def __getattribute__(self, __name: str) -> Any:
+        for name in ["ambiguities", "skip_mask"]:
+            if __name == name and object.__getattribute__(self, name) is None:
+                return [0] * len(self.labels)
+        return object.__getattribute__(self, __name)

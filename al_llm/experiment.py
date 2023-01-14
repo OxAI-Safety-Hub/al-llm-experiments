@@ -1,7 +1,3 @@
-from typing import Union
-
-import torch
-
 import datasets
 from transformers import set_seed
 
@@ -185,10 +181,10 @@ class Experiment:
 
                 if not self.parameters["supervised"]:
                     # Get the labels from the human
-                    labels, ambiguities = self.interface.prompt(samples)
+                    prompt_output = self.interface.prompt(samples)
 
                     # Add these samples to the dataset
-                    self.data_handler.new_labelled(samples, labels, ambiguities)
+                    self.data_handler.new_labelled(samples, prompt_output)
 
             # Save the current version of the classifier and dataset
             self._save(iteration)
@@ -271,11 +267,11 @@ class Experiment:
         ]
 
         # Prompt the human for labels
-        labels, ambiguities = self.interface.prompt(unlabelled_added)
+        prompt_output = self.interface.prompt(unlabelled_added)
 
         # Append these labels onto the end of the added_data
-        added_data[LABEL_COLUMN_NAME].extend(labels)
-        added_data[AMBIGUITIES_COLUMN_NAME].extend(ambiguities)
+        added_data[LABEL_COLUMN_NAME].extend(prompt_output.labels)
+        added_data[AMBIGUITIES_COLUMN_NAME].extend(prompt_output.ambiguities)
 
         # Return the added_data dataset
         return added_data
@@ -316,7 +312,7 @@ class Experiment:
                 and self.parameters["refresh_on_last"]
             )
         ):
-            self._train_afresh(iteration)
+            self._train_afresh(dataset_samples, iteration)
         else:
             self._train_update(dataset_samples, iteration)
 
@@ -338,17 +334,22 @@ class Experiment:
 
         return samples
 
-    def _train_afresh(self, iteration: int):
+    def _train_afresh(
+        self,
+        dataset_samples: datasets.Dataset,
+        iteration: int,
+    ):
         """Fine-tune the classifier from scratch"""
         self.interface.train_afresh(iteration=iteration)
         self.classifier.train_afresh(
             self.dataset_container.tokenized_train,
             iteration,
+            new_tokenized_samples=dataset_samples,
         )
 
     def _train_update(
         self,
-        dataset_samples: Union[datasets.Dataset, torch.utils.data.Dataset],
+        dataset_samples: datasets.Dataset,
         iteration: int,
     ):
         """Fine-tune the classifier with new datapoints, without resetting"""

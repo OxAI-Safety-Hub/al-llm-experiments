@@ -141,6 +141,10 @@ class Parameters(dict):
         allows the human to mark data as ambiguous but the experiment will run
         as if it isn't. "none" means the user does not have the choice of
         marking it as ambiguous.
+    allow_skipping : bool, default=False
+        Whether to allow samples for labelling to be marked as 'to skip',
+        rather than being given a label. Skipped samples are not used when
+        training the classifier.
     replay_run : str, default=""
         If non-empty, we replay the run with this ID, using the samples and
         labels generated there. Useful to redo the evaluation or testing on a
@@ -205,6 +209,7 @@ class Parameters(dict):
         use_automatic_labeller: bool = False,
         automatic_labeller_model_name: str = "textattack/roberta-base-rotten-tomatoes",
         ambiguity_mode: str = "only_mark",
+        allow_skipping: bool = False,
         replay_run: str = "",
         use_suggested_labels: bool = False,
         cuda_device: str = "cuda:0",
@@ -269,6 +274,7 @@ class Parameters(dict):
             use_automatic_labeller=use_automatic_labeller,
             automatic_labeller_model_name=automatic_labeller_model_name,
             ambiguity_mode=ambiguity_mode,
+            allow_skipping=allow_skipping,
             replay_run=replay_run,
             use_suggested_labels=use_suggested_labels,
             cuda_device=cuda_device,

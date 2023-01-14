@@ -12,6 +12,7 @@ from al_llm.constants import (
     TEXT_COLUMN_NAME,
     LABEL_COLUMN_NAME,
     AMBIGUITIES_COLUMN_NAME,
+    SKIPS_COLUMN_NAME,
     PREPROCESSING_SEED,
 )
 
@@ -83,17 +84,50 @@ class DatasetContainer(ABC):
         """
 
         # Tokenize each dataset split
-        self.tokenized_train = self._tokenize_dataset(self.dataset_train, tokenizer)
+        self.tokenized_train = self._tokenize_dataset(
+            self.dataset_train,
+            tokenizer,
+            columns=[
+                "input_ids",
+                "attention_mask",
+                LABEL_COLUMN_NAME,
+                SKIPS_COLUMN_NAME,
+            ],
+        )
         self.tokenized_validation = self._tokenize_dataset(
-            self.dataset_validation, tokenizer
+            self.dataset_validation,
+            tokenizer,
+            columns=[
+                "input_ids",
+                "attention_mask",
+                LABEL_COLUMN_NAME,
+            ],
         )
         self.tokenized_remainder = self._tokenize_dataset(
-            self.dataset_remainder, tokenizer
+            self.dataset_remainder,
+            tokenizer,
+            columns=[
+                "input_ids",
+                "attention_mask",
+                LABEL_COLUMN_NAME,
+            ],
         )
-        self.tokenized_test = self._tokenize_dataset(self.dataset_test, tokenizer)
+        self.tokenized_test = self._tokenize_dataset(
+            self.dataset_test,
+            tokenizer,
+            columns=[
+                "input_ids",
+                "attention_mask",
+                LABEL_COLUMN_NAME,
+            ],
+        )
 
     def _tokenize_dataset(
-        self, dataset: datasets.Dataset, tokenizer: Callable, batched=True
+        self,
+        dataset: datasets.Dataset,
+        tokenizer: Callable,
+        columns: list,
+        batched=True,
     ) -> datasets.Dataset:
         """Tokenize a Hugging Face dataset
 
@@ -122,14 +156,7 @@ class DatasetContainer(ABC):
         tokenized = dataset.map(tokenize_function, batched=batched)
 
         # Set the format to pytorch
-        tokenized.set_format(
-            "torch",
-            columns=[
-                "input_ids",
-                "attention_mask",
-                LABEL_COLUMN_NAME,
-            ],
-        )
+        tokenized.set_format("torch", columns=columns)
 
         return tokenized
 
@@ -200,13 +227,22 @@ class DatasetContainer(ABC):
         """
 
         # Get the required structure of the datasets as a datasets.Features object
-        features = self._get_ambiguous_dataset_features()
+        features = self._get_full_dataset_features()
 
         # First make a new dataset from the new items
         items_dataset = datasets.Dataset.from_dict(items, features=features)
 
         # Get the tokenized version
-        items_tokenized = self._tokenize_dataset(items_dataset, tokenizer)
+        items_tokenized = self._tokenize_dataset(
+            items_dataset,
+            tokenizer,
+            columns=[
+                "input_ids",
+                "attention_mask",
+                LABEL_COLUMN_NAME,
+                SKIPS_COLUMN_NAME,
+            ],
+        )
 
         # Add these to the training set
         self.dataset_train = datasets.concatenate_datasets(
@@ -226,24 +262,30 @@ class DatasetContainer(ABC):
 
         # If we're in dev mode, limit the size of the datasets significantly
         if self.parameters["dev_mode"]:
-            train_slice_size = min(5, len(self.dataset_train))
+            train_slice_size = min(20, len(self.dataset_train))
             self.dataset_train = self.dataset_train.select(range(train_slice_size))
-            validation_slice_size = min(5, len(self.dataset_validation))
+            validation_slice_size = min(20, len(self.dataset_validation))
             self.dataset_validation = self.dataset_validation.select(
                 range(validation_slice_size)
             )
-            test_slice_size = min(5, len(self.dataset_test))
+            test_slice_size = min(20, len(self.dataset_test))
             self.dataset_test = self.dataset_test.select(range(test_slice_size))
 
-        # Add an ambiguities column to the train dataset
-        #   All of this data will not be ambiguous
+        # Add an ambiguities and skip mask columns to the train dataset. All
+        # of this data will unambiguous and non-skipped
         self.dataset_train = self.dataset_train.add_column(
             AMBIGUITIES_COLUMN_NAME,
             [0] * len(self.dataset_train),
         )
+        self.dataset_train = self.dataset_train.add_column(
+            SKIPS_COLUMN_NAME,
+            [0] * len(self.dataset_train),
+        )
 
-    def _get_dataset_features(self) -> datasets.Features:
-        """Get the internal structure of the (non-tokenized) dataset
+    def _get_basic_dataset_features(self) -> datasets.Features:
+        """Get the basic internal structure of the (non-tokenized) dataset
+
+        This includes only the sample text and label.
 
         Returns
         -------
@@ -260,8 +302,11 @@ class DatasetContainer(ABC):
         )
         return features
 
-    def _get_ambiguous_dataset_features(self) -> datasets.Features:
-        """Get the internal structure of the (non-tokenized) dataset
+    def _get_full_dataset_features(self) -> datasets.Features:
+        """Get the full internal structure of the (non-tokenized) dataset
+
+        This includes all features recorded during the experiment: the sample
+        text, label, ambiguity value and the skip mask.
 
         Returns
         -------
@@ -271,11 +316,13 @@ class DatasetContainer(ABC):
         text_type = datasets.Value(dtype="string")
         label_type = datasets.ClassLabel(names=list(self.categories.keys()))
         ambiguity_type = datasets.Value(dtype="int64")
+        skip_mask_type = datasets.Value(dtype="int64")
         features = datasets.Features(
             {
                 TEXT_COLUMN_NAME: text_type,
                 LABEL_COLUMN_NAME: label_type,
                 AMBIGUITIES_COLUMN_NAME: ambiguity_type,
+                SKIPS_COLUMN_NAME: skip_mask_type,
             }
         )
         return features
@@ -351,7 +398,7 @@ class DummyDatasetContainer(DatasetContainer):
         test_labels = label_generator.generate(self.TEST_SIZE)
 
         # Get the required structure of the datasets as a datasets.Features object
-        features = self._get_dataset_features()
+        features = self._get_basic_dataset_features()
 
         # Compose everything to make the datasets
         train_split = datasets.Dataset.from_dict(
@@ -381,10 +428,14 @@ class DummyDatasetContainer(DatasetContainer):
             train_split
         )
 
-        # Add an ambiguities column to the train dataset
-        #   All of this data will not be ambiguous
+        # Add an ambiguities and skip mask columns to the train dataset. All
+        # of this data will unambiguous and non-skipped
         self.dataset_train = self.dataset_train.add_column(
             AMBIGUITIES_COLUMN_NAME,
+            [0] * len(self.dataset_train),
+        )
+        self.dataset_train = self.dataset_train.add_column(
+            SKIPS_COLUMN_NAME,
             [0] * len(self.dataset_train),
         )
 
