@@ -5,7 +5,7 @@ transformers==4.23.1
 datasets==2.5.2
 evaluate==0.2.2
 scikit-learn==1.1.2
-wandb==0.13.9
+wandb==0.13.4
 tqdm==4.64.1
 dataclasses
 
