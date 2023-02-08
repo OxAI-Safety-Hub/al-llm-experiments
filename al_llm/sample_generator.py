@@ -68,7 +68,6 @@ class TqdmStepLogitsProcessor(LogitsProcessor):
     def __call__(
         self, input_ids: torch.LongTensor, scores: torch.FloatTensor
     ) -> torch.FloatTensor:
-
         # Update the bar if it exists
         if self.tqdm_holder.tqdm_bar is not None:
             self.tqdm_holder.tqdm_bar.update()
@@ -120,13 +119,11 @@ class SampleGenerator(ABC):
         print("Generating samples...")
 
         if self.acquisition_function is None:
-
             # With no acquisition function, just generate samples without
             # filtering
             return self._generate_sample_pool(self.parameters["num_samples"])
 
         else:
-
             # With an acquisition function, first generate the samples
             sample_pool = self._generate_sample_pool(
                 self.parameters["sample_pool_size"]
@@ -178,7 +175,6 @@ class DummySampleGenerator(SampleGenerator):
     """
 
     def _generate_sample_pool(self, pool_size: int) -> UnlabelledSamples:
-
         alphabet = "abcdefghijklmnopqrstuvwxyz         "
 
         # Generate the samples by sampling from the alphabet
@@ -224,7 +220,6 @@ class PoolSampleGenerator(SampleGenerator):
         self.remainder_labels = remainder_python[LABEL_COLUMN_NAME]
 
     def generate(self) -> UnlabelledSamples:
-
         # Filter the acquisition function through the set of sentences in the
         # simulated pool taken from the remainder dataset
         sample_pool = self._generate_sample_pool()
@@ -233,7 +228,6 @@ class PoolSampleGenerator(SampleGenerator):
         return self.acquisition_function.select(sample_pool)
 
     def _generate_sample_pool(self) -> UnlabelledSamples:
-
         # Take `sample_pool_size` random samples from `remainder_sentences`, or
         # as many as you can take up to the length of `remainder_sentences`
         pool_indices = random.sample(
@@ -285,7 +279,6 @@ class ReplaySampleGenerator(SampleGenerator):
         self._iteration = 0
 
     def generate(self) -> UnlabelledSamples:
-
         # Announce what we're doing
         print()
         print("Getting samples from the replayed run...")
@@ -327,7 +320,6 @@ class HuggingFaceSampleGenerator(SampleGenerator, ABC):
         wandb_run: wandb.sdk.wandb_run.Run,
         acquisition_function: Optional[AcquisitionFunction] = None,
     ):
-
         super().__init__(parameters, dataset_container, wandb_run, acquisition_function)
 
         # Set the max sentence length to generate, in tokens
@@ -425,7 +417,6 @@ class HuggingFaceSampleGenerator(SampleGenerator, ABC):
         # assume that we go to the max length; if not, the bar will just end
         # early
         with tqdm(total=self._max_length - 1) as tqdm_bar:
-
             self._tqdm_holder.tqdm_bar = tqdm_bar
 
             # Use the pipeline to generate real sentences
@@ -467,20 +458,17 @@ class TokenByTokenSampleGenerator(HuggingFaceSampleGenerator, ABC):
         wandb_run: wandb.sdk.wandb_run.Run,
         acquisition_function: Optional[AcquisitionFunction] = None,
     ):
-
         super().__init__(parameters, dataset_container, wandb_run, acquisition_function)
 
         self.classifier = classifier
 
     def _make_pipeline_generator(self, model: Any, tokenizer: str, **kwargs):
-
         # Make the default pipeline with two extra arguments
         kwargs["renormalize_logits"] = True
         kwargs["do_sample"] = True
         super()._make_pipeline_generator(model, tokenizer, **kwargs)
 
     def _make_logits_processor(self) -> LogitsProcessorList:
-
         logits_processor = super()._make_logits_processor()
 
         # The logits processor which filters out the top k tokens before adding
@@ -608,7 +596,6 @@ class MaskedMHSampleGenerator(HuggingFaceSampleGenerator, ABC):
         def scoring_function(
             sample_ids: torch.Tensor, tokenizer: PreTrainedTokenizer
         ) -> torch.Tensor:
-
             # If we're using the sample classifer model as the generator, we
             # don't need to retokenize
             if self.GENERATOR_MODEL_NAME == self.classifier.MODEL_NAME:

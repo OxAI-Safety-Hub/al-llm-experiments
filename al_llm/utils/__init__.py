@@ -38,7 +38,6 @@ class UnlabelledSamples(list):
         self._suggested_labels = labels
 
     def __getitem__(self, key):
-
         # Allow indexing by a list of indices
         if isinstance(key, list):
             new_unlabelled_samples = UnlabelledSamples(

@@ -44,7 +44,6 @@ if SPLIT_BETWEEN_GPUS:
 
 # Run the experiment for each sampled combination of parameters
 for counter, combination in enumerate(combinations):
-
     # Ensure the code won't break due to human error in parameter grid
     #   inputs. Better to skip an experiment than crash the whole program
     if combination["num_samples"] > combination["sample_pool_size"]:

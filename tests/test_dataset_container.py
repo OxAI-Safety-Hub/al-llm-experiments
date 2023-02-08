@@ -14,7 +14,6 @@ from al_llm.constants import (
 
 
 def _basic_dataset_container_tests(dataset_container, tokenize):
-
     # Tokenize the data
     dataset_container.make_tokenized(tokenize)
 
@@ -86,7 +85,6 @@ def _basic_dataset_container_tests(dataset_container, tokenize):
 
 
 def test_dummy_dataset_container():
-
     # Set up the dummy dataset container
     parameters = Parameters()
     dataset_container = DummyDatasetContainer(parameters)

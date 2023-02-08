@@ -26,6 +26,6 @@ SSH_PUBKEY=""
 docker build -t DOCKER_REPO:DOCKER_TAG --build-arg user=USER --secret id=my_env,src=.env .
 ```
 
-replacing `DOCKER_REPO` and `DOCKER_TAG` with the appropriate details and `USER` with your desired username in the image.
+replacing `DOCKER_REPO` and `DOCKER_TAG` with the appropriate details and `USER` with your desired username for the linux user (i.e. your home directory will be `/home/USER/`).
 
 6. Push the image to the Docker Hub, ready for use.

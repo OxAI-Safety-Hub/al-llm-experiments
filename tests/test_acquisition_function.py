@@ -24,7 +24,6 @@ class LengthUncertaintyClassifier(DummyClassifier):
 
 
 def _basic_acquisition_function_test(acquisition_function_cls):
-
     # The parameters to use for this test
     parameters = Parameters(num_samples=5, sample_pool_size=20)
 
@@ -59,7 +58,6 @@ def test_dummy_acquisition_function():
 
 
 def test_max_uncertainty_function():
-
     # Do a basic test with this sampler
     _basic_acquisition_function_test(MaxUncertaintyAF)
 

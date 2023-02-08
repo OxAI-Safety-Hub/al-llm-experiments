@@ -258,7 +258,6 @@ class DataTrainingArguments:
 
 
 def main():
-
     run = wandb.init(
         project=TAPT_PROJECT_NAME,
         entity=WANDB_ENTITY,

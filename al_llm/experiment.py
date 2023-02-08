@@ -142,7 +142,6 @@ class Experiment:
         interface: Interface,
         wandb_run: wandb.sdk.wandb_run.Run,
     ):
-
         # Set the instance attributes
         self.parameters = parameters
         self.dataset_container = dataset_container
@@ -153,7 +152,6 @@ class Experiment:
         self.wandb_run = wandb_run
 
     def run(self):
-
         # Clean up to stop the wandb cache from overfilling
         self._clear_cache()
 
@@ -169,13 +167,11 @@ class Experiment:
         self.interface.begin()
 
         for iteration in range(self.parameters["num_iterations"]):
-
             # Perform a single iteration of model update,
             self._train(iteration)
 
             # If this is not the last iteration
             if iteration != self.parameters["num_iterations"] - 1:
-
                 # Obtain new samples to label
                 samples = self._get_samples()
 
@@ -434,7 +430,6 @@ class Experiment:
         do_replay_run = parameters["replay_run"] != ""
 
         if do_replay_run:
-
             # Build up the full path, using the entity and project name, if
             # not already specified
             replay_run_path = parameters["replay_run"]

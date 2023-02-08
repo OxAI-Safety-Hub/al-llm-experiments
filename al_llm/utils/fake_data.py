@@ -29,7 +29,6 @@ class FakeSentenceGenerator:
         sentence_len_mu: float = 1.2,
         sentence_len_sigma: float = 0.8,
     ):
-
         # Load the words from the word list file. The file size should be less
         # than 10000 bytes
         with open(self.WORD_LIST_FILENAME, "r") as f:
@@ -59,7 +58,6 @@ class FakeSentenceGenerator:
 
         sentences = []
         for i in range(num_sentences):
-
             # The length of the sentence
             num_words = int(
                 self._number_generator.lognormvariate(
@@ -71,7 +69,6 @@ class FakeSentenceGenerator:
             sentence = None
 
             while sentence is None:
-
                 # Pick the words from the word list
                 sentence_words = self._number_generator.choices(
                     self.word_list, k=num_words
@@ -103,7 +100,6 @@ class FakeLabelGenerator:
     """
 
     def __init__(self, categories: list, seed: Optional[int] = None):
-
         # Instantiate the random number generator
         self._number_generator = Random(seed)
 

@@ -4,7 +4,6 @@ from al_llm.utils import UnlabelledSamples
 
 
 def test_unlabelled_samples():
-
     # Create a basic test set of samples
     samples = UnlabelledSamples([str(i) for i in range(10)])
 

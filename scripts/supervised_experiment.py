@@ -32,7 +32,6 @@ if SPLIT_BETWEEN_GPUS:
 
 # Run the experiment for each sampled combination of parameters
 for counter, combination in enumerate(combinations):
-
     # Create a unique run_id for this trial
     run_id = f"rt_supervised_{RUN_LETTER}_{GPU_NUMBER}_{counter}"
 

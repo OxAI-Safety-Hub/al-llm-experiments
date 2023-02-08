@@ -554,7 +554,6 @@ class RottenTomatoesDatasetContainer(HuggingFaceDatasetContainer):
     TOKENIZED_LENGTH_UPPER_QUARTILE = 32
 
     def _preprocess_dataset(self):
-
         # Do any preprocessing defined by the base class
         super()._preprocess_dataset()
 
@@ -629,7 +628,6 @@ class WikiToxicDatasetContainer(HuggingFaceDatasetContainer):
     TOKENIZED_LENGTH_UPPER_QUARTILE = 102
 
     def _preprocess_dataset(self):
-
         # Do any preprocessing defined by the base class
         super()._preprocess_dataset()
 
@@ -760,7 +758,6 @@ class PubMed20kRCTDatasetContainer(HuggingFaceDatasetContainer):
     TOKENIZED_LENGTH_UPPER_QUARTILE = 42
 
     def _preprocess_dataset(self):
-
         # Do any preprocessing defined by the base class
         super()._preprocess_dataset()
 
@@ -846,7 +843,6 @@ class Trec6DatasetContainer(HuggingFaceDatasetContainer):
     TOKENIZED_LENGTH_UPPER_QUARTILE = 14
 
     def _preprocess_dataset(self):
-
         # Do any preprocessing defined by the base class
         super()._preprocess_dataset()
 
