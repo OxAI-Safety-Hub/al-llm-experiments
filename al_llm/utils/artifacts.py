@@ -220,7 +220,6 @@ def save_dataset_extension(
 
     # use a temporary directory as an inbetween
     with tempfile.TemporaryDirectory() as tmp:
-
         _save_json(added_data, tmp, DATASET_EXT_DATASET_FILE_NAME)
 
         _upload_artifact(
@@ -264,7 +263,6 @@ def load_dataset_extension(
 
     # use a temporary directory as an inbetween
     with tempfile.TemporaryDirectory() as tmp:
-
         _download_artifact(
             wandb_run=wandb_run,
             project=dataset_wandb_run.project,
@@ -304,7 +302,6 @@ def save_classifier_model(
 
     # use a temporary directory as an inbetween
     with tempfile.TemporaryDirectory() as tmp:
-
         _save_model(model, tmp, CLASSIFIER_MODEL_FILE_NAME)
 
         _upload_artifact(
@@ -335,7 +332,6 @@ def load_classifier_model(
 
     # use a temporary directory as an inbetween
     with tempfile.TemporaryDirectory() as tmp:
-
         _download_artifact(
             wandb_run=wandb_run,
             project=wandb_run.project,
@@ -369,7 +365,6 @@ def save_dual_label_results(
 
     # use a temporary directory as an inbetween
     with tempfile.TemporaryDirectory() as tmp:
-
         _save_json(data_dict, tmp, DUAL_LAB_LABELS_FILE_NAME)
         _save_json(results_dict, tmp, DUAL_LAB_RESULTS_FILE_NAME)
 
@@ -406,7 +401,6 @@ def save_tapted_model(
 
     # use a temporary directory as an inbetween
     with tempfile.TemporaryDirectory() as tmp:
-
         _save_model(model, tmp, TAPT_MODEL_FILE_NAME)
         _save_json(training_args, tmp, TAPT_PARAMETERS_FILE_NAME)
 
@@ -459,7 +453,6 @@ def load_tapted_model(
 
     # use a temporary directory as an inbetween
     with tempfile.TemporaryDirectory() as tmp:
-
         _download_artifact(
             wandb_run=wandb_run,
             project=TAPT_PROJECT_NAME,

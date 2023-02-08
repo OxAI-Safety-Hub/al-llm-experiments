@@ -90,10 +90,8 @@ for combo_num in range(len(combinations)):
     run_results.append("SKIPPED")
 
 try:
-
     # Run the experiment for each sampled combination of parameters
     for i, (combo_index, combo) in enumerate(combinations):
-
         # Set the status of the current run to failed until proven otherwise
         run_results[i] = "FAILED"
 
@@ -128,7 +126,6 @@ try:
         run_results[i] = "SUCCEEDED"
 
 finally:
-
     # Print a summary of the experiment results
     print()
     print()

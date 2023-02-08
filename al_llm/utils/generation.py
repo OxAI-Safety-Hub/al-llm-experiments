@@ -34,7 +34,6 @@ class TopKLogitsProcessor(LogitsProcessor):
     def __call__(
         self, input_ids: torch.LongTensor, scores: torch.FloatTensor
     ) -> torch.FloatTensor:
-
         # Compute the indices of the top k scores
         indices_to_keep = torch.topk(scores, self.top_k, dim=1).indices
 
@@ -98,7 +97,6 @@ class UncertaintyLogitsProcessor(LogitsProcessor):
     def __call__(
         self, input_ids: torch.LongTensor, scores: torch.FloatTensor
     ) -> torch.FloatTensor:
-
         # Get the device used to hold the tensors
         device = input_ids.device
 
@@ -329,7 +327,6 @@ class MaskedMHSamplerPipeline(Pipeline):
 
         # Iterate through the MCMC process
         for i in tqdm(range(num_steps)):
-
             # To mask some of the tokens, First choose from all tokens
             # uniformly with probability `mask_probability`
             masking_mask = torch.rand_like(sample_ids, dtype=float) <= mask_probability

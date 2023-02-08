@@ -109,7 +109,6 @@ def label_and_get_results(
 
     # for each sample that needs labelling
     for i in range(len(samples)):
-
         # prompt for label and ambiguity
         print(f"\nSample [{i+1}/{len(samples)}]")
         label, ambiguity = _prompt(samples[i], categories, score_ambiguities)

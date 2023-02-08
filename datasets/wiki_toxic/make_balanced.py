@@ -21,7 +21,6 @@ minimised_subsets = []
 
 # iterate over all categories
 for value in values:
-
     # get the samples from the original dataset that have the label `value`
     train_subset = train_orig[train_orig["label"] == value]
 

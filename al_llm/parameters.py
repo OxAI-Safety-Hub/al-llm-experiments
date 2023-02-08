@@ -218,7 +218,6 @@ class Parameters(dict):
         *args,
         **kwargs,
     ):
-
         # If we're running supervised learning, we need to run a full loop
         if supervised:
             full_loop = True
@@ -336,7 +335,6 @@ class Parameters(dict):
 
         # Loop over all the parameters in the signature
         for name, parameter in dict(signature.parameters).items():
-
             # We don't want to add the `self` argument, or any of the `*args`
             # or `**kwargs`
             if name in ["self", "args", "kwargs"]:
@@ -353,7 +351,6 @@ class Parameters(dict):
                 default = parameter.default
 
             if parameter.annotation == bool:
-
                 # For boolean parameters we add two flags, one for true and
                 # one for false, then set the default
                 cmd_name = "--" + name.replace("_", "-")
@@ -374,7 +371,6 @@ class Parameters(dict):
                 )
 
             else:
-
                 # Other parameters are regular arguments
                 cmd_name = "--" + name.replace("_", "-")
                 parser.add_argument(
@@ -412,7 +408,6 @@ class Parameters(dict):
 
         # Loop over all the parameters in the signature
         for name in list(signature.parameters):
-
             # We don't want to add the `self` argument, or any of the `*args`
             # or `**kwargs`
             if name in ["self", "args", "kwargs"]:

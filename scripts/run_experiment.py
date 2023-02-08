@@ -49,7 +49,6 @@ else:
     seeds = [EXPERIMENT_SEEDS[0]]
 
 for i, seed in enumerate(seeds):
-
     run_id = f"{cmd_args.run_id}_{seed}"
 
     print()

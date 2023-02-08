@@ -177,7 +177,6 @@ class SimpleCLIInterfaceMixin(CLIInterfaceMixin, ABC):
     """A CLI interface mixin which provides basic CLI outputs"""
 
     def begin(self, message: str = None):
-
         # Default message
         if message is None:
             message = "AL LLM"
@@ -200,7 +199,6 @@ class SimpleCLIInterfaceMixin(CLIInterfaceMixin, ABC):
         self._output(text)
 
     def train_afresh(self, message: str = None, iteration=None):
-
         # Default message
         if message is None:
             message = "Fine-tuning from scratch..."
@@ -216,7 +214,6 @@ class SimpleCLIInterfaceMixin(CLIInterfaceMixin, ABC):
         self._output(text)
 
     def train_update(self, message: str = None, iteration=None):
-
         # Default message
         if message is None:
             message = "Fine-tuning with new datapoints..."
@@ -262,13 +259,11 @@ class CLIInterface(CLIInterfaceMixin, FullLoopInterface):
         *,
         line_width: int = 70,
     ):
-
         super().__init__(parameters, dataset_container, wandb_run)
 
         self.line_width = line_width
 
     def begin(self, message: str = None):
-
         # Default message
         if message is None:
             message = (
@@ -315,7 +310,6 @@ class CLIInterface(CLIInterfaceMixin, FullLoopInterface):
 
         # Loop over all the samples for which we need a label
         for i, sample in enumerate(samples):
-
             # Build first part of the message, consisting of the sample plus
             # the question
             text = "\n"
@@ -385,7 +379,6 @@ class CLIInterface(CLIInterfaceMixin, FullLoopInterface):
         return prompt_output
 
     def train_afresh(self, message: str = None, iteration=None):
-
         # Default message
         if message is None:
             message = "Fine-tuning from scratch. This may take a while..."
@@ -401,7 +394,6 @@ class CLIInterface(CLIInterfaceMixin, FullLoopInterface):
         self._output(text)
 
     def train_update(self, message: str = None, iteration=None):
-
         # Default message
         if message is None:
             message = "Fine-tuning with new datapoints..."
@@ -417,7 +409,6 @@ class CLIInterface(CLIInterfaceMixin, FullLoopInterface):
         self._output(text)
 
     def end(self, message: str = None, results: Any = None):
-
         # Default message
         if message is None:
             message = "Thank you for participating!"
@@ -656,7 +647,6 @@ class ReplayInterface(SimpleCLIInterfaceMixin, Interface):
         self._iteration = 0
 
     def prompt(self, samples: UnlabelledSamples) -> PromptOutput:
-
         # Announce what we're doing
         print()
         print("Getting labels from the replayed run...")

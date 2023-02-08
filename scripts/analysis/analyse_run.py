@@ -105,7 +105,6 @@ dataset_extension_df = pd.DataFrame(dataset_extension_dict)
 print("Performing analysis...")
 
 if cmd_args.task == "class_proportion":
-
     # Get the sequence of labels
     labels = dataset_extension_df["labels"].to_numpy()
 
@@ -126,7 +125,6 @@ if cmd_args.task == "class_proportion":
     ax = class_props_df.plot.area(colormap=cmd_args.colormap)
 
 elif cmd_args.task == "ambiguities_proportion":
-
     # Get the sequence of labels
     ambiguities = dataset_extension_df["ambiguities"].to_numpy()
 

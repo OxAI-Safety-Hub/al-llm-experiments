@@ -22,7 +22,6 @@ class CycleStringIO(io.TextIOBase):
 
 
 def test_pool_simulator_interface():
-
     # Make a dummy experiment using PoolSimulatorInterface
     parameters = Parameters(
         sample_generator_base_model="pool", full_loop=True, is_running_pytests=True
@@ -46,7 +45,6 @@ class TestCLIInterface:
     """Test the CLI interface with different amgibuity and skip settings"""
 
     def test_dummy_experiment(self):
-
         # The number of samples to use in each test
         num_samples = 20
 
@@ -56,7 +54,6 @@ class TestCLIInterface:
             "allow_skipping": [False, True],
         }
         for extra_parameters in ParameterGrid(extra_parameters_grid):
-
             # Create a dummy experiment using these parametes
             parameters = Parameters(
                 full_loop=True,

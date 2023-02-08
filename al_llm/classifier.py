@@ -53,7 +53,6 @@ class MetricEvaluator:
     UNWEIGHTED_SUFFIX = "-unweighted"
 
     def __init__(self, dataset_container: DatasetContainer):
-
         self.num_categories = len(dataset_container.CATEGORIES)
 
         # The metrics common to all classifiers
@@ -114,7 +113,6 @@ class MetricEvaluator:
         results = {}
 
         for name, metric in self._metrics.items():
-
             # For accuracy, just compute it
             if name == "accuracy":
                 computed = metric.compute(
@@ -123,7 +121,6 @@ class MetricEvaluator:
                 results[name] = next(iter(computed.values()))
 
             else:
-
                 # The extra arguments passed to `compute`
                 compute_args = {}
 
@@ -384,7 +381,6 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         dataset_container: DatasetContainer,
         wandb_run: wandb.sdk.wandb_run.Run,
     ):
-
         # initialises the parameters in the same way as the base class
         super().__init__(parameters, dataset_container, wandb_run)
 
@@ -413,7 +409,6 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         *,
         new_tokenized_samples: Optional[datasets.Dataset] = None,
     ):
-
         # If we're refreshing every iteration, and the most recent set of
         # samples were all skipped, then don't do any trying
         if new_tokenized_samples is not None and self.parameters["refresh_every"] == 1:
@@ -451,7 +446,6 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         tokenized_samples: datasets.Dataset,
         iteration: int,
     ):
-
         # Select those samples which are not to be skipped
         tokenized_samples = tokenized_samples.filter(
             lambda x: x[SKIPS_COLUMN_NAME] == 0
@@ -529,7 +523,6 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         self._model.to(self.device)
 
     def _train(self, train_dataloader: DataLoader, num_epochs: int, iteration: int):
-
         # create an optimizer for the model
         optimizer = AdamW(self._model.parameters(), lr=self.parameters["learning_rate"])
 
@@ -556,7 +549,6 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
 
         # for each epoch, run the train and eval loops to train the model
         for epoch in range(num_epochs):
-
             # Output the current epoch
             print()
             print(f"--- Epoch: {epoch+1} ---")
@@ -581,7 +573,6 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
                 ("eval", eval_dataloader),
                 ("test", test_dataloader),
             ]:
-
                 # If the eval loop should run this epoch, or if it is the last epoch
                 run_eval = (
                     self.parameters[f"{split}_every"] > 0
@@ -643,7 +634,6 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
 
         # iterate over all the batches in the dataloader
         for batch in tqdm(train_dataloader):
-
             # move batch data to same device as the model
             batch = {k: v.to(self.device) for k, v in batch.items()}
 
@@ -720,7 +710,6 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
 
         # iterate over all the batches in the dataloader
         for batch in tqdm(eval_dataloader):
-
             # move batch data to same device as the model
             batch = {k: v.to(self.device) for k, v in batch.items()}
 
@@ -771,7 +760,6 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
     def calculate_uncertainties(
         self, samples: Union[str, list], *, output_probabilities=False
     ) -> Union[float, list]:
-
         # Turn samples into a list if it isn't already
         if isinstance(samples, str):
             samples = [str]
@@ -807,7 +795,6 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         output_probabilities=False,
         print_output=True,
     ) -> torch.Tensor:
-
         # Get the number of samples
         num_samples = tokenized_samples.shape[0]
 
@@ -835,12 +822,10 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
 
         # iterate over all the batches in the dataloader
         for idx, batch in iterator:
-
             # Move the batch to the appropriate device
             batch = batch.to(self.device)
 
             with torch.no_grad():
-
                 # Get the model class probabilities
                 outputs = self._model(input_ids=batch)
                 probabilities = outputs.class_probs

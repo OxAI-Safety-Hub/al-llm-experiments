@@ -96,7 +96,6 @@ class HuggingFaceClassifierEnsemble(nn.Module):
         )
 
         for i, model in enumerate(self.models):
-
             # Compute model outputs using clones of the inputs, in case these
             # get modified by calling
             input_ids_clone = torch.clone(input_ids)

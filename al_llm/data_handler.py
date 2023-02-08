@@ -55,7 +55,6 @@ class DataHandler:
         classifier: Classifier,
         wandb_run: wandb.sdk.wandb_run.Run,
     ):
-
         # Store the arguments
         self.parameters = parameters
         self.dataset_container = dataset_container

@@ -2,7 +2,6 @@ from al_llm.parameters import Parameters
 
 
 def test_default_parameters_are_dummy():
-
     # Create a parameters instance with all the defaults
     parameters = Parameters()
 
