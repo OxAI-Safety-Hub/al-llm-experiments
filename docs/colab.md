@@ -1,8 +1,5 @@
-Jupyter Notebooks
-=================
-
-Use the library in Colab
-------------------------
+How to use the library in Colab
+===============================
 
 In order to use the library in Colab, follow these steps.
 

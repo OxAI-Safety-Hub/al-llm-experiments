@@ -50,16 +50,10 @@ If there are special features you can add them at the end, before the number.
 But other options may be interesting.
 
 
-## Contributing
+## Documentation
 
-See the [Guide to contributing code](/CONTRIBUTING.md).
-
-
-## Using the library in Colab
-
-To use the library in Colab, follow the [instructions in the `notebooks` folder](/notebooks/README.md).
-
-
-## Locally stored datasets
-
-See the [Guide to using local datasets](local_datasets/README.md).
+The following guides are located in the [docs](/docs) folder.
+- [Guide to contributing code](/docs/contributing-code.md).
+- [Instructions on setting up Docker](/docs/using-docker.md).
+- [Instructions on using with Colab](/docs/colab.md).
+- [Guide to adding a new dataset](/docs/new-dataset.md).
