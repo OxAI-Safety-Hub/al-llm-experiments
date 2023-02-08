@@ -4,7 +4,7 @@ from al_llm import Experiment, Parameters
 from al_llm.constants import WANDB_PROJECTS, EXPERIMENT_SEEDS
 
 # Default W&B run identification
-PROJECT_NAME = WANDB_PROJECTS["experiment"]
+PROJECT_NAME = WANDB_PROJECTS["sandbox"]
 MULTUPLE_SEEDS = False
 run_id = str(input(
     "What should the wadnb run ID be? A good convention is: " +
@@ -22,6 +22,10 @@ parameters = Parameters(
     classifier_base_model="gpt2",
     sample_generator_base_model="gpt2",
     acquisition_function="max_uncertainty",
+    batch_size=1,
+    eval_batch_size=1,
+    seed=seeds[0],
+    cuda_device="cuda:0"
 )
 
 for i, seed in enumerate(seeds):
