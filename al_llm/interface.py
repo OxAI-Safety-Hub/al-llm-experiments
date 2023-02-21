@@ -551,10 +551,7 @@ class AutomaticLabellerInterface(SimpleCLIInterfaceMixin, Interface):
         self.line_width = line_width
 
         # Set the device
-        if torch.cuda.is_available():
-            device = torch.device(self.parameters["cuda_device"])
-        else:
-            device = torch.device("cpu")
+        device = torch.device(self.parameters["cuda_device"])
 
         # Make the classification pipeline
         self.pipeline = pipeline(

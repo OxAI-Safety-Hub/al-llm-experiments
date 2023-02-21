@@ -379,10 +379,7 @@ class HuggingFaceSampleGenerator(SampleGenerator, ABC):
         """
 
         # Set the device to use
-        if torch.cuda.is_available():
-            device = torch.device(self.parameters["cuda_device"])
-        else:
-            device = torch.device("cpu")
+        device = torch.device(self.parameters["cuda_device"])
 
         # Get the logits preprocessor to use
         logits_processor = self._make_logits_processor()
@@ -586,10 +583,7 @@ class MaskedMHSampleGenerator(HuggingFaceSampleGenerator, ABC):
         """
 
         # Set the device to use
-        if torch.cuda.is_available():
-            device = torch.device(self.parameters["cuda_device"])
-        else:
-            device = torch.device("cpu")
+        device = torch.device(self.parameters["cuda_device"])
 
         # The scoring function to use in the sampling algorithm, which scores
         # using the classifier uncertainty

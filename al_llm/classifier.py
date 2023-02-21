@@ -397,10 +397,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         self._model = None
 
         # set device
-        if torch.cuda.is_available():
-            self.device = torch.device(self.parameters["cuda_device"])
-        else:
-            self.device = torch.device("cpu")
+        self.device = torch.device(self.parameters["cuda_device"])
 
     def train_afresh(
         self,
@@ -551,7 +548,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         for epoch in range(num_epochs):
             # Output the current epoch
             print()
-            print(f"--- Epoch: {epoch+1} ---")
+            print(f"--- Epoch: {epoch + 1} ---")
 
             # Run the training loop, obtaining the metrics
             print("- Running train loop")
@@ -709,7 +706,9 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         eval_loss = torch.zeros(self._model.num_models)
 
         # iterate over all the batches in the dataloader
-        for batch in tqdm(eval_dataloader):
+        for batch in tqdm(
+            eval_dataloader, desc="Evaluating classifier - batch number="
+        ):
             # move batch data to same device as the model
             batch = {k: v.to(self.device) for k, v in batch.items()}
 
