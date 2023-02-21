@@ -24,7 +24,11 @@ class CycleStringIO(io.TextIOBase):
 def test_pool_simulator_interface():
     # Make a dummy experiment using PoolSimulatorInterface
     parameters = Parameters(
-        sample_generator_base_model="pool", full_loop=True, is_running_pytests=True
+        dataset_name="dummy",
+        acquisition_function="dummy",
+        sample_generator_base_model="pool",
+        full_loop=True,
+        is_running_pytests=True,
     )
     args = Experiment.make_experiment(parameters, WANDB_PROJECTS["sandbox"], "test")
     experiment = Experiment(**args)
@@ -56,6 +60,8 @@ class TestCLIInterface:
         for extra_parameters in ParameterGrid(extra_parameters_grid):
             # Create a dummy experiment using these parametes
             parameters = Parameters(
+                dataset_name="dummy",
+                acquisition_function="dummy",
                 full_loop=True,
                 is_running_pytests=True,
                 num_samples=num_samples,

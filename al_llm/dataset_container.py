@@ -60,6 +60,7 @@ class DatasetContainer(ABC):
     """
 
     CATEGORIES = OrderedDict()
+    TOKENIZED_LENGTH_UPPER_QUARTILE = 0
 
     def __init__(self, parameters: Parameters):
         self.parameters = parameters
@@ -378,6 +379,7 @@ class DummyDatasetContainer(DatasetContainer):
     REMAINDER_SIZE = 10
     VALIDATION_SIZE = 20
     TEST_SIZE = 50
+    TOKENIZED_LENGTH_UPPER_QUARTILE = 0
 
     def __init__(self, parameters: Parameters):
         super().__init__(parameters)

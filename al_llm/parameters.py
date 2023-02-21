@@ -23,6 +23,11 @@ class Parameters(dict):
     ----------
     dataset_name : str,
         The name of the dataset to be downloaded from Hugging Face.
+    acquisition_function : str,
+    # TODO add validation (lookup in Experiment.MAP_ACQUISTION_FUNCTION)
+        The name of the acquisition function to use. This should be chosen
+        from the keys of Experiment.MAP_ACQUISITION_FUNCTION.
+        For example, "random", "max_uncertainty".
     num_iterations : int, default=11
         The number of iterations over which to run the active learning.
         In one "iteration" we
@@ -81,8 +86,8 @@ class Parameters(dict):
         Enabling dev_mode reduces the size of all of the datasets.
         This can be used to speed up execution during development.
     seed : int, default=459834
-        The random seed to use for random number generation. The seed is set
-        at the beginning of each AL iteration to `seed+iteration`.
+        The random seed to use for random number generation. The seed is
+        set at the beginning of each AL iteration to `seed+iteration`.
     train_dataset_size : int, default=10
         The size of the initial set of labelled data, for training the
         classifier. This should be highly dependent on which dataset you
@@ -90,16 +95,12 @@ class Parameters(dict):
         the dataset; the rest are collected as a pool of remainder data, used
         by the pool-based simulator.
 
-    classifier_base_model : str, default="gpt2"
-        The name of the base model the classifier should use.
     num_classifier_models : int, default=1
         The number of models to use in the classifier ensemble. The output
         probabilities are the averages of the output probabilities of each
         model.
-    acquisition_function : str, # TODO add validation (lookup in Experiment.MAP_ACQUISTION_FUNCTION)
-        The name of the acquisition function to use. This should be chosen
-        from the keys of Experiment.MAP_ACQUISITION_FUNCTION.
-        For example, "random", "max_uncertainty".
+    classifier_base_model : str, default="gpt2"
+        The name of the base model the classifier should use.
     sample_generator_base_model : str, default="gpt2"
         The name of the base model the sample generator should use.
     use_tapted_sample_generator : bool, default=True
@@ -214,14 +215,18 @@ class Parameters(dict):
 
     def __init__(
         self,
+        # Necessary args
         dataset_name: str,
+        acquisition_function: str,
+        # Optional, but important, args
         num_iterations: int = 11,
         batch_size: int = 4,
         eval_batch_size: int = 32,
         cuda_device: str = "cuda:0",
         refresh_every: int = 1,
-        refresh_on_last: bool = True,
         eval_every: int = 0,
+        # Other args
+        refresh_on_last: bool = True,
         test_every: int = -1,
         num_epochs_update: int = 3,
         num_epochs_afresh: int = 5,
@@ -234,10 +239,9 @@ class Parameters(dict):
         train_dataset_size: int = 10,
         full_loop: bool = True,
         supervised: bool = False,
-        classifier_base_model: str = "dummy",
+        classifier_base_model: str = "gpt2",
         num_classifier_models: int = 1,
-        acquisition_function: str = "dummy",
-        sample_generator_base_model: str = "dummy",
+        sample_generator_base_model: str = "gpt2",
         use_tapted_sample_generator: bool = False,
         use_tapted_classifier: bool = False,
         tapted_model_version: str = TAPTED_MODEL_DEFAULT_TAG,

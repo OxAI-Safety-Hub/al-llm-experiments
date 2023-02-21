@@ -17,7 +17,12 @@ class TestFullLoopDummyExperiment:
     """Run the full dummy experiment, repeatedly feeding '0' as the input"""
 
     def test_dummy_experiment(self):
-        parameters = Parameters(full_loop=True, is_running_pytests=True)
+        parameters = Parameters(
+            dataset_name="dummy",
+            acquisition_function="dummy",
+            full_loop=True,
+            is_running_pytests=True,
+        )
         dummy_args = Experiment.make_experiment(
             parameters, WANDB_PROJECTS["sandbox"], "test"
         )
