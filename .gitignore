@@ -145,3 +145,4 @@ scripts/tapt/output_dir/*
 
 # The dev folder
 dev/*
+/scripts/charlies_wip/
