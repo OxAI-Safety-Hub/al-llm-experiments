@@ -34,7 +34,7 @@ Parameters.add_to_arg_parser(
         "num_samples",
         "eval_batch_size",
     ],
-    defaults=DEFAULTS,
+    override_defaults_dict=DEFAULTS,
 )
 
 # Get the arguments

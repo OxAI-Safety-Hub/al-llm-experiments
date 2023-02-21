@@ -25,6 +25,7 @@ class Parameters(dict):
         The name of the hugging face dataset.
     num_iterations : int, default=51
         The number of iterations over which to run the active learning.
+        Here one iteration is
     refresh_every : int, default=1
         How often to retrain the classifier from scratch. A value of `-1`
         means we never refresh.
@@ -35,7 +36,7 @@ class Parameters(dict):
         never run the eval loop. A value of `0` means we only do it on the
         last epoch per iteration.
     test_every : int, default=-1
-        How often run an test loop when training. A value of `-1` means we
+        How often run a test loop when training. A value of `-1` means we
         never run the test loop. A value of `0` means we only do it on the
         last epoch per iteration.
     batch_size : int, default=16
@@ -79,6 +80,7 @@ class Parameters(dict):
         Run the whole experiment in one go, going through all the AL loops.
     supervised : bool, default=False
         Run this experiment using standard supervised learning.
+        # CG: I'm not exactly clear what this means.
     classifier_base_model : str, default="dummy"
         The name of the base model the classifier should use.
     num_classifier_models : int, default=1
@@ -304,13 +306,12 @@ class Parameters(dict):
             if name in dictionary and name not in skip_keys:
                 self.__setitem__(name, dictionary[name])
 
-    @classmethod
     def add_to_arg_parser(
         cls,
         parser: ArgumentParser,
         *,
         included_parameters: Optional[list] = None,
-        defaults: dict = {},
+        override_defaults_dict: dict = None,
     ):
         """Add the parameters to an ArgumentParser instance
 
@@ -325,7 +326,7 @@ class Parameters(dict):
         included_parameters : list, optional
             A list of the parameters to include. If `None` then all parameters
             are included.
-        defaults : dict, default={}
+        override_defaults_dict : dict, default={}
             A dictionary of default values for the parameters, which override
             the ones defined in `Parameters`
         """
@@ -345,8 +346,8 @@ class Parameters(dict):
                 continue
 
             # Get the default for this parameter
-            if name in defaults:
-                default = defaults[name]
+            if override_defaults_dict is not None and name in override_defaults_dict:
+                default = override_defaults_dict[name]
             else:
                 default = parameter.default
 

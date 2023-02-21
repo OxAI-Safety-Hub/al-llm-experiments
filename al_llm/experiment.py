@@ -163,15 +163,17 @@ class Experiment:
     def _run_full(self):
         """Run the whole experiment in one go, through all iterations"""
 
-        # Start the interface
+        # Start the user interface
         self.interface.begin()
 
         for iteration in range(self.parameters["num_iterations"]):
             # Perform a single iteration of model update,
+            # QUESTION: what is a "model update" here?
+            # GUESS: "model" here refers to the classifier?
             self._train(iteration)
 
-            # If this is not the last iteration
-            if iteration != self.parameters["num_iterations"] - 1:
+            is_last_iteration = iteration != self.parameters["num_iterations"] - 1
+            if not is_last_iteration:
                 # Obtain new samples to label
                 samples = self._get_samples()
 
@@ -181,6 +183,8 @@ class Experiment:
 
                     # Add these samples to the dataset
                     self.data_handler.new_labelled(samples, prompt_output)
+
+                # CG: What is done with the samples if it's not supervised? Why do we generate them?
 
             # Save the current version of the classifier and dataset
             self._save(iteration)
@@ -229,7 +233,7 @@ class Experiment:
         self._train(iteration)
         samples = self._get_samples()
 
-        # Save the current version of the classifier and dataset, including
+        # Save the current version of the classifier and dataset to wandb, including
         # the new samples awaiting labels from the human
         self._save(iteration, samples)
 
@@ -279,6 +283,7 @@ class Experiment:
         c = wandb.wandb_sdk.wandb_artifacts.get_artifacts_cache()
         c.cleanup(wandb.util.from_human_size(CACHE_SIZE))
 
+    # CG: I think it would make sense to have a more descriptive method name - e.g. _train_classifier_on_current_data
     def _train(self, iteration: int):
         """Train the classifier with the latest datapoints
 
@@ -360,7 +365,7 @@ class Experiment:
         iteration: int,
         unlabelled_samples: UnlabelledSamples = UnlabelledSamples(),
     ):
-        """Save the current classifier and dataset"""
+        """Save the current classifier and dataset to wandb"""
 
         # Only save the classifier if we are at the correct iteration according
         # to the 'save_classifier_every' parameter

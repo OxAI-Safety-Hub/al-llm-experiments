@@ -84,6 +84,7 @@ class DatasetContainer(ABC):
         """
 
         # Tokenize each dataset split
+        print("Making tokenized train, val, remainder and test")
         self.tokenized_train = self._tokenize_dataset(
             self.dataset_train,
             tokenizer,
@@ -153,7 +154,9 @@ class DatasetContainer(ABC):
             return tokenizer(examples[TEXT_COLUMN_NAME])
 
         # Tokenize the dataset
-        tokenized = dataset.map(tokenize_function, batched=batched)
+        tokenized = dataset.map(
+            tokenize_function, batched=batched, desc=f"Tokenizing dataset"
+        )
 
         # Set the format to pytorch
         tokenized.set_format("torch", columns=columns)
