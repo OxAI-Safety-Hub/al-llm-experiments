@@ -485,7 +485,6 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
 
         # Load fresh versions of the model
         for i in range(self.parameters["num_classifier_models"]):
-            print(self.MODEL_NAME, "----------------")
             models.append(
                 AutoModelForSequenceClassification.from_pretrained(
                     self.MODEL_NAME, num_labels=len(self.dataset_container.CATEGORIES)
