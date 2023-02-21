@@ -170,9 +170,10 @@ class Experiment:
             # Perform a single iteration of model update,
             # QUESTION: what is a "model update" here?
             # GUESS: "model" here refers to the classifier?
-            self._train(iteration)
+            self._train_classifier_on_current_data(iteration)
 
             is_last_iteration = iteration != self.parameters["num_iterations"] - 1
+
             if not is_last_iteration:
                 # Obtain new samples to label
                 samples = self._get_samples()
@@ -184,7 +185,6 @@ class Experiment:
                     # Add these samples to the dataset
                     self.data_handler.new_labelled(samples, prompt_output)
 
-                # CG: What is done with the samples if it's not supervised? Why do we generate them?
 
             # Save the current version of the classifier and dataset
             self._save(iteration)
@@ -230,7 +230,7 @@ class Experiment:
 
         # Perform a single iteration of model update, obtaining new samples
         # to label
-        self._train(iteration)
+        self._train_classifier_on_current_data(iteration)
         samples = self._get_samples()
 
         # Save the current version of the classifier and dataset to wandb, including
@@ -283,9 +283,10 @@ class Experiment:
         c = wandb.wandb_sdk.wandb_artifacts.get_artifacts_cache()
         c.cleanup(wandb.util.from_human_size(CACHE_SIZE))
 
-    # CG: I think it would make sense to have a more descriptive method name - e.g. _train_classifier_on_current_data
-    def _train(self, iteration: int):
-        """Train the classifier with the latest datapoints
+    def _train_classifier_on_current_data(self, iteration: int):
+        """Train the classifier with the latest datapoints.
+        Depending on the value of self.parameters["refresh_every"] and iteration,
+            we may also retrain the classifier on the whole dataset (not just new datapoints)
 
         Parameters
         ----------

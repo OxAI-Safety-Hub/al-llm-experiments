@@ -80,7 +80,6 @@ class Parameters(dict):
         Run the whole experiment in one go, going through all the AL loops.
     supervised : bool, default=False
         Run this experiment using standard supervised learning.
-        # CG: I'm not exactly clear what this means.
     classifier_base_model : str, default="dummy"
         The name of the base model the classifier should use.
     num_classifier_models : int, default=1
