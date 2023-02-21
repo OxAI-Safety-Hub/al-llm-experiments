@@ -133,14 +133,14 @@ class Experiment:
     }
 
     def __init__(
-            self,
-            parameters: Parameters,
-            dataset_container: DatasetContainer,
-            data_handler: DataHandler,
-            classifier: Classifier,
-            sample_generator: SampleGenerator,
-            interface: Interface,
-            wandb_run: wandb.sdk.wandb_run.Run,
+        self,
+        parameters: Parameters,
+        dataset_container: DatasetContainer,
+        data_handler: DataHandler,
+        classifier: Classifier,
+        sample_generator: SampleGenerator,
+        interface: Interface,
+        wandb_run: wandb.sdk.wandb_run.Run,
     ):
         # Set the instance attributes
         self.parameters = parameters
@@ -246,8 +246,8 @@ class Experiment:
         # Get the unlabelled sentences saved to WandB by taking the
         # last `num_samples` items from added_data's 'text' column
         unlabelled_added = added_data[TEXT_COLUMN_NAME][
-                           -self.parameters["num_samples"]:
-                           ]
+            -self.parameters["num_samples"] :
+        ]
 
         # Prompt the human for labels
         prompt_output = self.interface.prompt(unlabelled_added)
@@ -288,19 +288,23 @@ class Experiment:
         # the last iteration of this experiment, it will end on a call to
         # _train_afresh.
 
-        is_first_iteration = (iteration == 0)
+        is_first_iteration = iteration == 0
 
         refresh_is_due = (
-                self.parameters["refresh_every"] != -1
-                and iteration % self.parameters["refresh_every"] == 0
+            self.parameters["refresh_every"] != -1
+            and iteration % self.parameters["refresh_every"] == 0
         )
 
         should_refresh_for_because_of_final_iteration = (
-                iteration + 1 == self.parameters["num_iterations"]
-                and self.parameters["refresh_on_last"]
+            iteration + 1 == self.parameters["num_iterations"]
+            and self.parameters["refresh_on_last"]
         )
 
-        if is_first_iteration or refresh_is_due or should_refresh_for_because_of_final_iteration:
+        if (
+            is_first_iteration
+            or refresh_is_due
+            or should_refresh_for_because_of_final_iteration
+        ):
             self._train_afresh(dataset_samples, iteration)
         else:
             self._train_update(dataset_samples, iteration)
@@ -324,9 +328,9 @@ class Experiment:
         return samples
 
     def _train_afresh(
-            self,
-            dataset_samples: datasets.Dataset,
-            iteration: int,
+        self,
+        dataset_samples: datasets.Dataset,
+        iteration: int,
     ):
         """Fine-tune the classifier from scratch"""
         self.interface.train_afresh(iteration=iteration)
@@ -337,9 +341,9 @@ class Experiment:
         )
 
     def _train_update(
-            self,
-            dataset_samples: datasets.Dataset,
-            iteration: int,
+        self,
+        dataset_samples: datasets.Dataset,
+        iteration: int,
     ):
         """Fine-tune the classifier with new datapoints, without resetting"""
         self.interface.train_update(iteration=iteration)
@@ -349,9 +353,9 @@ class Experiment:
         )
 
     def _save(
-            self,
-            iteration: int,
-            unlabelled_samples: UnlabelledSamples = UnlabelledSamples(),
+        self,
+        iteration: int,
+        unlabelled_samples: UnlabelledSamples = UnlabelledSamples(),
     ):
         """Save the current classifier and dataset to wandb"""
 
@@ -360,9 +364,9 @@ class Experiment:
         save_classifier_every = self.parameters["save_classifier_every"]
         iteration_max = self.parameters["num_iterations"] - 1
         if (
-                not self.parameters["full_loop"]
-                or (save_classifier_every > 0 and iteration % save_classifier_every == 0)
-                or (save_classifier_every >= 0 and iteration == iteration_max)
+            not self.parameters["full_loop"]
+            or (save_classifier_every > 0 and iteration % save_classifier_every == 0)
+            or (save_classifier_every >= 0 and iteration == iteration_max)
         ):
             self.classifier.save()
 
@@ -371,13 +375,13 @@ class Experiment:
 
     @classmethod
     def make_experiment(
-            cls,
-            parameters: Parameters,
-            project_name: str,
-            run_id: str,
-            *,
-            tags: list = [],
-            replay_skip_keys=DEFAULT_REPLAY_SKIP_KEYS,
+        cls,
+        parameters: Parameters,
+        project_name: str,
+        run_id: str,
+        *,
+        tags: list = [],
+        replay_skip_keys=DEFAULT_REPLAY_SKIP_KEYS,
     ) -> dict:
         """Get experiment instances to feed into the constructor
 
@@ -531,8 +535,8 @@ class Experiment:
                 acquisition_function=acquisition_function,
             )
         elif (
-                parameters["use_tbt_sample_generator"]
-                and not parameters["use_tapted_sample_generator"]
+            parameters["use_tbt_sample_generator"]
+            and not parameters["use_tapted_sample_generator"]
         ):
             sample_generator = cls.MAP_TBT_PLAIN_SAMPLE_GENERATOR[sg_model_name](
                 parameters=parameters,
@@ -542,8 +546,8 @@ class Experiment:
                 acquisition_function=acquisition_function,
             )
         elif (
-                parameters["use_tbt_sample_generator"]
-                and parameters["use_tapted_sample_generator"]
+            parameters["use_tbt_sample_generator"]
+            and parameters["use_tapted_sample_generator"]
         ):
             sample_generator = cls.MAP_TBT_TAPT_SAMPLE_GENERATOR[sg_model_name](
                 parameters=parameters,
@@ -553,8 +557,8 @@ class Experiment:
                 acquisition_function=acquisition_function,
             )
         elif (
-                parameters["use_mmh_sample_generator"]
-                and not parameters["use_tapted_sample_generator"]
+            parameters["use_mmh_sample_generator"]
+            and not parameters["use_tapted_sample_generator"]
         ):
             sample_generator = cls.MAP_MMH_PLAIN_SAMPLE_GENERATOR[sg_model_name](
                 parameters=parameters,
@@ -564,8 +568,8 @@ class Experiment:
                 acquisition_function=acquisition_function,
             )
         elif (
-                parameters["use_mmh_sample_generator"]
-                and parameters["use_tapted_sample_generator"]
+            parameters["use_mmh_sample_generator"]
+            and parameters["use_tapted_sample_generator"]
         ):
             sample_generator = cls.MAP_MMH_TAPT_SAMPLE_GENERATOR[sg_model_name](
                 parameters=parameters,
