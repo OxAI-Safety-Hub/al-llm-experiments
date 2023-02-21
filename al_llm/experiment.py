@@ -167,9 +167,7 @@ class Experiment:
         self.interface.begin()
 
         for iteration in range(self.parameters["num_iterations"]):
-            # Perform a single iteration of model update,
-            # QUESTION: what is a "model update" here?
-            # GUESS: "model" here refers to the classifier?
+            # Perform a single iteration of model update
             self._train_classifier_on_current_data(iteration)
 
             is_last_iteration = iteration != self.parameters["num_iterations"] - 1
