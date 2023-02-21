@@ -155,7 +155,7 @@ class DatasetContainer(ABC):
 
         # Tokenize the dataset
         tokenized = dataset.map(
-            tokenize_function, batched=batched, desc=f"Tokenizing dataset"
+            tokenize_function, batched=batched, desc="Tokenizing dataset"
         )
 
         # Set the format to pytorch

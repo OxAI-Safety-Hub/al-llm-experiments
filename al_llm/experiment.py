@@ -185,7 +185,6 @@ class Experiment:
                     # Add these samples to the dataset
                     self.data_handler.new_labelled(samples, prompt_output)
 
-
             # Save the current version of the classifier and dataset
             self._save(iteration)
 
@@ -286,7 +285,8 @@ class Experiment:
     def _train_classifier_on_current_data(self, iteration: int):
         """Train the classifier with the latest datapoints.
         Depending on the value of self.parameters["refresh_every"] and iteration,
-            we may also retrain the classifier on the whole dataset (not just new datapoints)
+            we may also retrain the classifier on the whole dataset
+            (rather than just new datapoints)
 
         Parameters
         ----------
