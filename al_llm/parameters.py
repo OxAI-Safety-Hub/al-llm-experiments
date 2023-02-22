@@ -4,9 +4,12 @@ from typing import Optional
 import inspect
 from argparse import ArgumentParser, Namespace
 
+from dataclasses import dataclass
+
 from al_llm.constants import TAPTED_MODEL_DEFAULT_TAG
 
 
+@dataclass
 class Parameters(dict):
     """A sub-class of dict storing the parameters for this experiment.
 
@@ -213,142 +216,91 @@ class Parameters(dict):
          train_dataset_size).
     """
 
-    def __init__(
-        self,
-        # Necessary args
-        dataset_name: str,
-        acquisition_function: str,
-        # Optional, but important, args
-        num_iterations: int = 11,
-        batch_size: int = 4,
-        eval_batch_size: int = 32,
-        cuda_device: str = "cuda:0",
-        refresh_every: int = 1,
-        eval_every: int = 0,
-        # Other args
-        refresh_on_last: bool = True,
-        test_every: int = -1,
-        num_epochs_update: int = 3,
-        num_epochs_afresh: int = 5,
-        num_samples: int = 10,
-        num_warmup_steps: int = 0,
-        sample_pool_size: int = 1024,
-        learning_rate: float = 5e-5,
-        dev_mode: bool = False,
-        seed: int = 459834,
-        train_dataset_size: int = 10,
-        full_loop: bool = True,
-        supervised: bool = False,
-        classifier_base_model: str = "gpt2",
-        num_classifier_models: int = 1,
-        sample_generator_base_model: str = "gpt2",
-        use_tapted_sample_generator: bool = False,
-        use_tapted_classifier: bool = False,
-        tapted_model_version: str = TAPTED_MODEL_DEFAULT_TAG,
-        use_tbt_sample_generator: bool = False,
-        use_mmh_sample_generator: bool = False,
-        sample_generator_temperature: float = 0.5,
-        sample_generator_top_k: int = 50,
-        sample_generator_max_length: int = -1,
-        tbt_pre_top_k: int = 256,
-        tbt_uncertainty_weighting: float = 1,
-        tbt_uncertainty_scheduler: str = "constant",
-        mmh_num_steps: int = 50,
-        mmh_mask_probability: float = 0.15,
-        use_automatic_labeller: bool = False,
-        automatic_labeller_model_name: str = "textattack/roberta-base-rotten-tomatoes",
-        ambiguity_mode: str = "only_mark",
-        allow_skipping: bool = False,
-        replay_run: str = "",
-        use_suggested_labels: bool = False,
-        is_running_pytests: bool = False,
-        save_classifier_every: int = -1,
-        *args,
-        **kwargs,
-    ):
+    # Necessary args
+    dataset_name: str
+    acquisition_function: str
+    # Optional but important args
+    num_iterations: int = 11
+    batch_size: int = 4
+    eval_batch_size: int = 32
+    cuda_device: str = "cuda:0"
+    refresh_every: int = 1
+    eval_every: int = 0
+    # Other args
+    refresh_on_last: bool = True
+    test_every: int = -1
+    num_epochs_update: int = 3
+    num_epochs_afresh: int = 5
+    num_samples: int = 10
+    num_warmup_steps: int = 0
+    sample_pool_size: int = 1024
+    learning_rate: float = 5e-5
+    dev_mode: bool = False
+    seed: int = 459834
+    train_dataset_size: int = 10
+    full_loop: bool = True
+    supervised: bool = False
+    classifier_base_model: str = "gpt2"
+    num_classifier_models: int = 1
+    sample_generator_base_model: str = "gpt2"
+    use_tapted_sample_generator: bool = False
+    use_tapted_classifier: bool = False
+    tapted_model_version: str = TAPTED_MODEL_DEFAULT_TAG
+    use_tbt_sample_generator: bool = False
+    use_mmh_sample_generator: bool = False
+    sample_generator_temperature: float = 0.5
+    sample_generator_top_k: int = 50
+    sample_generator_max_length: int = -1
+    tbt_pre_top_k: int = 256
+    tbt_uncertainty_weighting: float = 1
+    tbt_uncertainty_scheduler: str = "constant"
+    mmh_num_steps: int = 50
+    mmh_mask_probability: float = 0.15
+    use_automatic_labeller: bool = False
+    automatic_labeller_model_name: str = "textattack/roberta-base-rotten-tomatoes"
+    ambiguity_mode: str = "only_mark"
+    allow_skipping: bool = False
+    replay_run: str = ""
+    use_suggested_labels: bool = False
+    is_running_pytests: bool = False
+    save_classifier_every: int = -1
+
+    def __post_init__(self):
         # If we're running supervised learning, we need to run a full loop
-        if supervised:
-            full_loop = True
+        if self.supervised:
+            self.full_loop = True
 
         # We can't use both the TBT and MMH sample generators
-        if use_tbt_sample_generator and use_mmh_sample_generator:
+        if self.use_tbt_sample_generator and self.use_mmh_sample_generator:
             raise ValueError(
                 "Can't have both parameters 'use_tbt_sample_generator' and "
                 "'use_mmh_sample_generator' set to True"
             )
 
-        # sets the parameters provided
-        #   'supervised' may override some parameters
-        super().__init__(
-            dataset_name=dataset_name,
-            num_iterations=1 if supervised else num_iterations,
-            refresh_every=refresh_every,
-            refresh_on_last=refresh_on_last,
-            test_every=test_every,
-            eval_every=eval_every,
-            batch_size=batch_size,
-            eval_batch_size=eval_batch_size,
-            num_epochs_update=num_epochs_update,
-            num_epochs_afresh=num_epochs_afresh,
-            num_samples=num_samples,
-            num_warmup_steps=num_warmup_steps,
-            sample_pool_size=sample_pool_size,
-            learning_rate=learning_rate,
-            dev_mode=dev_mode,
-            seed=seed,
-            train_dataset_size=train_dataset_size,
-            full_loop=full_loop,
-            supervised=supervised,
-            classifier_base_model=classifier_base_model,
-            num_classifier_models=num_classifier_models,
-            acquisition_function=acquisition_function,
-            sample_generator_base_model=sample_generator_base_model,
-            use_tapted_sample_generator=use_tapted_sample_generator,
-            use_tapted_classifier=use_tapted_classifier,
-            tapted_model_version=tapted_model_version,
-            use_tbt_sample_generator=use_tbt_sample_generator,
-            use_mmh_sample_generator=use_mmh_sample_generator,
-            sample_generator_temperature=sample_generator_temperature,
-            sample_generator_top_k=sample_generator_top_k,
-            sample_generator_max_length=sample_generator_max_length,
-            tbt_pre_top_k=tbt_pre_top_k,
-            tbt_uncertainty_weighting=tbt_uncertainty_weighting,
-            tbt_uncertainty_scheduler=tbt_uncertainty_scheduler,
-            mmh_num_steps=mmh_num_steps,
-            mmh_mask_probability=mmh_mask_probability,
-            use_automatic_labeller=use_automatic_labeller,
-            automatic_labeller_model_name=automatic_labeller_model_name,
-            ambiguity_mode=ambiguity_mode,
-            allow_skipping=allow_skipping,
-            replay_run=replay_run,
-            use_suggested_labels=use_suggested_labels,
-            cuda_device=cuda_device,
-            is_running_pytests=is_running_pytests,
-            save_classifier_every=save_classifier_every,
-            *args,
-            **kwargs,
-        )
+        if self.supervised:
+            assert self.num_iterations == 1
 
-    def update_from_dict(self, dictionary: dict, *, skip_keys: list = []):
-        """Update the parameters using a dictionary
-
-        Parameters
-        ----------
-        dictionary : dict
-            The dictionary of parameters to use to update the values
-        skip_keys : list, default = []
-            A list of keys in `dictionary` to ignore
-        """
-
-        # Get the method signature for the constructor
-        signature = inspect.signature(self.__init__)
-
-        # Loop over all the parameters in the signature, and add the
-        # corresponding value from `dictionary` if it exists, and it is
-        # permitted by `skip_keys` to do so
-        for name in dict(signature.parameters).keys():
-            if name in dictionary and name not in skip_keys:
-                self.__setitem__(name, dictionary[name])
+    def update_from_dict(self, dictionary: dict, *, skip_keys: list = ()):
+        raise NotImplementedError
+        # """Update the parameters using a dictionary
+        #
+        # Parameters
+        # ----------
+        # dictionary : dict
+        #     The dictionary of parameters to use to update the values
+        # skip_keys : list, default = []
+        #     A list of keys in `dictionary` to ignore
+        # """
+        #
+        # # Get the method signature for the constructor
+        # signature = inspect.signature(self.__init__)
+        #
+        # # Loop over all the parameters in the signature, and add the
+        # # corresponding value from `dictionary` if it exists, and it is
+        # # permitted by `skip_keys` to do so
+        # for name in dict(signature.parameters).keys():
+        #     if name in dictionary and name not in skip_keys:
+        #         self.__setitem__(name, dictionary[name])
 
     def add_to_arg_parser(
         cls,
@@ -429,7 +381,7 @@ class Parameters(dict):
     def from_argparse_namespace(
         cls, namespace: Namespace, *, defaults: dict = {}
     ) -> "Parameters":
-        """Build a `Parameters` object from and argparse namespace
+        """Build a `Parameters` object from an argparse namespace
 
         Parameters
         ----------
