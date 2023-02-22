@@ -170,7 +170,7 @@ class Experiment:
             # Perform a single iteration of model update
             self._train_classifier_on_current_data(iteration)
 
-            is_last_iteration = iteration != self.parameters["num_iterations"] - 1
+            is_last_iteration = iteration == self.parameters["num_iterations"] - 1
 
             if not is_last_iteration:
                 # Obtain new samples to label

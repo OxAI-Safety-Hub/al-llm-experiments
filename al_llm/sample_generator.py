@@ -455,9 +455,8 @@ class TokenByTokenSampleGenerator(HuggingFaceSampleGenerator, ABC):
         wandb_run: wandb.sdk.wandb_run.Run,
         acquisition_function: Optional[AcquisitionFunction] = None,
     ):
-        super().__init__(parameters, dataset_container, wandb_run, acquisition_function)
-
         self.classifier = classifier
+        super().__init__(parameters, dataset_container, wandb_run, acquisition_function)
 
     def _make_pipeline_generator(self, model: Any, tokenizer: str, **kwargs):
         # Make the default pipeline with two extra arguments
