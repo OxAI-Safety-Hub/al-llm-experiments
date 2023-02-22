@@ -305,6 +305,7 @@ class Parameters(dict):
             if name in dictionary and name not in skip_keys:
                 self.__setitem__(name, dictionary[name])
 
+    @classmethod
     def add_to_arg_parser(
         cls,
         parser: ArgumentParser,
