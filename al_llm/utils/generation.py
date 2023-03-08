@@ -164,8 +164,8 @@ class UncertaintyLogitsProcessor(LogitsProcessor):
         probabilities = F.softmax(scores, dim=1)
 
         # Compute the weighting for the uncertainty values
-        weighting = self.parameters["tbt_uncertainty_weighting"]
-        if self.parameters["tbt_uncertainty_scheduler"] == "linear":
+        weighting = self.parameters.tbt_uncertainty_weighting
+        if self.parameters.tbt_uncertainty_scheduler == "linear":
             weighting = max(0, min(1, sequnence_len / self.max_length)) * weighting
 
         # Add the weighted uncertainties to the probabilities

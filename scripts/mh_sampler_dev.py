@@ -55,7 +55,7 @@ experiment = Experiment(**args)
 experiment.classifier._load_fresh_model()
 
 # Generate some samples
-samples = experiment.sample_generator._generate_sample_pool(parameters["num_samples"])
+samples = experiment.sample_generator._generate_sample_pool(parameters.num_samples)
 
 for sample in samples:
     print(sample)

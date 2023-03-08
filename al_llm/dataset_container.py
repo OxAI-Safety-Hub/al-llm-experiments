@@ -37,7 +37,7 @@ class DatasetContainer(ABC):
     dataset_train : datasets.Dataset
         The raw dataset consisting of labelled sentences used for training, as
         a Hugging Face Dataset. This is separated from the 'train' split of
-        the dataset by selecting `parameters["train_dataset_size"]` datapoints.
+        the dataset by selecting `parameters.train_dataset_size` datapoints.
     dataset_remainder : datasets.Dataset
         The remainder of the 'train' split after `dataset_train` has been
         selected. Used by the pool-based simulator.
@@ -169,7 +169,7 @@ class DatasetContainer(ABC):
     ) -> Tuple[datasets.Dataset, datasets.Dataset]:
         """Split a dataset 'train' split into a train and remainder dataset
 
-        We select `parameters["train_dataset_size"]` datapoints and set them
+        We select `parameters.train_dataset_size` datapoints and set them
         as a train dataset, the rest going to a remainder dataset.
 
         Parameters
@@ -180,13 +180,13 @@ class DatasetContainer(ABC):
         Returns
         -------
         train_dataset : datasets.Dataset
-            A train dataset of size at most `parameters["train_dataset_size"]`,
+            A train dataset of size at most `parameters.train_dataset_size`,
             selected from `train_split`.
         remainder_dataset : datasets.Dataset
             The remainder of the train split.
         """
 
-        if len(train_split) < self.parameters["train_dataset_size"]:
+        if len(train_split) < self.parameters.train_dataset_size:
             raise ValueError(
                 f"Train split must be larger than train dataset size (currently"
                 f" {len(train_split)} < {self.parameters['train_dataset_size']})"
@@ -197,9 +197,9 @@ class DatasetContainer(ABC):
         train_split = train_split.shuffle(seed=seed)
 
         # Select the train and remainder datasets
-        train_range = range(self.parameters["train_dataset_size"])
+        train_range = range(self.parameters.train_dataset_size)
         train_dataset = train_split.select(train_range)
-        remainder_range = range(self.parameters["train_dataset_size"], len(train_split))
+        remainder_range = range(self.parameters.train_dataset_size, len(train_split))
         remainder_dataset = train_split.select(remainder_range)
 
         return train_dataset, remainder_dataset
@@ -265,7 +265,7 @@ class DatasetContainer(ABC):
         """Do any preprocessing on the dataset, just after it is loaded"""
 
         # If we're in dev mode, limit the size of the datasets significantly
-        if self.parameters["dev_mode"]:
+        if self.parameters.dev_mode:
             train_slice_size = min(20, len(self.dataset_train))
             self.dataset_train = self.dataset_train.select(range(train_slice_size))
             validation_slice_size = min(20, len(self.dataset_validation))
@@ -352,7 +352,7 @@ class DummyDatasetContainer(DatasetContainer):
     dataset_train : datasets.Dataset
         The raw dataset consisting of labelled sentences used for training, as
         a Hugging Face Dataset. This is separated from the 'train' split of
-        the dataset by selecting `parameters["train_dataset_size"]` datapoints.
+        the dataset by selecting `parameters.train_dataset_size` datapoints.
     dataset_remainder : datasets.Dataset
         The remainder of the 'train' split after `dataset_train` has been
         selected. Used by the pool-based simulator.
@@ -385,19 +385,19 @@ class DummyDatasetContainer(DatasetContainer):
         super().__init__(parameters)
 
         # Generate some training sentences
-        sentence_generator = FakeSentenceGenerator(parameters["seed"])
+        sentence_generator = FakeSentenceGenerator(parameters.seed)
         train_sentences = sentence_generator.generate(
-            parameters["train_dataset_size"] + self.REMAINDER_SIZE
+            parameters.train_dataset_size + self.REMAINDER_SIZE
         )
         validation_sentences = sentence_generator.generate(self.VALIDATION_SIZE)
         test_sentences = sentence_generator.generate(self.TEST_SIZE)
 
         # Generate the class labels
         label_generator = FakeLabelGenerator(
-            list(self.categories.keys()), parameters["seed"]
+            list(self.categories.keys()), parameters.seed
         )
         train_labels = label_generator.generate(
-            parameters["train_dataset_size"] + self.REMAINDER_SIZE
+            parameters.train_dataset_size + self.REMAINDER_SIZE
         )
         validation_labels = label_generator.generate(self.VALIDATION_SIZE)
         test_labels = label_generator.generate(self.TEST_SIZE)
@@ -464,7 +464,7 @@ class HuggingFaceDatasetContainer(DatasetContainer, ABC):
     dataset_train : datasets.Dataset
         The raw dataset consisting of labelled sentences used for training, as
         a Hugging Face Dataset. This is separated from the 'train' split of
-        the dataset by selecting `parameters["train_dataset_size"]` datapoints.
+        the dataset by selecting `parameters.train_dataset_size` datapoints.
     dataset_remainder : datasets.Dataset
         The remainder of the 'train' split after `dataset_train` has been
         selected. Used by the pool-based simulator.
@@ -532,7 +532,7 @@ class RottenTomatoesDatasetContainer(HuggingFaceDatasetContainer):
     dataset_train : datasets.Dataset
         The raw dataset consisting of labelled sentences used for training, as
         a Hugging Face Dataset. This is separated from the 'train' split of
-        the dataset by selecting `parameters["train_dataset_size"]` datapoints.
+        the dataset by selecting `parameters.train_dataset_size` datapoints.
     dataset_remainder : datasets.Dataset
         The remainder of the 'train' split after `dataset_train` has been
         selected. Used by the pool-based simulator.
@@ -600,7 +600,7 @@ class WikiToxicDatasetContainer(HuggingFaceDatasetContainer):
     dataset_train : datasets.Dataset
         The raw dataset consisting of labelled sentences used for training, as
         a Hugging Face Dataset. This is separated from the 'train' split of
-        the dataset by selecting `parameters["train_dataset_size"]` datapoints.
+        the dataset by selecting `parameters.train_dataset_size` datapoints.
     dataset_remainder : datasets.Dataset
         The remainder of the 'train' split after `dataset_train` has been
         selected. Used by the pool-based simulator.
@@ -720,7 +720,7 @@ class PubMed20kRCTDatasetContainer(HuggingFaceDatasetContainer):
     dataset_train : datasets.Dataset
         The raw dataset consisting of labelled sentences used for training, as
         a Hugging Face Dataset. This is separated from the 'train' split of
-        the dataset by selecting `parameters["train_dataset_size"]` datapoints.
+        the dataset by selecting `parameters.train_dataset_size` datapoints.
     dataset_remainder : datasets.Dataset
         The remainder of the 'train' split after `dataset_train` has been
         selected. Used by the pool-based simulator.
@@ -803,7 +803,7 @@ class Trec6DatasetContainer(HuggingFaceDatasetContainer):
     dataset_train : datasets.Dataset
         The raw dataset consisting of labelled sentences used for training, as
         a Hugging Face Dataset. This is separated from the 'train' split of
-        the dataset by selecting `parameters["train_dataset_size"]` datapoints.
+        the dataset by selecting `parameters.train_dataset_size` datapoints.
     dataset_remainder : datasets.Dataset
         The remainder of the 'train' split after `dataset_train` has been
         selected. Used by the pool-based simulator.

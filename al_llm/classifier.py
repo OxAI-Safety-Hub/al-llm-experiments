@@ -397,7 +397,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         self._model = None
 
         # set device
-        self.device = torch.device(self.parameters["cuda_device"])
+        self.device = torch.device(self.parameters.cuda_device)
 
     def train_afresh(
         self,
@@ -408,7 +408,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
     ):
         # If we're refreshing every iteration, and the most recent set of
         # samples were all skipped, then don't do any trying
-        if new_tokenized_samples is not None and self.parameters["refresh_every"] == 1:
+        if new_tokenized_samples is not None and self.parameters.refresh_every == 1:
             new_tokenized_samples = new_tokenized_samples.filter(
                 lambda x: x[SKIPS_COLUMN_NAME] == 0
             )
@@ -432,11 +432,11 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
 
         # create a dataloader for the train dataset
         train_dataloader = DataLoader(
-            tokenized_train, shuffle=True, batch_size=self.parameters["batch_size"]
+            tokenized_train, shuffle=True, batch_size=self.parameters.batch_size
         )
 
         # Run the training loop
-        self._train(train_dataloader, self.parameters["num_epochs_afresh"], iteration)
+        self._train(train_dataloader, self.parameters.num_epochs_afresh, iteration)
 
     def train_update(
         self,
@@ -463,11 +463,11 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
 
         # Make a sample loader from the latest batch of labelled samples
         samples_dataloader = DataLoader(
-            tokenized_samples, shuffle=True, batch_size=self.parameters["batch_size"]
+            tokenized_samples, shuffle=True, batch_size=self.parameters.batch_size
         )
 
         # Run the training loop
-        self._train(samples_dataloader, self.parameters["num_epochs_update"], iteration)
+        self._train(samples_dataloader, self.parameters.num_epochs_update, iteration)
 
     def _initialise(self):
         pass
@@ -484,7 +484,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         models = []
 
         # Load fresh versions of the model
-        for i in range(self.parameters["num_classifier_models"]):
+        for i in range(self.parameters.num_classifier_models):
             models.append(
                 AutoModelForSequenceClassification.from_pretrained(
                     self.MODEL_NAME, num_labels=len(self.dataset_container.CATEGORIES)
@@ -521,18 +521,18 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
 
     def _train(self, train_dataloader: DataLoader, num_epochs: int, iteration: int):
         # create an optimizer for the model
-        optimizer = AdamW(self._model.parameters(), lr=self.parameters["learning_rate"])
+        optimizer = AdamW(self._model.parameters(), lr=self.parameters.learning_rate)
 
         # The eval dataloader
         eval_dataloader = DataLoader(
             self.dataset_container.tokenized_validation,
-            batch_size=self.parameters["eval_batch_size"],
+            batch_size=self.parameters.eval_batch_size,
         )
 
         # The test dataloader
         test_dataloader = DataLoader(
             self.dataset_container.tokenized_test,
-            batch_size=self.parameters["eval_batch_size"],
+            batch_size=self.parameters.eval_batch_size,
         )
 
         # create a learning rate scheduler
@@ -540,7 +540,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         lr_scheduler = get_scheduler(
             name="linear",
             optimizer=optimizer,
-            num_warmup_steps=self.parameters["num_warmup_steps"],
+            num_warmup_steps=self.parameters.num_warmup_steps,
             num_training_steps=num_training_steps,
         )
 
@@ -570,24 +570,33 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
                 ("eval", eval_dataloader),
                 ("test", test_dataloader),
             ]:
-                # If the eval loop should run this epoch, or if it is the last epoch
-                run_eval = (
-                    self.parameters[f"{split}_every"] > 0
-                    and (epoch + 1) % self.parameters[f"{split}_every"] == 0
-                )
-                run_eval = run_eval or (
-                    self.parameters[f"{split}_every"] >= 0 and epoch == num_epochs - 1
-                )
+                if split == "eval":
+                    eval_frequency = self.parameters.eval_every
+                elif split == "test":
+                    eval_frequency = self.parameters.test_every
+                else:
+                    raise ValueError
 
-                if run_eval:
-                    # Run the evaluation loop, obtaining the metrics
-                    print(f"- Running {split} loop")
-                    eval_metrics = self._eval_epoch(dataloader)
-                    print(
-                        f"{split.capitalize()} mean loss: {eval_metrics['loss']:.8}; "
-                        f"{split.capitalize()} f1: {eval_metrics['f1']:.6}"
-                    )
-                    results_to_log[split] = eval_metrics
+                # if eval_frequency == -1, we should never evaluate the model
+                if eval_frequency < 0:
+                    assert eval_frequency == -1
+                    pass
+                else:
+                    if eval_frequency == 0:
+                        regular_eval_is_due = False
+                    else:
+                        regular_eval_is_due = (epoch + 1) % eval_frequency == 0
+                    is_last_epoch = epoch == num_epochs - 1
+
+                    if regular_eval_is_due or is_last_epoch:
+                        # Run the evaluation loop, obtaining the metrics
+                        print(f"- Running {split} loop")
+                        eval_metrics = self._eval_epoch(dataloader)
+                        print(
+                            f"{split.capitalize()} mean loss:"
+                            f" {eval_metrics['loss']:.8}; "
+                            f"{split.capitalize()} f1: {eval_metrics['f1']:.6}"
+                        )
 
             # Record the metrics with W&B
             self.wandb_run.log(results_to_log)
@@ -798,7 +807,7 @@ class HuggingFaceClassifier(UncertaintyMixin, Classifier):
         num_samples = tokenized_samples.shape[0]
 
         # Store the batch size with a shorter variable name
-        batch_size = self.parameters["eval_batch_size"]
+        batch_size = self.parameters.eval_batch_size
 
         # Make a PyTorch dataloader for the samples
         samples_dataloader = DataLoader(tokenized_samples, batch_size=batch_size)
@@ -894,11 +903,11 @@ class TAPTClassifier(HuggingFaceClassifier, ABC):
         models, training_args = load_tapted_model(
             self.wandb_run,
             self.MODEL_NAME,
-            self.parameters["dataset_name"],
+            self.parameters.dataset_name,
             "classifier",
             num_categories=len(self.dataset_container.CATEGORIES),
-            tapted_model_version=self.parameters["tapted_model_version"],
-            num_models=self.parameters["num_classifier_models"],
+            tapted_model_version=self.parameters.tapted_model_version,
+            num_models=self.parameters.num_classifier_models,
         )
         self._model = HuggingFaceClassifierEnsemble(models)
         self.training_parameters = training_args

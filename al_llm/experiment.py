@@ -155,7 +155,7 @@ class Experiment:
         # Clean up to stop the wandb cache from overfilling
         self._clear_cache()
 
-        if self.parameters["full_loop"]:
+        if self.parameters.full_loop:
             self._run_full()
         else:
             self._run_single_iteration()
@@ -166,17 +166,17 @@ class Experiment:
         # Start the user interface
         self.interface.begin()
 
-        for iteration in range(self.parameters["num_iterations"]):
+        for iteration in range(self.parameters.num_iterations):
             # Perform a single iteration of model update
             self._train_classifier_on_current_data(iteration)
 
-            is_last_iteration = iteration == self.parameters["num_iterations"] - 1
+            is_last_iteration = iteration == self.parameters.num_iterations - 1
 
             if not is_last_iteration:
                 # Obtain new samples to label
                 samples = self._get_samples()
 
-                if not self.parameters["supervised"]:
+                if not self.parameters.supervised:
                     # Get the labels from the human
                     prompt_output = self.interface.prompt(samples)
 
@@ -245,9 +245,7 @@ class Experiment:
 
         # Get the unlabelled sentences saved to WandB by taking the
         # last `num_samples` items from added_data's 'text' column
-        unlabelled_added = added_data[TEXT_COLUMN_NAME][
-            -self.parameters["num_samples"] :
-        ]
+        unlabelled_added = added_data[TEXT_COLUMN_NAME][-self.parameters.num_samples :]
 
         # Prompt the human for labels
         prompt_output = self.interface.prompt(unlabelled_added)
@@ -268,7 +266,7 @@ class Experiment:
 
     def _train_classifier_on_current_data(self, iteration: int):
         """Train the classifier with the latest datapoints.
-        Depending on the value of self.parameters["refresh_every"] and iteration,
+        Depending on the value of self.parameters.refresh_every and iteration,
             we may also retrain the classifier on the whole dataset
             (rather than just new datapoints)
 
@@ -280,7 +278,7 @@ class Experiment:
 
         # Set the random number seed, so that the experiment is
         # reproducible whether we do full loop AL or broken loop
-        set_seed(self.parameters["seed"] + iteration)
+        set_seed(self.parameters.seed + iteration)
 
         dataset_samples = self.data_handler.get_latest_tokenized_datapoints()
 
@@ -291,13 +289,13 @@ class Experiment:
         is_first_iteration = iteration == 0
 
         refresh_is_due = (
-            self.parameters["refresh_every"] != -1
-            and iteration % self.parameters["refresh_every"] == 0
+            self.parameters.refresh_every != -1
+            and iteration % self.parameters.refresh_every == 0
         )
 
         should_refresh_for_because_of_final_iteration = (
-            iteration + 1 == self.parameters["num_iterations"]
-            and self.parameters["refresh_on_last"]
+            iteration + 1 == self.parameters.num_iterations
+            and self.parameters.refresh_on_last
         )
 
         if (
@@ -319,7 +317,7 @@ class Experiment:
         """
 
         # If performing supervised learning, skip the sample generation
-        if self.parameters["supervised"]:
+        if self.parameters.supervised:
             return []
 
         # Generate some new samples to query
@@ -361,10 +359,10 @@ class Experiment:
 
         # Only save the classifier if we are at the correct iteration according
         # to the 'save_classifier_every' parameter
-        save_classifier_every = self.parameters["save_classifier_every"]
-        iteration_max = self.parameters["num_iterations"] - 1
+        save_classifier_every = self.parameters.save_classifier_every
+        iteration_max = self.parameters.num_iterations - 1
         if (
-            not self.parameters["full_loop"]
+            not self.parameters.full_loop
             or (save_classifier_every > 0 and iteration % save_classifier_every == 0)
             or (save_classifier_every >= 0 and iteration == iteration_max)
         ):
@@ -424,12 +422,12 @@ class Experiment:
         """
 
         # Whether we're doing a replay run
-        do_replay_run = parameters["replay_run"] != ""
+        do_replay_run = parameters.replay_run != ""
 
         if do_replay_run:
             # Build up the full path, using the entity and project name, if
             # not already specified
-            replay_run_path = parameters["replay_run"]
+            replay_run_path = parameters.replay_run
             if replay_run_path.count("/") == 0:
                 replay_run_path = "/".join(
                     [WANDB_ENTITY, project_name, replay_run_path]
@@ -468,7 +466,7 @@ class Experiment:
             resume="allow",
             id=run_id,
             tags=tags,
-            mode="disabled" if parameters["is_running_pytests"] else "online",
+            mode="disabled" if parameters.is_running_pytests else "online",
         )
 
         # Ensure that if a run is being resumed, it is intentional
@@ -485,15 +483,15 @@ class Experiment:
                     happy_to_continue = True
 
         # Set the seed now, because the data handler may do some shuffling
-        set_seed(parameters["seed"])
+        set_seed(parameters.seed)
 
         # Set up the dataset_container
-        dc_class = cls.MAP_DATASET_CONTAINER[parameters["dataset_name"]]
+        dc_class = cls.MAP_DATASET_CONTAINER[parameters.dataset_name]
         dataset_container = dc_class(parameters)
 
         # Set up the classifier
-        classifier_model_name = parameters["classifier_base_model"]
-        if parameters["use_tapted_classifier"]:
+        classifier_model_name = parameters.classifier_base_model
+        if parameters.use_tapted_classifier:
             classifier = cls.MAP_TAPT_CLASSIFIER[classifier_model_name](
                 parameters, dataset_container, wandb_run
             )
@@ -510,7 +508,7 @@ class Experiment:
             data_handler.load_replay_dataset_extension(replayed_run)
 
         # Set up the acquisition function (could be None)
-        af_name = parameters["acquisition_function"]
+        af_name = parameters.acquisition_function
         af_class = cls.MAP_ACQUISITION_FUNCTION[af_name]
         if af_class is None or do_replay_run:
             acquisition_function = None
@@ -520,7 +518,7 @@ class Experiment:
             acquisition_function = af_class(parameters)
 
         # Set up the sample generator
-        sg_model_name = parameters["sample_generator_base_model"]
+        sg_model_name = parameters.sample_generator_base_model
         if do_replay_run:
             sample_generator = ReplaySampleGenerator(
                 parameters=parameters,
@@ -536,8 +534,8 @@ class Experiment:
                 acquisition_function=acquisition_function,
             )
         elif (
-            parameters["use_tbt_sample_generator"]
-            and not parameters["use_tapted_sample_generator"]
+            parameters.use_tbt_sample_generator
+            and not parameters.use_tapted_sample_generator
         ):
             sample_generator = cls.MAP_TBT_PLAIN_SAMPLE_GENERATOR[sg_model_name](
                 parameters=parameters,
@@ -547,8 +545,8 @@ class Experiment:
                 acquisition_function=acquisition_function,
             )
         elif (
-            parameters["use_tbt_sample_generator"]
-            and parameters["use_tapted_sample_generator"]
+            parameters.use_tbt_sample_generator
+            and parameters.use_tapted_sample_generator
         ):
             sample_generator = cls.MAP_TBT_TAPT_SAMPLE_GENERATOR[sg_model_name](
                 parameters=parameters,
@@ -558,8 +556,8 @@ class Experiment:
                 acquisition_function=acquisition_function,
             )
         elif (
-            parameters["use_mmh_sample_generator"]
-            and not parameters["use_tapted_sample_generator"]
+            parameters.use_mmh_sample_generator
+            and not parameters.use_tapted_sample_generator
         ):
             sample_generator = cls.MAP_MMH_PLAIN_SAMPLE_GENERATOR[sg_model_name](
                 parameters=parameters,
@@ -569,8 +567,8 @@ class Experiment:
                 acquisition_function=acquisition_function,
             )
         elif (
-            parameters["use_mmh_sample_generator"]
-            and parameters["use_tapted_sample_generator"]
+            parameters.use_mmh_sample_generator
+            and parameters.use_tapted_sample_generator
         ):
             sample_generator = cls.MAP_MMH_TAPT_SAMPLE_GENERATOR[sg_model_name](
                 parameters=parameters,
@@ -579,7 +577,7 @@ class Experiment:
                 wandb_run=wandb_run,
                 acquisition_function=acquisition_function,
             )
-        elif parameters["use_tapted_sample_generator"]:
+        elif parameters.use_tapted_sample_generator:
             sample_generator = cls.MAP_TAPT_SAMPLE_GENERATOR[sg_model_name](
                 parameters=parameters,
                 dataset_container=dataset_container,
@@ -596,7 +594,7 @@ class Experiment:
 
         # Update the W&B config with TAPT parameters, if we're using a TAPTed
         # sample generator
-        if parameters["use_tapted_sample_generator"] and not do_replay_run:
+        if parameters.use_tapted_sample_generator and not do_replay_run:
             tapt_parameters = sample_generator.get_training_parameters()
             wandb.config.update({"tapt_sample_generator": tapt_parameters})
 
@@ -605,16 +603,16 @@ class Experiment:
             interface = ReplayInterface(
                 parameters, dataset_container, wandb_run, data_handler
             )
-        elif parameters["use_automatic_labeller"]:
+        elif parameters.use_automatic_labeller:
             interface = AutomaticLabellerInterface(
                 parameters,
                 dataset_container,
                 wandb_run,
-                parameters["automatic_labeller_model_name"],
+                parameters.automatic_labeller_model_name,
             )
-        elif sg_model_name == "pool" or parameters["use_suggested_labels"]:
+        elif sg_model_name == "pool" or parameters.use_suggested_labels:
             interface = PoolSimulatorInterface(parameters, dataset_container, wandb_run)
-        elif parameters["full_loop"]:
+        elif parameters.full_loop:
             interface = CLIInterface(parameters, dataset_container, wandb_run)
         else:
             interface = CLIBrokenLoopInterface(parameters, dataset_container, wandb_run)

@@ -49,7 +49,7 @@ for i, seed in enumerate(seeds):
     print()
 
     # Set the seed
-    parameters["seed"] = seed
+    parameters.seed = seed
 
     # Make the experiment
     args = Experiment.make_experiment(

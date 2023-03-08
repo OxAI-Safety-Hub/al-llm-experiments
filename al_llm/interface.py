@@ -300,8 +300,8 @@ class CLIInterface(CLIInterfaceMixin, FullLoopInterface):
         """
 
         # Create the initial PromptOutput object
-        getting_ambiguities = self.parameters["ambiguity_mode"] != "none"
-        getting_skips = self.parameters["allow_skipping"]
+        getting_ambiguities = self.parameters.ambiguity_mode != "none"
+        getting_skips = self.parameters.allow_skipping
         ambiguities = [] if getting_ambiguities else None
         skip_mask = [] if getting_skips else None
         prompt_output = PromptOutput(
@@ -551,7 +551,7 @@ class AutomaticLabellerInterface(SimpleCLIInterfaceMixin, Interface):
         self.line_width = line_width
 
         # Set the device
-        device = torch.device(self.parameters["cuda_device"])
+        device = torch.device(self.parameters.cuda_device)
 
         # Make the classification pipeline
         self.pipeline = pipeline(
@@ -588,7 +588,7 @@ class AutomaticLabellerInterface(SimpleCLIInterfaceMixin, Interface):
 
         # Get the outputs of the model
         outputs = self.pipeline(
-            samples_dataset, batch_size=self.parameters["eval_batch_size"]
+            samples_dataset, batch_size=self.parameters.eval_batch_size
         )
 
         # Get the actual labels from these
