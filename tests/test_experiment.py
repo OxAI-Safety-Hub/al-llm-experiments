@@ -22,6 +22,8 @@ class TestFullLoopDummyExperiment:
             acquisition_function="dummy",
             full_loop=True,
             is_running_pytests=True,
+            num_iterations=1,
+            dev_mode=True,
         )
         dummy_args = Experiment.make_experiment(
             parameters, WANDB_PROJECTS["sandbox"], "test"

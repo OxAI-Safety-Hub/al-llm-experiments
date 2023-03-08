@@ -121,13 +121,11 @@ class SampleGenerator(ABC):
         if self.acquisition_function is None:
             # With no acquisition function, just generate samples without
             # filtering
-            return self._generate_sample_pool(self.parameters["num_samples"])
+            return self._generate_sample_pool(self.parameters.num_samples)
 
         else:
             # With an acquisition function, first generate the samples
-            sample_pool = self._generate_sample_pool(
-                self.parameters["sample_pool_size"]
-            )
+            sample_pool = self._generate_sample_pool(self.parameters.sample_pool_size)
 
             # Then select through the acquisition function
             print()
@@ -156,8 +154,8 @@ class SampleGenerator(ABC):
 class DummySampleGenerator(SampleGenerator):
     """Dummy sample generator, which generates random stuff
 
-    It generates `parameters["num_samples"]` samples. If an acquisition
-    function is supplied, it first generates `parameters["sample_pool_size"]`
+    It generates `parameters.num_samples` samples. If an acquisition
+    function is supplied, it first generates `parameters.sample_pool_size`
     then uses the function to select from these.
 
     Parameters
@@ -232,7 +230,7 @@ class PoolSampleGenerator(SampleGenerator):
         # as many as you can take up to the length of `remainder_sentences`
         pool_indices = random.sample(
             range(len(self.remainder_sentences)),
-            min(len(self.remainder_sentences), self.parameters["sample_pool_size"]),
+            min(len(self.remainder_sentences), self.parameters.sample_pool_size),
         )
 
         # Build an `UnlabelledSamples` object, attaching the dataset labels as
@@ -323,10 +321,10 @@ class HuggingFaceSampleGenerator(SampleGenerator, ABC):
         super().__init__(parameters, dataset_container, wandb_run, acquisition_function)
 
         # Set the max sentence length to generate, in tokens
-        if self.parameters["sample_generator_max_length"] == -1:
+        if self.parameters.sample_generator_max_length == -1:
             self._max_length = dataset_container.TOKENIZED_LENGTH_UPPER_QUARTILE
         else:
-            self._max_length = self.parameters["sample_generator_max_length"]
+            self._max_length = self.parameters.sample_generator_max_length
 
         # Load the model we'll use for generating
         self._load_generator_model()
@@ -379,7 +377,7 @@ class HuggingFaceSampleGenerator(SampleGenerator, ABC):
         """
 
         # Set the device to use
-        device = torch.device(self.parameters["cuda_device"])
+        device = torch.device(self.parameters.cuda_device)
 
         # Get the logits preprocessor to use
         logits_processor = self._make_logits_processor()
@@ -390,8 +388,8 @@ class HuggingFaceSampleGenerator(SampleGenerator, ABC):
             model=model,
             device=device,
             tokenizer=tokenizer,
-            temperature=self.parameters["sample_generator_temperature"],
-            top_k=self.parameters["sample_generator_top_k"],
+            temperature=self.parameters.sample_generator_temperature,
+            top_k=self.parameters.sample_generator_top_k,
             logits_processor=logits_processor,
             **kwargs,
         )
@@ -470,9 +468,7 @@ class TokenByTokenSampleGenerator(HuggingFaceSampleGenerator, ABC):
 
         # The logits processor which filters out the top k tokens before adding
         # the uncertainties
-        pre_top_k_logits_processor = TopKLogitsProcessor(
-            self.parameters["tbt_pre_top_k"]
-        )
+        pre_top_k_logits_processor = TopKLogitsProcessor(self.parameters.tbt_pre_top_k)
 
         # The logits processor which adds the uncertainty values
         uncertainty_logits_processor = UncertaintyLogitsProcessor(
@@ -494,10 +490,10 @@ class MaskedMHSampleGenerator(HuggingFaceSampleGenerator, ABC):
 
     The algorithm proceeds as follows.
 
-    1. Start with a set of `parameters["sample_pool_size"]` initial samples
+    1. Start with a set of `parameters.sample_pool_size` initial samples
        taken from the unlabelled set.
-    2. Repeat the following three steps for `parameters["mmh_num_steps"]`.
-    3. In each sample, randomly mask `parameters["mmh_mask_proportion"]` of
+    2. Repeat the following three steps for `parameters.mmh_num_steps`.
+    3. In each sample, randomly mask `parameters.mmh_mask_proportion` of
        the tokens, and sample tokens to replace them based on the MLM's
        probability distribution.
     4. Accept these new tokens with probability given by the resulting
@@ -556,13 +552,11 @@ class MaskedMHSampleGenerator(HuggingFaceSampleGenerator, ABC):
 
         # Warper for chainging the temperature
         temperature_logits_warper = TemperatureLogitsWarper(
-            self.parameters["sample_generator_temperature"]
+            self.parameters.sample_generator_temperature
         )
 
         # Warper for filtering the top k
-        top_k_logits_warper = TopKLogitsWarper(
-            self.parameters["sample_generator_top_k"]
-        )
+        top_k_logits_warper = TopKLogitsWarper(self.parameters.sample_generator_top_k)
 
         # Make these into a list
         logits_warper = LogitsProcessorList(
@@ -583,7 +577,7 @@ class MaskedMHSampleGenerator(HuggingFaceSampleGenerator, ABC):
         """
 
         # Set the device to use
-        device = torch.device(self.parameters["cuda_device"])
+        device = torch.device(self.parameters.cuda_device)
 
         # The scoring function to use in the sampling algorithm, which scores
         # using the classifier uncertainty
@@ -618,9 +612,9 @@ class MaskedMHSampleGenerator(HuggingFaceSampleGenerator, ABC):
             model=model,
             device=device,
             tokenizer=tokenizer,
-            num_steps=self.parameters["mmh_num_steps"],
+            num_steps=self.parameters.mmh_num_steps,
             scoring_function=scoring_function,
-            mask_probability=self.parameters["mmh_mask_probability"],
+            mask_probability=self.parameters.mmh_mask_probability,
             logits_warper=logits_warper,
             **kwargs,
         )
@@ -642,13 +636,13 @@ class MaskedMHSampleGenerator(HuggingFaceSampleGenerator, ABC):
         # Select `pool_size` samples from the unlabelled pool
         pool_indices = random.sample(
             range(len(self.remainder_sentences)),
-            min(len(self.remainder_sentences), self.parameters["sample_pool_size"]),
+            min(len(self.remainder_sentences), self.parameters.sample_pool_size),
         )
         initial_samples = [self.remainder_sentences[i] for i in pool_indices]
 
         # Run the Masked MH algorithm starting with these
         sample_pool = self.generator(
-            initial_samples, batch_size=self.parameters["eval_batch_size"]
+            initial_samples, batch_size=self.parameters.eval_batch_size
         )
         sample_pool = UnlabelledSamples(sample_pool)
 
@@ -671,9 +665,9 @@ class TAPTMixin(ABC):
         model, training_args = load_tapted_model(
             self.wandb_run,
             self.GENERATOR_MODEL_NAME,
-            self.parameters["dataset_name"],
+            self.parameters.dataset_name,
             "sample_generator",
-            tapted_model_version=self.parameters["tapted_model_version"],
+            tapted_model_version=self.parameters.tapted_model_version,
         )
         self.generator_model = model
         self.training_parameters = training_args
@@ -697,8 +691,8 @@ class TAPTMixin(ABC):
 class PlainGPT2SampleGenerator(HuggingFaceSampleGenerator):
     """Plain GPT-2 sample generator, which just generates real sentences
 
-    It generates `parameters["num_samples"]` samples. If an acquisition
-    function is supplied, it first generates `parameters["sample_pool_size"]`
+    It generates `parameters.num_samples` samples. If an acquisition
+    function is supplied, it first generates `parameters.sample_pool_size`
     then uses the function to select from these.
 
     Parameters
@@ -720,8 +714,8 @@ class PlainGPT2SampleGenerator(HuggingFaceSampleGenerator):
 class TAPTDistilGPT2SampleGenerator(TAPTMixin, HuggingFaceSampleGenerator):
     """Tapted distilGPT-2 sample generator, which generates real sentences
 
-    It generates `parameters["num_samples"]` samples. If an acquisition
-    function is supplied, it first generates `parameters["sample_pool_size"]`
+    It generates `parameters.num_samples` samples. If an acquisition
+    function is supplied, it first generates `parameters.sample_pool_size`
     then uses the function to select from these.
 
     Parameters
@@ -743,8 +737,8 @@ class TAPTDistilGPT2SampleGenerator(TAPTMixin, HuggingFaceSampleGenerator):
 class TAPTGPT2SampleGenerator(TAPTMixin, HuggingFaceSampleGenerator):
     """Tapted GPT-2 sample generator, which generates real sentences
 
-    It generates `parameters["num_samples"]` samples. If an acquisition
-    function is supplied, it first generates `parameters["sample_pool_size"]`
+    It generates `parameters.num_samples` samples. If an acquisition
+    function is supplied, it first generates `parameters.sample_pool_size`
     then uses the function to select from these.
 
     Parameters
