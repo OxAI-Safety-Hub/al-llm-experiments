@@ -30,6 +30,8 @@ def _basic_acquisition_function_test(acquisition_function_cls):
         acquisition_function="dummy",
         num_samples=5,
         sample_pool_size=20,
+        dev_mode=True,
+        num_iterations=1,
     )
 
     # Make the instances
@@ -42,7 +44,7 @@ def _basic_acquisition_function_test(acquisition_function_cls):
 
     # Generate some sentences then select them using the acquisition function
     sample_pool = UnlabelledSamples(
-        [str(i) for i in range(parameters["sample_pool_size"])]
+        [str(i) for i in range(parameters.sample_pool_size)]
     )
     samples = acquisition_function.select(sample_pool)
 
@@ -51,7 +53,7 @@ def _basic_acquisition_function_test(acquisition_function_cls):
         assert sample in sample_pool
 
     # Make sure the selection has the correct size
-    assert len(samples) == parameters["num_samples"]
+    assert len(samples) == parameters.num_samples
 
 
 def test_random_acquisition_function():
