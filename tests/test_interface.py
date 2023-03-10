@@ -27,6 +27,7 @@ def test_pool_simulator_interface():
         dataset_name="dummy",
         acquisition_function="dummy",
         sample_generator_base_model="pool",
+        classifier_base_model="dummy",
         full_loop=True,
         is_running_pytests=True,
     )
@@ -63,6 +64,7 @@ class TestCLIInterface:
                 dataset_name="dummy",
                 acquisition_function="dummy",
                 full_loop=True,
+                classifier_base_model="dummy",
                 is_running_pytests=True,
                 num_samples=num_samples,
                 num_iterations=1,
