@@ -20,6 +20,7 @@ class TestFullLoopDummyExperiment:
         parameters = Parameters(
             dataset_name="dummy",
             acquisition_function="dummy",
+            classifier_base_model="dummy",
             full_loop=True,
             is_running_pytests=True,
             num_iterations=1,

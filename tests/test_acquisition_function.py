@@ -28,6 +28,7 @@ def _basic_acquisition_function_test(acquisition_function_cls):
     parameters = Parameters(
         dataset_name="dummy",
         acquisition_function="dummy",
+        classifier_base_model="dummy",
         num_samples=5,
         sample_pool_size=20,
         dev_mode=True,

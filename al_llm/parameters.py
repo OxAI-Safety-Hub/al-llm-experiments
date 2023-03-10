@@ -27,7 +27,6 @@ class Parameters(dict):
     dataset_name : str,
         The name of the dataset to be downloaded from Hugging Face.
     acquisition_function : str,
-    # TODO add validation (lookup in Experiment.MAP_ACQUISTION_FUNCTION)
         The name of the acquisition function to use. This should be chosen
         from the keys of Experiment.MAP_ACQUISITION_FUNCTION.
         For example, "random", "max_uncertainty".
@@ -47,7 +46,6 @@ class Parameters(dict):
         The string specifying the CUDA device to use
     refresh_every : int, default=1
         refresh_every ∈ {-1} ∪ {1,2,3,...}
-        # TODO add validation
         After how many iterations do we refresh the classifier (retrain
          it classifier on all the data so far)?
          If refresh_every is -1, the model is never refreshed.
@@ -156,7 +154,6 @@ class Parameters(dict):
     use_mmh_sample_generator : bool, default=False
         Whether to use the Masked Metropolis-Hastings sample generator.
         For more info, see MaskedMHSampleGenerator(...).
-        # TODO make sure these aren't both true in val
     mmh_num_steps : int, default=50
         (ONLY USED IF mmh_num_steps==True)
         When doing Masked Metropolis-Hasting sampling, this is the number of
@@ -171,7 +168,6 @@ class Parameters(dict):
         Whether to use a pretrained classifier as an oracle to provide the labels,
         instead of a human.
     automatic_labeller_model_name : str,
-        # TODO make this None and then determined by the dataset
         (ONLY USED IF use_automatic_labeller==True)
         default="textattack/roberta-base-rotten-tomatoes"
         The name of the Hugging Face model to use as the automatic labeller.
@@ -219,6 +215,7 @@ class Parameters(dict):
     # Necessary args
     dataset_name: str
     acquisition_function: str
+
     # Optional but important args
     num_iterations: int = 11
     batch_size: int = 4
@@ -226,6 +223,7 @@ class Parameters(dict):
     cuda_device: str = "cuda:0"
     refresh_every: int = 1
     eval_every: int = 0
+
     # Other args
     refresh_on_last: bool = True
     test_every: int = -1
@@ -266,6 +264,10 @@ class Parameters(dict):
     save_classifier_every: int = -1
 
     def __post_init__(self):
+        # refresh_every ∈ {-1} ∪ {1,2,3,...}
+        assert isinstance(self.refresh_every, int)
+        assert self.refresh_every == -1 or self.refresh_every >= 1
+
         # If we're running supervised learning, we need to run a full loop
         if self.supervised:
             self.full_loop = True
