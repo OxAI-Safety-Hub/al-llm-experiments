@@ -1,0 +1,1 @@
+runuser -l sam -c 'cd ~/Experiments; git pull; git checkout pool_based_experiments'; echo 'cd ~/Experiments; tmux new-session -d; tmux split-window -h venv/bin/nvitop; tmux select-pane -t 0; tmux send-keys "source venv/bin/activate" ENTER; tmux attach' > /usr/local/bin/al_llm_tmux; chmod a+x /usr/local/bin/al_llm_tmux; touch ~/.no_auto_tmux
