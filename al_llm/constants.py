@@ -15,6 +15,7 @@ LABEL_TRAINING_SEED = 42
 LABEL_TRAINING_PROJECT = "Labelling-Training"
 
 # W&B details
+# TODO: Change this to your own W&B entity
 WANDB_ENTITY = "oxai-safety-labs-active-learning"
 
 # The names of the W&B projects

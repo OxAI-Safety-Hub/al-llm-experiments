@@ -1,5 +1,8 @@
 # Active learning with a generative large language model
 
+This is codebase for experiments run doing text-based active learning using large language models as generative models for query synthesis. Contact [me@samadamday.com](me@samadamday.com) for more details.
+
+
 ## Installation
 
 - Clone the repository:
@@ -11,6 +14,8 @@ git clone git@github.com:OxAI-Safety-Hub/al-llm-experiments.git
 ```
 pip install -r requirements.txt
 ```
+- Set up [Weights and Biases](https://wandb.ai/)
+- Change the Weights and Biases entity name in [`/al_llm/constants.py`](/al_llm/constants.py).
 
 
 ## Running experiments
