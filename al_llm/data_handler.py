@@ -85,7 +85,7 @@ class DataHandler:
         # return the last `num_samples`entries from `tokenized_train`
         # (because adding items puts them at the end of the dataset)
         samples_dict = self.dataset_container.tokenized_train[
-            -self.parameters["num_samples"] :
+            -self.parameters.num_samples :
         ]
         tokenized_samples = datasets.Dataset.from_dict(samples_dict)
         tokenized_samples.set_format("torch")
@@ -129,7 +129,7 @@ class DataHandler:
         # get all datapoints from dataset_train after `train_dataset_size`,
         # i.e. only data added by AL process
         added_data = self.dataset_container.dataset_train[
-            self.parameters["train_dataset_size"] :
+            self.parameters.train_dataset_size :
         ]
 
         # add the samples in `unlabelled_samples` (if there are any)
@@ -186,8 +186,8 @@ class DataHandler:
             The list of sentences selected
         """
 
-        start = iteration * self.parameters["num_samples"]
-        end = (iteration + 1) * self.parameters["num_samples"]
+        start = iteration * self.parameters.num_samples
+        end = (iteration + 1) * self.parameters.num_samples
         return UnlabelledSamples(
             self.replay_dataset_extension[TEXT_COLUMN_NAME][start:end]
         )
@@ -211,8 +211,8 @@ class DataHandler:
         """
 
         # Get the labels and ambiguities
-        start = iteration * self.parameters["num_samples"]
-        end = (iteration + 1) * self.parameters["num_samples"]
+        start = iteration * self.parameters.num_samples
+        end = (iteration + 1) * self.parameters.num_samples
         labels = self.replay_dataset_extension[LABEL_COLUMN_NAME][start:end]
         ambiguities = self.replay_dataset_extension[AMBIGUITIES_COLUMN_NAME][start:end]
 

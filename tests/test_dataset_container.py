@@ -86,7 +86,11 @@ def _basic_dataset_container_tests(dataset_container, tokenize):
 
 def test_dummy_dataset_container():
     # Set up the dummy dataset container
-    parameters = Parameters()
+    parameters = Parameters(
+        dataset_name="dummy",
+        acquisition_function="dummy",
+        classifier_base_model="dummy",
+    )
     dataset_container = DummyDatasetContainer(parameters)
 
     # Make sure the dataset splits are of the right type

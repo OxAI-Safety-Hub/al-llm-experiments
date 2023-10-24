@@ -24,7 +24,12 @@ class CycleStringIO(io.TextIOBase):
 def test_pool_simulator_interface():
     # Make a dummy experiment using PoolSimulatorInterface
     parameters = Parameters(
-        sample_generator_base_model="pool", full_loop=True, is_running_pytests=True
+        dataset_name="dummy",
+        acquisition_function="dummy",
+        sample_generator_base_model="pool",
+        classifier_base_model="dummy",
+        full_loop=True,
+        is_running_pytests=True,
     )
     args = Experiment.make_experiment(parameters, WANDB_PROJECTS["sandbox"], "test")
     experiment = Experiment(**args)
@@ -56,51 +61,87 @@ class TestCLIInterface:
         for extra_parameters in ParameterGrid(extra_parameters_grid):
             # Create a dummy experiment using these parametes
             parameters = Parameters(
+                dataset_name="dummy",
+                acquisition_function="dummy",
                 full_loop=True,
+                classifier_base_model="dummy",
                 is_running_pytests=True,
                 num_samples=num_samples,
+                num_iterations=1,
+                dev_mode=True,
                 **extra_parameters
             )
+
             args = Experiment.make_experiment(
                 parameters, WANDB_PROJECTS["sandbox"], "test"
             )
+
             experiment = Experiment(**args)
 
             # Determine the prompt inputs
             num_categories = len(experiment.dataset_container.categories)
-            num_options = num_categories
-            if extra_parameters["ambiguity_mode"] == "only_mark":
-                num_options *= 2
-            if extra_parameters["allow_skipping"]:
-                num_options += 1
-            prompt_inputs = [str(i) for i in range(num_options)]
 
-            # Determine the expected resulting labels, ambiguities and skip
-            # mask
-            expected_output = [(i, 0, 0) for i in range(num_categories)]
+            # Calculate how many options the user is presented
+            num_user_options = num_categories
+
             if extra_parameters["ambiguity_mode"] == "only_mark":
-                expected_output.extend([(i, 1, 0) for i in range(num_categories)])
+                # Each option has an unambiguous and ambiguous version
+                num_user_options *= 2
+
             if extra_parameters["allow_skipping"]:
-                expected_output.append((0, 0, 1))
+                # There is an extra option for "skipping"
+                num_user_options += 1
+
+            # List all of the ways the user could respond to a prompt
+            prompt_user_inputs = [str(i) for i in range(num_user_options)]
 
             # Run the prompt feeding the prompt inputs to STDIN, cycling
             # through them for as long as necessary
-            sys.stdin = CycleStringIO(prompt_inputs)
+            sys.stdin = CycleStringIO(prompt_user_inputs)
             samples = experiment.sample_generator.generate()
             prompt_output = experiment.interface.prompt(samples)
 
-            # Make sure that the prompt output aligns with what we expect
-            iterator = zip(
-                expected_output,
-                prompt_output.labels,
-                prompt_output.ambiguities,
-                prompt_output.skip_mask,
-            )
-            category_keys = list(experiment.dataset_container.categories.keys())
-            for expected, label, ambiguity, skip in iterator:
-                assert label == category_keys[expected[0]]
-                assert ambiguity == expected[1]
-                assert skip == expected[2]
+            # Make sure that the returned lists have the correct length
+            assert num_samples == len(prompt_output.labels)
+            assert num_samples == len(prompt_output.ambiguities)
+            assert num_samples == len(prompt_output.skip_mask)
+
+            category_labels = list(experiment.dataset_container.categories.keys())
+
+            for i in range(num_samples):
+                # Get the input number which is fed to the prompt
+                prompt_input_number = i % len(prompt_user_inputs)
+
+                actual_label = prompt_output.labels[i]
+                actual_ambiguity = prompt_output.ambiguities[i]
+                actual_skip = prompt_output.skip_mask[i]
+
+                if 0 <= prompt_input_number < num_categories:
+                    # The first num_categories options are just plain categories
+                    assert actual_label == category_labels[prompt_input_number]
+                    assert actual_ambiguity == 0
+                    assert actual_skip == 0
+                elif (
+                    extra_parameters["ambiguity_mode"] == "only_mark"
+                    and num_categories <= prompt_input_number < num_categories * 2
+                ):
+                    # The label returned will be category + num_categories
+                    assert (
+                        actual_label
+                        == category_labels[prompt_input_number - num_categories]
+                    )
+                    assert actual_ambiguity == 1
+                    assert actual_skip == 0
+                elif (
+                    extra_parameters["allow_skipping"]
+                    and prompt_input_number == len(prompt_user_inputs) - 1
+                ):
+                    # If skipping is on, the last option is for skip
+                    assert actual_label == category_labels[0]
+                    assert actual_ambiguity == 0
+                    assert actual_skip == 1
+                else:
+                    raise ValueError("This case shouldn't be reached")
 
     def setup_method(self):
         self.orig_stdin = sys.stdin

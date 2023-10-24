@@ -33,7 +33,7 @@ class AcquisitionFunction(ABC):
             The list of sentences from which to sample
         num_samples : int, default=-1
             The number of samples to select. The default value of -1 means
-            that `parameters["num_samples"]` is used.
+            that `parameters.num_samples` is used.
 
         Returns
         -------
@@ -48,11 +48,11 @@ class AcquisitionFunction(ABC):
     ) -> int:
         """Determine and validate the number of samples to take
 
-        The value of -1 means that `parameters["num_samples"]` is used.
+        The value of -1 means that `parameters.num_samples` is used.
         """
 
         if num_samples == -1:
-            num_samples = self.parameters["num_samples"]
+            num_samples = self.parameters.num_samples
 
         if num_samples > len(sample_pool):
             raise ValueError(

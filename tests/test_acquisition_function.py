@@ -25,7 +25,15 @@ class LengthUncertaintyClassifier(DummyClassifier):
 
 def _basic_acquisition_function_test(acquisition_function_cls):
     # The parameters to use for this test
-    parameters = Parameters(num_samples=5, sample_pool_size=20)
+    parameters = Parameters(
+        dataset_name="dummy",
+        acquisition_function="dummy",
+        classifier_base_model="dummy",
+        num_samples=5,
+        sample_pool_size=20,
+        dev_mode=True,
+        num_iterations=1,
+    )
 
     # Make the instances
     if acquisition_function_cls == MaxUncertaintyAF:
@@ -37,7 +45,7 @@ def _basic_acquisition_function_test(acquisition_function_cls):
 
     # Generate some sentences then select them using the acquisition function
     sample_pool = UnlabelledSamples(
-        [str(i) for i in range(parameters["sample_pool_size"])]
+        [str(i) for i in range(parameters.sample_pool_size)]
     )
     samples = acquisition_function.select(sample_pool)
 
@@ -46,7 +54,7 @@ def _basic_acquisition_function_test(acquisition_function_cls):
         assert sample in sample_pool
 
     # Make sure the selection has the correct size
-    assert len(samples) == parameters["num_samples"]
+    assert len(samples) == parameters.num_samples
 
 
 def test_random_acquisition_function():
@@ -64,7 +72,12 @@ def test_max_uncertainty_function():
     # Some basic parameters
     num_samples = 5
     sample_pool_size = 20
-    parameters = Parameters(num_samples=num_samples, sample_pool_size=sample_pool_size)
+    parameters = Parameters(
+        dataset_name="dummy",
+        acquisition_function="dummy",
+        num_samples=num_samples,
+        sample_pool_size=sample_pool_size,
+    )
 
     # Set up the acquisition function
     dataset_container = DummyDatasetContainer(parameters)
